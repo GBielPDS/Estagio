@@ -3,6 +3,17 @@
 require "script/conexao.php";
 require "script/funcoes.php";
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    if (isset($_POST['excluir_id'])) {
+
+        $id = $_POST['excluir_id'];
+
+        excluirUsuario($conn, $id);
+
+    }
+}
+
 ?>
 
 <!DOCTYPE html>

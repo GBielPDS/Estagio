@@ -24,10 +24,16 @@ function listarUsuarios($conn)
             Editar
         </button>
         
-        <a href='excluir.php?id={$usuario['id_usuario']}'
-           onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
-            <button>Excluir</button>
-        </a>
+        <form method='POST' style='display:inline;'>
+                    
+            <input type='hidden' name='excluir_id' value={$usuario['id_usuario']}>
+
+            <button type='submit'
+                onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
+                Excluir
+            </button>
+
+        </form>
         </td>";
     }
 }
@@ -50,4 +56,44 @@ function buscarUsuarioPorId($conn, $id)
     $resultado = $stmt->get_result();
 
     return $resultado->fetch_assoc();
+}
+
+function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
+{
+    $sql = "UPDATE usuario
+            SET nome = ?, email = ?, senha = ?, tipo = ?
+            WHERE id_usuario = ?";
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        die("Erro ao preparar atualização: " . $conn->error);
+    }
+
+    $stmt->bind_param("ssssi", $nome, $email, $senha, $tipo, $id);
+
+    if ($stmt->execute()) {
+        return true;
+    }
+
+    return false;
+}
+
+function excluirUsuario($conn, $id)
+{
+    $sql = "DELETE FROM usuario WHERE id_usuario = ?";
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        die("Erro ao preparar exclusão: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $id);
+
+    if ($stmt->execute()) {
+        return true;
+    }
+
+    return false;
 }

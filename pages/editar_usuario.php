@@ -9,6 +9,24 @@ if (!isset($_GET['id'])) {
 
 $id = $_GET['id'];
 
+// Se o formulário foi enviado
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $nome = $_POST['nome'];
+    $email = $_POST['email'];
+    $senha = $_POST['senha'];
+    $tipo = $_POST['tipo'];
+
+    if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)) {
+
+        header("Location: ../index.php");
+        exit;
+
+    } else {
+        echo "Erro ao atualizar usuário.";
+    }
+}
+
 $usuario = buscarUsuarioPorId($conn, $id);
 
 if (!$usuario) {
@@ -32,28 +50,31 @@ if (!$usuario) {
 <form method="POST">
 
     <label>Nome:</label>
-    <input 
-        type="text" 
+    <input
+        type="text"
         name="nome"
         value="<?= htmlspecialchars($usuario['nome']) ?>"
+        required
     >
 
     <br><br>
 
     <label>Email:</label>
-    <input 
-        type="email" 
+    <input
+        type="email"
         name="email"
         value="<?= htmlspecialchars($usuario['email']) ?>"
+        required
     >
 
     <br><br>
 
     <label>Senha:</label>
-    <input 
-        type="text" 
+    <input
+        type="text"
         name="senha"
         value="<?= htmlspecialchars($usuario['senha']) ?>"
+        required
     >
 
     <br><br>
@@ -61,6 +82,7 @@ if (!$usuario) {
     <label>Tipo:</label>
 
     <select name="tipo">
+
         <option value="Administrador"
             <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
             Administrador
@@ -75,6 +97,7 @@ if (!$usuario) {
             <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
             Usuário
         </option>
+
     </select>
 
     <br><br>
