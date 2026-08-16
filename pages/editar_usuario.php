@@ -1,7 +1,7 @@
 <?php
 
-require "../conexao.php";
-require "../funcoes.php";
+require "../script/conexao.php";
+require "../script/funcoes.php";
 
 if (!isset($_GET['id'])) {
     die("Usuário não informado.");

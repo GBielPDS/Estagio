@@ -19,9 +19,10 @@ function listarUsuarios($conn)
         echo "<td>" . htmlspecialchars($usuario['tipo']) . "</td>";
 
         echo "<td>
-        <a href='pages/editar_usuario.php?id={$usuario['id_usuario']}'>
-            <button>Editar</button>
-        </a>
+        <button type='button' 
+            onclick=\"window.location.href='pages/editar_usuario.php?id={$usuario['id_usuario']}'\">
+            Editar
+        </button>
         
         <a href='excluir.php?id={$usuario['id_usuario']}'
            onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
