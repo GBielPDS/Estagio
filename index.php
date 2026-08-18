@@ -1,5 +1,6 @@
 <?php
 
+require "script/protecao.php";
 require "script/conexao.php";
 require "script/funcoes.php";
 
