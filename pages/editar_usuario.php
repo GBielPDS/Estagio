@@ -69,12 +69,11 @@ if (!$usuario) {
 
     <br><br>
 
-    <label>Senha:</label>
+    <label>Nova senha:</label>
     <input
-        type="text"
+        type="password"
         name="senha"
-        value="<?= htmlspecialchars($usuario['senha']) ?>"
-        required
+        placeholder="Deixe vazio para manter a senha atual"
     >
 
     <br><br>
@@ -82,7 +81,6 @@ if (!$usuario) {
     <label>Tipo:</label>
 
     <select name="tipo">
-
         <option value="Administrador"
             <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
             Administrador
@@ -97,7 +95,6 @@ if (!$usuario) {
             <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
             Usuário
         </option>
-
     </select>
 
     <br><br>

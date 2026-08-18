@@ -60,23 +60,51 @@ function buscarUsuarioPorId($conn, $id)
 
 function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
 {
-    $sql = "UPDATE usuario
-            SET nome = ?, email = ?, senha = ?, tipo = ?
-            WHERE id_usuario = ?";
+    if (!empty($senha)) {
 
-    $stmt = $conn->prepare($sql);
+        $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
-    if (!$stmt) {
-        die("Erro ao preparar atualização: " . $conn->error);
+        $sql = "UPDATE usuario
+                SET nome = ?, email = ?, senha = ?, tipo = ?
+                WHERE id_usuario = ?";
+
+        $stmt = $conn->prepare($sql);
+
+        if (!$stmt) {
+            die("Erro ao preparar atualização: " . $conn->error);
+        }
+
+        $stmt->bind_param(
+            "ssssi",
+            $nome,
+            $email,
+            $senhaHash,
+            $tipo,
+            $id
+        );
+
+    } else {
+
+        $sql = "UPDATE usuario
+                SET nome = ?, email = ?, tipo = ?
+                WHERE id_usuario = ?";
+
+        $stmt = $conn->prepare($sql);
+
+        if (!$stmt) {
+            die("Erro ao preparar atualização: " . $conn->error);
+        }
+
+        $stmt->bind_param(
+            "sssi",
+            $nome,
+            $email,
+            $tipo,
+            $id
+        );
     }
 
-    $stmt->bind_param("ssssi", $nome, $email, $senha, $tipo, $id);
-
-    if ($stmt->execute()) {
-        return true;
-    }
-
-    return false;
+    return $stmt->execute();
 }
 
 function excluirUsuario($conn, $id)
