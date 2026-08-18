@@ -60,6 +60,12 @@ function buscarUsuarioPorId($conn, $id)
 
 function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
 {
+    $usuarioAntigo = buscarUsuarioPorId($conn, $id);
+
+    if (!$usuarioAntigo) {
+        return false;
+    }
+
     if (!empty($senha)) {
 
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
@@ -105,6 +111,17 @@ function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
     }
 
     return $stmt->execute();
+
+    $descricao = "Usuário ID {$id} atualizado.";
+
+    registrarLog(
+        $conn,
+        "Atualização de usuário",
+        $descricao,
+        $usuarioLogado
+    );
+
+    return true;
 }
 
 function excluirUsuario($conn, $id)
