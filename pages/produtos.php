@@ -25,9 +25,8 @@ require '../script/funcoes_produtos.php';
             <th>ID</th>
             <th>Nome</th>
             <th>Categoria</th>
-            <th>Unidade</th>
-            <th>Estoque</th>
-            <th>Estoque mínimo</th>
+            <th>Unidade de medida</th>
+            <th>Quantidade em estoque</th>
         </tr>
 
         <?php listarProdutos($conn); ?>

@@ -21,7 +21,6 @@ function listarProdutos($conn)
         echo '<td>' . htmlspecialchars($produto['categoria']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['unidade']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['estoque']) . '</td>';
-        echo '<td>' . htmlspecialchars($produto['estoque_minimo']) . '</td>';
         echo '</tr>';
     }
 }
