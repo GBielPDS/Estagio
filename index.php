@@ -29,6 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>Lista de Usuários</h2>
 
+<p><a href="pages/produtos.php">Ver produtos</a></p>
+
 <table class="table">
     <tr>
         <th>ID</th>
