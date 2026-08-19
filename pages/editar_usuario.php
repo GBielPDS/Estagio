@@ -4,13 +4,17 @@ require_once '../script/protecao.php';
 require "../script/conexao.php";
 require "../script/funcoes.php";
 
+verificarSessao();
+
+verificarTipo(['Administrador']);
+
 if (!isset($_GET['id'])) {
     die("Usuário não informado.");
 }
 
 $id = $_GET['id'];
 
-// Se o formulário foi enviado
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $nome = $_POST['nome'];

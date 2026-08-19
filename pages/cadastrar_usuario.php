@@ -1,6 +1,11 @@
 <?php
 
+require_once '../script/protecao.php';
 require_once '../script/conexao.php';
+
+verificarSessao();
+
+verificarTipo(['Administrador']);
 
 $mensagem = '';
 $tipo_mensagem = '';
