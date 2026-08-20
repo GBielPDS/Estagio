@@ -1,8 +1,8 @@
 <?php
 
-require_once '../script/protecao.php';
+require_once '../script/sessao.php';
 require "../script/conexao.php";
-require "../script/funcoes.php";
+require "../script/funcoes_usuarios.php";
 
 verificarSessao();
 

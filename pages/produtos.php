@@ -1,6 +1,6 @@
 <?php
 
-require_once '../script/protecao.php';
+require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require '../script/funcoes_produtos.php';
 
