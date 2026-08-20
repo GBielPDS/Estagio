@@ -2,7 +2,7 @@
 
 session_start();
 
-define('BASE_URL', '/git/ESTAGIO/');
+define('BASE_URL', '/Estagio/');
 
 function verificarSessao()
 {

@@ -4,6 +4,8 @@ require "script/protecao.php";
 require "script/conexao.php";
 require "script/funcoes.php";
 
+verificarSessao();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['excluir_id'])) {
