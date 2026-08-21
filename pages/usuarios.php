@@ -1,8 +1,14 @@
 <?php
 
+<<<<<<< Updated upstream:pages/listar_usuario.php
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
+=======
+require "../script/sessao.php";
+require "../script/conexao.php";
+require "../script/funcoes_usuarios.php";
+>>>>>>> Stashed changes:pages/usuarios.php
 
 verificarSessao();
 
@@ -31,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <h2>Lista de Usuários</h2>
 
-<p><a href="pages/produtos.php">Ver produtos</a></p>
+<p><a href="produtos.php">Ver produtos</a></p>
 
 <table class="table">
     <tr>

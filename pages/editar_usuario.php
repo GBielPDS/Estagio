@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)) {
 
-        header("Location: ../index.php");
+        header("Location: usuarios.php");
         exit;
 
     } else {

@@ -20,7 +20,7 @@ function listarUsuarios($conn)
 
         echo "<td>
         <button type='button' 
-            onclick=\"window.location.href='pages/editar_usuario.php?id={$usuario['id_usuario']}'\">
+            onclick=\"window.location.href='editar_usuario.php?id={$usuario['id_usuario']}'\">
             Editar
         </button>
         

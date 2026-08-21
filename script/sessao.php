@@ -2,7 +2,11 @@
 
 session_start();
 
+<<<<<<< Updated upstream
 define('BASE_URL', '/git/ESTAGIO/');
+=======
+define('BASE_URL', 'git/ESTAGIO/');
+>>>>>>> Stashed changes
 
 function verificarSessao()
 {
