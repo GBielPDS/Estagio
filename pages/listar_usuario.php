@@ -1,8 +1,8 @@
 <?php
 
-require "script/sessao.php";
-require "script/conexao.php";
-require "script/funcoes_usuarios.php";
+require_once '../script/sessao.php';
+require_once '../script/conexao.php';
+require_once '../script/funcoes_usuarios.php';
 
 verificarSessao();
 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <title>Document</title>
 </head>
 <body>
