@@ -1,14 +1,8 @@
 <?php
 
-<<<<<<< Updated upstream:pages/listar_usuario.php
-require_once '../script/sessao.php';
-require_once '../script/conexao.php';
-require_once '../script/funcoes_usuarios.php';
-=======
 require "../script/sessao.php";
 require "../script/conexao.php";
 require "../script/funcoes_usuarios.php";
->>>>>>> Stashed changes:pages/usuarios.php
 
 verificarSessao();
 
