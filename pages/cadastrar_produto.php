@@ -130,9 +130,13 @@ $unidades = buscarUnidades($conn);
         <h1>Cadastrar produto</h1>
 
         <?php if ($mensagem !== ''): ?>
-            <p class="mensagem <?= htmlspecialchars($tipoMensagem) ?>">
-                <?= htmlspecialchars($mensagem) ?>
-            </p>
+            <div class="mensagem-modal <?= $tipoMensagem === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro' ?>">
+                <div class="mensagem-conteudo">
+                    <strong><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Atenção!' ?></strong>
+                    <p><?= htmlspecialchars($mensagem) ?></p>
+                    <button type="button" onclick="fecharMensagem()">OK</button>
+                </div>
+            </div>
         <?php endif; ?>
 
         <form method="POST">
@@ -140,7 +144,7 @@ $unidades = buscarUnidades($conn);
             <input type="text" id="nome" name="nome" maxlength="100"
                 value="<?= htmlspecialchars($nome) ?>" required>
 
-            <label for="categoria_id">Categoria existente:</label>
+            <label for="categoria_id">Categoria:</label>
             <select id="categoria_id" name="categoria_id">
                 <option value="">Selecione uma categoria</option>
                 <?php foreach ($categorias as $categoria): ?>
@@ -160,7 +164,7 @@ $unidades = buscarUnidades($conn);
                 value="<?= htmlspecialchars($novaCategoria) ?>">
             </div>
 
-            <label for="unidade">Unidade existente:</label>
+            <label for="unidade">Unidade:</label>
             <select id="unidade" name="unidade">
                 <option value="">Selecione uma unidade</option>
                 <?php foreach ($unidades as $itemUnidade): ?>
@@ -222,11 +226,15 @@ $unidades = buscarUnidades($conn);
         atualizarCampoNovo(unidadeSelect, campoNovaUnidade, novaUnidade);
     </script>
 
-    <?php if ($tipoMensagem === 'sucesso'): ?>
-        <script>
-            alert('Novo cadastro realizado com sucesso!');
-        </script>
-    <?php endif; ?>
+    <script>
+        function fecharMensagem() {
+            const mensagem = document.querySelector('.mensagem-modal');
+
+            if (mensagem) {
+                mensagem.remove();
+            }
+        }
+    </script>
 
 </body>
 
