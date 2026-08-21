@@ -27,6 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $estoque = trim($_POST['estoque'] ?? '');
     $estoqueMinimo = trim($_POST['estoque_minimo'] ?? '');
 
+    if ($categoriaSelecionada === '__nova__') {
+        $categoriaSelecionada = '';
+    }
+
+    if ($unidadeSelecionada === '__nova__') {
+        $unidadeSelecionada = '';
+    }
+
     if ($nome === '') {
         $mensagem = 'Informe o nome do produto.';
     } elseif ($categoriaSelecionada !== '' && $novaCategoria !== '') {
@@ -141,11 +149,16 @@ $unidades = buscarUnidades($conn);
                         <?= htmlspecialchars($categoria['nome']) ?>
                     </option>
                 <?php endforeach; ?>
+                <option value="__nova__" <?= $novaCategoria !== '' ? 'selected' : '' ?>>
+                    Criar nova categoria...
+                </option>
             </select>
 
-            <label for="nova_categoria">Ou crie uma nova categoria:</label>
-            <input type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
+            <div id="campo_nova_categoria">
+                <label for="nova_categoria">Nome da nova categoria:</label>
+                <input type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
                 value="<?= htmlspecialchars($novaCategoria) ?>">
+            </div>
 
             <label for="unidade">Unidade existente:</label>
             <select id="unidade" name="unidade">
@@ -156,11 +169,16 @@ $unidades = buscarUnidades($conn);
                         <?= htmlspecialchars($itemUnidade['unidade']) ?>
                     </option>
                 <?php endforeach; ?>
+                <option value="__nova__" <?= $novaUnidade !== '' ? 'selected' : '' ?>>
+                    Criar nova unidade...
+                </option>
             </select>
 
-            <label for="nova_unidade">Ou informe uma nova unidade:</label>
-            <input type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
-                value="<?= htmlspecialchars($novaUnidade) ?>">
+            <div id="campo_nova_unidade">
+                <label for="nova_unidade">Nome da nova unidade:</label>
+                <input type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
+                    value="<?= htmlspecialchars($novaUnidade) ?>">
+            </div>
 
             <label for="estoque">Estoque inicial:</label>
             <input type="number" id="estoque" name="estoque" min="0" step="1"
@@ -173,6 +191,42 @@ $unidades = buscarUnidades($conn);
             <button type="submit">Cadastrar produto</button>
         </form>
     </main>
+
+    <script>
+        const categoriaSelect = document.getElementById('categoria_id');
+        const unidadeSelect = document.getElementById('unidade');
+        const campoNovaCategoria = document.getElementById('campo_nova_categoria');
+        const campoNovaUnidade = document.getElementById('campo_nova_unidade');
+        const novaCategoria = document.getElementById('nova_categoria');
+        const novaUnidade = document.getElementById('nova_unidade');
+
+        function atualizarCampoNovo(select, campo, input) {
+            const exibir = select.value === '__nova__';
+            campo.hidden = !exibir;
+            input.required = exibir;
+
+            if (!exibir) {
+                input.value = '';
+            }
+        }
+
+        categoriaSelect.addEventListener('change', () => {
+            atualizarCampoNovo(categoriaSelect, campoNovaCategoria, novaCategoria);
+        });
+
+        unidadeSelect.addEventListener('change', () => {
+            atualizarCampoNovo(unidadeSelect, campoNovaUnidade, novaUnidade);
+        });
+
+        atualizarCampoNovo(categoriaSelect, campoNovaCategoria, novaCategoria);
+        atualizarCampoNovo(unidadeSelect, campoNovaUnidade, novaUnidade);
+    </script>
+
+    <?php if ($tipoMensagem === 'sucesso'): ?>
+        <script>
+            alert('Novo cadastro realizado com sucesso!');
+        </script>
+    <?php endif; ?>
 
 </body>
 
