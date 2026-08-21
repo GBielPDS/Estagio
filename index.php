@@ -1,6 +1,7 @@
 <?php
 
 require_once 'script/sessao.php';
+require 'script/sidebar.php';
 
 verificarSessao();
 
@@ -20,52 +21,7 @@ verificarSessao();
 
 <body>
 
-    <aside class="sidebar">
-
-        <div class="logo">
-            <h2>ESTAGIO</h2>
-        </div>
-
-        <nav>
-
-            <a href="index.php" class="ativo">
-                Home
-            </a>
-
-            <?php if ($_SESSION['tipo'] === 'Administrador'): ?>
-
-                <a href="pages/usuarios.php">
-                    Usuários
-                </a>
-
-                <a href="pages/logs.php">
-                    Logs
-                </a>
-
-            <?php endif; ?>
-
-            <?php if (
-                $_SESSION['tipo'] === 'Administrador' ||
-                $_SESSION['tipo'] === 'Suporte'
-            ): ?>
-
-                <a href="pages/produtos.php">
-                    Produtos
-                </a>
-
-            <?php endif; ?>
-
-            <a href="pages/perfil.php">
-                Meu perfil
-            </a>
-
-            <a href="pages/logout.php">
-                Sair
-            </a>
-
-        </nav>
-
-    </aside>
+    <?php sidebar('home'); ?>
 
 
     <main class="conteudo">

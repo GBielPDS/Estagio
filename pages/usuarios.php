@@ -3,6 +3,7 @@
 require "../script/sessao.php";
 require "../script/conexao.php";
 require "../script/funcoes_usuarios.php";
+require "../script/sidebar.php";
 
 verificarSessao();
 
@@ -29,23 +30,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<h2>Lista de Usuários</h2>
+    <?php sidebar('usuarios'); ?>
 
-<p><a href="produtos.php">Ver produtos</a></p>
+    <main class="conteudo">
 
-<table class="table">
-    <tr>
-        <th>ID</th>
-        <th>Nome</th>
-        <th>Email</th>
-        <th>Senha</th>
-        <th>Tipo</th>
-        <th>Ações</th>
-    </tr>
+    <table class="table">
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Senha</th>
+            <th>Tipo</th>
+            <th>Ações</th>
+        </tr>
 
-    <?php listarUsuarios($conn); ?>
+        <?php listarUsuarios($conn); ?>
 
-</table>
+    </table>
+    
+    </main>
 
 </body>
 </html>

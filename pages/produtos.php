@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require '../script/funcoes_produtos.php';
+require "../script/sidebar.php";
 
 verificarSessao();
 

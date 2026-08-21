@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require "../script/conexao.php";
 require "../script/funcoes_usuarios.php";
+require "../script/sidebar.php";
 
 verificarSessao();
 

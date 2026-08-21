@@ -12,3 +12,112 @@
         th {
             background: #ddd;
         }
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 240px;
+    height: 100vh;
+
+    background-color: #222;
+
+    color: white;
+}
+
+.logo {
+    height: 70px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-bottom: 1px solid #444;
+}
+
+.logo h2 {
+    font-size: 20px;
+}
+
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+
+    padding-top: 20px;
+}
+
+.sidebar nav a {
+    padding: 15px 25px;
+
+    color: #ddd;
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.sidebar nav a:hover {
+    background-color: #444;
+    color: white;
+}
+
+.sidebar nav a.ativo {
+    background-color: #007bff;
+    color: white;
+}
+
+
+.conteudo {
+    margin-left: 240px;
+
+    min-height: 100vh;
+
+    padding: 30px;
+}
+
+
+.topo {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 30px;
+}
+
+.topo h1 {
+    font-size: 28px;
+}
+
+.usuario {
+    color: #555;
+}
+
+
+.dashboard {
+    background-color: white;
+
+    padding: 30px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard h2 {
+    margin-bottom: 10px;
+}
