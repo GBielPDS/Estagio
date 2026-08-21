@@ -46,68 +46,76 @@ if (!$usuario) {
 
 <head>
     <meta charset="UTF-8">
-    <title>Editar Usuário</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/style.css">
+    <title>Document</title>
 </head>
 
 <body>
 
-<h1>Editar Usuário</h1>
+    <?php sidebar('usuarios'); ?>
 
-<form method="POST">
+    <main class="conteudo">
 
-    <label>Nome:</label>
-    <input
-        type="text"
-        name="nome"
-        value="<?= htmlspecialchars($usuario['nome']) ?>"
-        required
-    >
+        <h1>Editar Usuário</h1>
 
-    <br><br>
+        <form method="POST">
 
-    <label>Email:</label>
-    <input
-        type="email"
-        name="email"
-        value="<?= htmlspecialchars($usuario['email']) ?>"
-        required
-    >
+            <label>Nome:</label>
+            <input
+                type="text"
+                name="nome"
+                value="<?= htmlspecialchars($usuario['nome']) ?>"
+                required
+            >
 
-    <br><br>
+            <br><br>
 
-    <label>Nova senha:</label>
-    <input
-        type="password"
-        name="senha"
-        placeholder="Deixe vazio para manter a senha atual"
-    >
+            <label>Email:</label>
+            <input
+                type="email"
+                name="email"
+                value="<?= htmlspecialchars($usuario['email']) ?>"
+                required
+            >
 
-    <br><br>
+            <br><br>
 
-    <label>Tipo:</label>
+            <label>Nova senha:</label>
+            <input
+                type="password"
+                name="senha"
+                placeholder="Deixe vazio para manter a senha atual"
+            >
 
-    <select name="tipo">
-        <option value="Administrador"
-            <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
-            Administrador
-        </option>
+            <br><br>
 
-        <option value="Suporte"
-            <?= $usuario['tipo'] == 'Suporte' ? 'selected' : '' ?>>
-            Suporte
-        </option>
+            <label>Tipo:</label>
 
-        <option value="Usuario"
-            <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
-            Usuário
-        </option>
-    </select>
+            <select name="tipo">
+                <option value="Administrador"
+                    <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
+                    Administrador
+                </option>
 
-    <br><br>
+                <option value="Suporte"
+                    <?= $usuario['tipo'] == 'Suporte' ? 'selected' : '' ?>>
+                    Suporte
+                </option>
 
-    <button type="submit">Salvar</button>
+                <option value="Usuario"
+                    <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
+                    Usuário
+                </option>
+            </select>
 
-</form>
+            <br><br>
+
+            <button type="submit">Salvar</button>
+
+        </form>
+
+    </main>
 
 </body>
 </html>

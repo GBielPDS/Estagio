@@ -21,19 +21,26 @@ verificarSessao();
 
 <body>
 
-    <h1>Produtos</h1>
+    <?php sidebar('produtos'); ?>
 
-    <table class="table">
-        <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Unidade de medida</th>
-            <th>Quantidade em estoque</th>
-        </tr>
+    <main class="conteudo">
 
-        <?php listarProdutos($conn); ?>
-    </table>
+
+        <h1>Produtos</h1>
+
+        <table class="table">
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Unidade de medida</th>
+                <th>Quantidade em estoque</th>
+            </tr>
+
+            <?php listarProdutos($conn); ?>
+        </table>
+
+    </main>
 
 </body>
 
