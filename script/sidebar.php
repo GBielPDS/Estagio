@@ -1,5 +1,7 @@
 <?php 
 
+require_once "../url/url.php";
+
 function sidebar($paginaAtiva = '')
 {
     $tipo = $_SESSION['tipo'] ?? '';
