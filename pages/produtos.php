@@ -25,8 +25,11 @@ verificarSessao();
 
     <main class="conteudo">
 
+        <Header class="topo">
 
-        <h1>Produtos</h1>
+            <h1>Produtos</h1>
+
+        </Header>
 
         <table class="table">
             <tr>

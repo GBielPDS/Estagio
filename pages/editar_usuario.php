@@ -57,63 +57,71 @@ if (!$usuario) {
 
     <main class="conteudo">
 
-        <h1>Editar Usuário</h1>
+        <header class="topo">
 
-        <form method="POST">
+            <h1>Editar Usuário</h1>
 
-            <label>Nome:</label>
-            <input
-                type="text"
-                name="nome"
-                value="<?= htmlspecialchars($usuario['nome']) ?>"
-                required
-            >
+        </header>
 
-            <br><br>
+        <Section class="dashboard">
 
-            <label>Email:</label>
-            <input
-                type="email"
-                name="email"
-                value="<?= htmlspecialchars($usuario['email']) ?>"
-                required
-            >
+            <form method="POST">
 
-            <br><br>
+                <label>Nome:</label>
+                <input
+                    type="text"
+                    name="nome"
+                    value="<?= htmlspecialchars($usuario['nome']) ?>"
+                    required
+                >
 
-            <label>Nova senha:</label>
-            <input
-                type="password"
-                name="senha"
-                placeholder="Deixe vazio para manter a senha atual"
-            >
+                <br><br>
 
-            <br><br>
+                <label>Email:</label>
+                <input
+                    type="email"
+                    name="email"
+                    value="<?= htmlspecialchars($usuario['email']) ?>"
+                    required
+                >
 
-            <label>Tipo:</label>
+                <br><br>
 
-            <select name="tipo">
-                <option value="Administrador"
-                    <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
-                    Administrador
-                </option>
+                <label>Nova senha:</label>
+                <input
+                    type="password"
+                    name="senha"
+                    placeholder="Deixe vazio para manter a senha atual"
+                >
 
-                <option value="Suporte"
-                    <?= $usuario['tipo'] == 'Suporte' ? 'selected' : '' ?>>
-                    Suporte
-                </option>
+                <br><br>
 
-                <option value="Usuario"
-                    <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
-                    Usuário
-                </option>
-            </select>
+                <label>Tipo:</label>
 
-            <br><br>
+                <select name="tipo">
+                    <option value="Administrador"
+                        <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
+                        Administrador
+                    </option>
 
-            <button type="submit">Salvar</button>
+                    <option value="Suporte"
+                        <?= $usuario['tipo'] == 'Suporte' ? 'selected' : '' ?>>
+                        Suporte
+                    </option>
 
-        </form>
+                    <option value="Usuario"
+                        <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
+                        Usuário
+                    </option>
+                </select>
+
+                <br><br>
+
+                <button type="submit">Salvar</button>
+
+            </form>
+
+        </Section>
 
     </main>
 

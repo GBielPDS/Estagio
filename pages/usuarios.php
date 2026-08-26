@@ -34,20 +34,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <main class="conteudo">
 
-    <table class="table">
-        <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Senha</th>
-            <th>Tipo</th>
-            <th>Ações</th>
-        </tr>
+        <header class="topo">
 
-        <?php listarUsuarios($conn); ?>
+            <h1>Usuarios</h1>
 
-    </table>
-    
+        </header>
+        
+        <table class="table">
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Senha</th>
+                <th>Tipo</th>
+                <th>Ações</th>
+            </tr>
+
+            <?php listarUsuarios($conn); ?>
+
+        </table>
+
     </main>
 
 </body>

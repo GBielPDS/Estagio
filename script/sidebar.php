@@ -1,6 +1,5 @@
 <?php 
 
-require_once "../url/url.php";
 
 function sidebar($paginaAtiva = '')
 {
@@ -15,9 +14,14 @@ function sidebar($paginaAtiva = '')
 
         <nav>
 
-            <a href="/git/ESTAGIO/index.php" class="' .
+            <a href="' . BASE_URL . 'index.php" class="' .
                 ($paginaAtiva === 'home' ? 'ativo' : '') . '">
                 Home
+            </a>
+
+            <a href="' . BASE_URL . 'pages/lancamentos.php" class="' .
+                ($paginaAtiva === 'Lançamentos' ? 'ativo' : '') . '">
+                Lançamentos
             </a>
     ';
 
@@ -25,12 +29,12 @@ function sidebar($paginaAtiva = '')
     if ($tipo === 'Administrador') {
 
         echo '
-            <a href="/git/ESTAGIO/pages/usuarios.php" class="' .
+            <a href="' . BASE_URL . 'pages/usuarios.php" class="' .
                 ($paginaAtiva === 'usuarios' ? 'ativo' : '') . '">
                 Usuários
             </a>
 
-            <a href="/git/ESTAGIO/pages/logs.php" class="' .
+            <a href="' . BASE_URL . 'pages/logs.php" class="' .
                 ($paginaAtiva === 'logs' ? 'ativo' : '') . '">
                 Logs
             </a>
@@ -41,12 +45,12 @@ function sidebar($paginaAtiva = '')
         if ($tipo === 'Administrador' || $tipo === 'Suporte' || $tipo === 'Usuario') {
 
         echo '
-            <a href="/git/ESTAGIO/pages/produtos.php" class="' .
+            <a href="' . BASE_URL . 'pages/produtos.php" class="' .
                 ($paginaAtiva === 'produtos' ? 'ativo' : '') . '">
                 Produtos
             </a>
 
-            <a href="/git/ESTAGIO/pages/cadastrar_produto.php" class="' .
+            <a href="' . BASE_URL . 'pages/cadastrar_produto.php" class="' .
                 ($paginaAtiva === 'cadastrar-produto' ? 'ativo' : '') . '">
                 Cadastrar produto
             </a>
@@ -54,12 +58,12 @@ function sidebar($paginaAtiva = '')
     }
 
     echo '
-            <a href="/git/ESTAGIO/pages/perfil.php" class="' .
+            <a href="' . BASE_URL . 'pages/perfil.php" class="' .
                 ($paginaAtiva === 'perfil' ? 'ativo' : '') . '">
                 Meu perfil
             </a>
 
-            <a href="/git/ESTAGIO/pages/logout.php">
+            <a href="' . BASE_URL . 'pages/login.php">
                 Sair
             </a>
 
