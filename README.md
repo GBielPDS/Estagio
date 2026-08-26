@@ -1,1 +1,3 @@
 # Estágio
+
+Essa aplicação foi desenvolvida em php, portanto para rodar ela você deverá ter um servidor php, recomendo usar o XAMPP se for rodar em sua máquina pessoal. Na pasta script arquivo sessao.php tem uma constante na linha 5 chamada BASE_URL, mude ela para a URL onde sua aplicação está rodando para poder usar. Também será necessário um banco de dados, na pasta bd tem um script slq para a criação do banco e na pasta script no arquivo conexao.php é onde configura a conexão com o banco de dados, após a criação do banco de dados, insira um usuário do tipo administrador, agora você pode usar este sistema web.
