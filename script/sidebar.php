@@ -38,12 +38,17 @@ function sidebar($paginaAtiva = '')
     }
 
     ///////  Administrador e Suporte  \\\\\\\
-    if ($tipo === 'Administrador' || $tipo === 'Suporte') {
+        if ($tipo === 'Administrador' || $tipo === 'Suporte' || $tipo === 'Usuario') {
 
         echo '
             <a href="/git/ESTAGIO/pages/produtos.php" class="' .
                 ($paginaAtiva === 'produtos' ? 'ativo' : '') . '">
                 Produtos
+            </a>
+
+            <a href="/git/ESTAGIO/pages/cadastrar_produto.php" class="' .
+                ($paginaAtiva === 'cadastrar-produto' ? 'ativo' : '') . '">
+                Cadastrar produto
             </a>
         ';
     }

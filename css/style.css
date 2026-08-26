@@ -121,3 +121,56 @@ body {
 .dashboard h2 {
     margin-bottom: 10px;
 }
+
+.mensagem-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.mensagem-conteudo {
+    min-width: 320px;
+    max-width: 90%;
+    padding: 26px;
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.mensagem-conteudo strong {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 22px;
+}
+
+.mensagem-conteudo p {
+    margin-bottom: 20px;
+}
+
+.mensagem-erro .mensagem-conteudo {
+    background-color: #b42318;
+}
+
+.mensagem-sucesso .mensagem-conteudo {
+    background-color: #19733e;
+}
+
+.mensagem-conteudo button {
+    min-width: 80px;
+    padding: 9px 20px;
+    border: 0;
+    border-radius: 4px;
+    background-color: white;
+    color: #222;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.mensagem-conteudo button:hover {
+    background-color: #eeeeee;
+}
