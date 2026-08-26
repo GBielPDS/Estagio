@@ -2,19 +2,25 @@
 
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
+require_once '../script/funcoes_usuarios.php';
 
-verificarSessao();
+$modoAdministrador = isset($_GET['admin']) && $_GET['admin'] === '1';
 
-verificarTipo(['Administrador']);
+if ($modoAdministrador) {
+    verificarSessao();
+    verificarTipo(['Administrador']);
+}
 
 $mensagem = '';
 $tipo_mensagem = '';
+$tipo = 'Usuario';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $nome = trim($_POST['nome']);
-    $email = trim($_POST['email']);
-    $senha = $_POST['senha'];
+    $nome = trim($_POST['nome'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $senha = $_POST['senha'] ?? '';
+    $tipo = $modoAdministrador ? ($_POST['tipo'] ?? 'Usuario') : 'Usuario';
 
     if ($nome === '' || $email === '' || $senha === '') {
 
@@ -26,47 +32,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'Digite um email válido.';
         $tipo_mensagem = 'erro';
 
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $mensagem = 'Digite um email válido.';
+        $tipo_mensagem = 'erro';
+    } elseif (!in_array($tipo, ['Administrador', 'Suporte', 'Usuario'], true)) {
+        $mensagem = 'Tipo de usuário inválido.';
+        $tipo_mensagem = 'erro';
     } else {
+        $resultado = cadastrarUsuario($conn, $nome, $email, $senha, $tipo);
 
-        $sql = 'SELECT id_usuario FROM usuario WHERE email = ?';
-
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('s', $email);
-        $stmt->execute();
-
-        $resultado = $stmt->get_result();
-
-        if ($resultado->num_rows > 0) {
-
-            $mensagem = 'Este email já está cadastrado.';
-            $tipo_mensagem = 'erro';
-
+        if ($resultado['sucesso']) {
+            $mensagem = 'Cadastro realizado com sucesso.';
+            $tipo_mensagem = 'sucesso';
         } else {
-
-            $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-
-            $sql = 'INSERT INTO usuario (nome, email, senha, tipo)
-                    VALUES (?, ?, ?, ?)';
-
-            $stmt = $conn->prepare($sql);
-
-            $tipo = 'Usuario';
-
-            $stmt->bind_param('ssss', $nome, $email, $senha_hash, $tipo);
-
-            if ($stmt->execute()) {
-
-                $mensagem = 'Cadastro realizado com sucesso.';
-                $tipo_mensagem = 'sucesso';
-
-            } else {
-
-                $mensagem = 'Erro ao realizar o cadastro.';
-                $tipo_mensagem = 'erro';
-            }
+            $mensagem = $resultado['mensagem'];
+            $tipo_mensagem = 'erro';
         }
-
-        $stmt->close();
     }
 }
 ?>
@@ -83,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-    <h1>Cadastro</h1>
+    <h1><?= $modoAdministrador ? 'Cadastrar usuário' : 'Cadastro' ?></h1>
 
     <?php if ($mensagem !== ''): ?>
 
@@ -110,6 +91,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label for="senha">Senha:</label>
         <br>
         <input type="password" id="senha" name="senha">
+
+        <?php if ($modoAdministrador): ?>
+            <br><br>
+
+            <label for="tipo">Tipo de usuário:</label>
+            <br>
+            <select id="tipo" name="tipo">
+                <option value="Usuario" <?= $tipo === 'Usuario' ? 'selected' : '' ?>>Usuario</option>
+                <option value="Suporte" <?= $tipo === 'Suporte' ? 'selected' : '' ?>>Suporte</option>
+                <option value="Administrador" <?= $tipo === 'Administrador' ? 'selected' : '' ?>>Administrador</option>
+            </select>
+        <?php endif; ?>
 
         <br><br>
 
