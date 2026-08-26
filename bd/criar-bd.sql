@@ -35,28 +35,53 @@ CREATE TABLE produto (
         ON DELETE RESTRICT
 );
 
+CREATE TABLE unidade_saude (
+    id_unidade INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    endereco VARCHAR(255),
+    telefone VARCHAR(20),
+    ativo BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE movimentacao (
     id_movimentacao INT AUTO_INCREMENT PRIMARY KEY,
     tipo ENUM('Entrada', 'Saida') NOT NULL,
-    quantidade INT NOT NULL,
     data_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    destino_setor VARCHAR(100),
+    unidade_destino_id INT,
     observacao TEXT,
-    produto_id INT NOT NULL,
     usuario_id INT NOT NULL,
-
-    CONSTRAINT chk_quantidade
-        CHECK (quantidade > 0),
-
-    CONSTRAINT fk_movimentacao_produto
-        FOREIGN KEY (produto_id)
-        REFERENCES produto(id_produto)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
 
     CONSTRAINT fk_movimentacao_usuario
         FOREIGN KEY (usuario_id)
         REFERENCES usuario(id_usuario)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_movimentacao_unidade
+        FOREIGN KEY (unidade_destino_id)
+        REFERENCES unidade_saude(id_unidade)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE item_lancamento (
+    id_item INT AUTO_INCREMENT PRIMARY KEY,
+    movimentacao_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    quantidade INT NOT NULL,
+
+    CONSTRAINT chk_item_quantidade
+        CHECK (quantidade > 0),
+
+    CONSTRAINT fk_item_lancamento
+        FOREIGN KEY (movimentacao_id)
+        REFERENCES movimentacao(id_movimentacao)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_item_produto
+        FOREIGN KEY (produto_id)
+        REFERENCES produto(id_produto)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
