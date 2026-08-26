@@ -6,6 +6,7 @@ require "../script/funcoes_usuarios.php";
 require "../script/sidebar.php";
 
 verificarSessao();
+verificarTipo(['Administrador']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -37,6 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <header class="topo">
 
             <h1>Usuarios</h1>
+
+            <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php?admin=1">
+                Cadastrar usuário
+            </a>
 
         </header>
         

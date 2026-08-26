@@ -1,5 +1,41 @@
 <?php
 
+function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
+{
+    $sql = 'SELECT id_usuario FROM usuario WHERE email = ?';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao verificar o email.'];
+    }
+
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
+        return ['sucesso' => false, 'mensagem' => 'Este email já está cadastrado.'];
+    }
+
+    $stmt->close();
+
+    $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+    $sql = 'INSERT INTO usuario (nome, email, senha, tipo) VALUES (?, ?, ?, ?)';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar o cadastro.'];
+    }
+
+    $stmt->bind_param('ssss', $nome, $email, $senhaHash, $tipo);
+    $sucesso = $stmt->execute();
+    $stmt->close();
+
+    return $sucesso
+        ? ['sucesso' => true]
+        : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
+}
+
 function listarUsuarios($conn)
 {
     $sql = "SELECT id_usuario, nome, email, senha, tipo FROM usuario";
