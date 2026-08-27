@@ -64,13 +64,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/style.css">
-    <title>Login</title>
+
+    <title>GestSaúde</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body>
+<body class="pagina-login">
 
-    <h1>Login</h1>
+    <div class="login-container">
+
+        <div class="logo">
+            <img src="gestsaude-logo.svg" alt="Logo GestSaúde">
+        </div>
+
+        <h2 class="titulo-formulario">Seja Bem-Vindo</h2>
 
     <?php if ($mensagem !== ''): ?>
 
@@ -80,27 +95,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php endif; ?>
 
-    <form method="POST" action="">
+      <form action="index.html" id="formLogin">
 
-        <label for="email">Email:</label>
-        <br>
-        <input type="email" id="email" name="email">
+            <div class="grupamento">
+                <label for="emailInput">E-mail</label>
+                <input type="email" id="emailInput" placeholder="usuario@gmail.com" required>
+            </div>
 
-        <br><br>
+            <div class="grupamento">
+                <label for="senhaInput">Senha</label>
+                <input type="password" id="senhaInput" placeholder="Senha" required>
+            </div>
 
-        <label for="senha">Senha:</label>
-        <br>
-        <input type="password" id="senha" name="senha">
+           <button type="submit" class="button-submit">Entrar</button>
+         
 
-        <br><br>
+            <div class="footer-links">
+                <a href="refazer_senha.html">Esqueceu sua senha?</a>
+                <a href="primeiro_acesso.html">Primeiro Acesso</a>
+            </div>
 
-        <button type="submit">Entrar</button>
-
-    </form>
+        </form>
 
     <br>
-
-    <a href="cadastrar_usuario.php">Não possui conta? Cadastre-se</a>
 
 </body>
 
