@@ -1,5 +1,6 @@
 <?php
 
+require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 
 $mensagem = '';
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['email'] = $usuario['email'];
                 $_SESSION['tipo'] = $usuario['tipo'];
 
-                header('Location: ../index.php');
+                header('Location: ' . BASE_URL . 'index.php');
                 exit();
 
             } else {
@@ -95,16 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php endif; ?>
 
-      <form action="index.html" id="formLogin">
+    <form method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" id="formLogin">
 
             <div class="grupamento">
                 <label for="emailInput">E-mail</label>
-                <input type="email" id="emailInput" placeholder="usuario@gmail.com" required>
+                <input type="email" id="emailInput" name="email" placeholder="usuario@gmail.com" required>
             </div>
 
             <div class="grupamento">
                 <label for="senhaInput">Senha</label>
-                <input type="password" id="senhaInput" placeholder="Senha" required>
+                <input type="password" id="senhaInput" name="senha" placeholder="Senha" required>
             </div>
 
            <button type="submit" class="button-submit">Entrar</button>
@@ -112,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="footer-links">
                 <a href="refazer_senha.html">Esqueceu sua senha?</a>
-                <a href="primeiro_acesso.html">Primeiro Acesso</a>
+                <a href="cadastrar_usuario.php">Primeiro Acesso</a>
             </div>
 
         </form>
