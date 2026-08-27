@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
 </head>
 
 <body class="pagina-login">
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
 
         <div class="logo">
-            <img src="gestsaude-logo.svg" alt="Logo GestSaúde">
+            <img src="../gestsaude-logo.svg" alt="Logo GestSaúde">
         </div>
 
         <h2 class="titulo-formulario">Seja Bem-Vindo</h2>
