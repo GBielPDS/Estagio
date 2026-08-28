@@ -21,7 +21,6 @@ $resultadoSecretaria = $conn->query($sqlSecretaria);
 if ($resultadoSecretaria->num_rows > 0) {
 
     $secretaria = $resultadoSecretaria->fetch_assoc();
-
     $idSecretaria = $secretaria['id_unidade'];
 
 } else {
@@ -55,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $produto_id = (int) $produto['produto_id'];
-
         $quantidade = (int) $produto['quantidade'];
 
 
@@ -75,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($produtos)) {
 
         $mensagem = "Adicione pelo menos um produto.";
-
         $tipoMensagem = "erro";
 
     } else {
@@ -241,7 +238,7 @@ $resultadoUnidades =
 
     <?php if ($mensagem !== ''): ?>
 
-        <div class="mensagem <?= $tipoMensagem ?>">
+        <div class="mensagem <?= htmlspecialchars($tipoMensagem) ?>">
 
             <?= htmlspecialchars($mensagem) ?>
 
@@ -318,27 +315,28 @@ $resultadoUnidades =
                 <select
                     name="unidade_destino"
                     id="unidade_destino"
+                    required
                 >
+
 
                     <option
                         value="<?= $idSecretaria ?>"
                         data-secretaria="true"
                     >
+
                         Secretaria de Saúde
+
                     </option>
 
 
-                    <?php
-
-                    while (
+                    <?php while (
                         $unidade =
                         $resultadoUnidades->fetch_assoc()
-                    ):
-
-                    ?>
+                    ): ?>
 
                         <option
                             value="<?= $unidade['id_unidade'] ?>"
+                            data-secretaria="false"
                         >
 
                             <?= htmlspecialchars(
@@ -356,6 +354,7 @@ $resultadoUnidades =
 
             <br>
 
+
             <h3>Produtos</h3>
 
 
@@ -367,6 +366,7 @@ $resultadoUnidades =
 
                     <select
                         name="produtos[0][produto_id]"
+                        class="select-produto"
                         required
                     >
 
@@ -375,19 +375,14 @@ $resultadoUnidades =
                         </option>
 
 
-                        <?php
-
-                        $resultadoProdutos->data_seek(0);
-
-                        while (
+                        <?php while (
                             $produto =
                             $resultadoProdutos->fetch_assoc()
-                        ):
-
-                        ?>
+                        ): ?>
 
                             <option
                                 value="<?= $produto['id_produto'] ?>"
+                                data-estoque="<?= $produto['estoque'] ?>"
                             >
 
                                 <?= htmlspecialchars(
@@ -395,7 +390,6 @@ $resultadoUnidades =
                                 ) ?>
 
                                 — Estoque:
-
                                 <?= $produto['estoque'] ?>
 
                                 <?= htmlspecialchars(
@@ -504,27 +498,141 @@ function alterarTipo()
         ).value;
 
 
-    const select =
+    const selectUnidade =
         document.getElementById(
             'unidade_destino'
         );
 
 
+    const opcoesUnidade =
+        selectUnidade.querySelectorAll(
+            'option'
+        );
+
+
     if (tipo === 'Entrada') {
 
-        select.value =
+
+        opcoesUnidade.forEach(
+            function(opcao)
+            {
+
+                opcao.hidden = false;
+
+            }
+        );
+
+
+        selectUnidade.value =
             "<?= $idSecretaria ?>";
 
-        select.disabled = true;
 
-    } else {
-
-        select.disabled = false;
-
-        select.value = "";
+        selectUnidade.disabled = true;
 
     }
 
+
+    else {
+
+
+        selectUnidade.disabled = false;
+
+
+        selectUnidade.value = "";
+
+
+        opcoesUnidade.forEach(
+            function(opcao)
+            {
+
+                if (
+                    opcao.dataset.secretaria === 'true'
+                ) {
+
+                    opcao.hidden = true;
+
+                } else {
+
+                    opcao.hidden = false;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    atualizarProdutos();
+
+}
+
+
+function atualizarProdutos()
+{
+    const tipo =
+        document.querySelector(
+            'input[name="tipo"]:checked'
+        ).value;
+
+
+    const selects =
+        document.querySelectorAll(
+            '.select-produto'
+        );
+
+
+    selects.forEach(
+        function(select)
+        {
+
+            const opcoes =
+                select.querySelectorAll(
+                    'option'
+                );
+
+
+            opcoes.forEach(
+                function(opcao)
+                {
+
+                    if (opcao.value === '') {
+                        return;
+                    }
+
+
+                    const estoque =
+                        parseInt(
+                            opcao.dataset.estoque
+                        );
+
+
+                    if (tipo === 'Saida') {
+
+                        if (estoque <= 0) {
+
+                            opcao.hidden = true;
+
+                        } else {
+
+                            opcao.hidden = false;
+
+                        }
+
+                    }
+
+
+                    else {
+
+                        opcao.hidden = false;
+
+                    }
+
+                }
+            );
+
+        }
+    );
 }
 
 
@@ -550,6 +658,7 @@ function adicionarProduto()
 
         <select
             name="produtos[${contadorProdutos}][produto_id]"
+            class="select-produto"
             required
         >
 
@@ -557,9 +666,12 @@ function adicionarProduto()
                 Selecione um produto
             </option>
 
+
             <?php
 
-            $resultadoProdutos->data_seek(0);
+
+            $resultadoProdutos =
+                $conn->query($sqlProdutos);
 
             while (
                 $produto =
@@ -570,6 +682,7 @@ function adicionarProduto()
 
                 <option
                     value="<?= $produto['id_produto'] ?>"
+                    data-estoque="<?= $produto['estoque'] ?>"
                 >
 
                     <?= htmlspecialchars(
@@ -615,7 +728,11 @@ function adicionarProduto()
 
     container.appendChild(div);
 
+
     contadorProdutos++;
+
+
+    atualizarProdutos();
 
 }
 
