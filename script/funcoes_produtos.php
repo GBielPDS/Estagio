@@ -129,7 +129,9 @@ function listarProdutos($conn)
     }
 
     while ($produto = $resultado->fetch_assoc()) {
-        echo '<tr>';
+        echo '<tr data-nome="' . htmlspecialchars($produto['nome'], ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-categoria="' . htmlspecialchars($produto['categoria'], ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-unidade="' . htmlspecialchars($produto['unidade'], ENT_QUOTES, 'UTF-8') . '">';
         echo '<td>' . htmlspecialchars($produto['id_produto']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['nome']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['categoria']) . '</td>';
