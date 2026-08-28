@@ -23,6 +23,11 @@ function sidebar($paginaAtiva = '')
                 ($paginaAtiva === 'Lançamentos' ? 'ativo' : '') . '">
                 Lançamentos
             </a>
+
+            <a href="' . BASE_URL . 'pages/historico.php" class="' .
+                ($paginaAtiva === 'Historico' ? 'ativo' : '') . '">
+                Historico
+            </a>
     ';
 
     /////// Itens exclusivos do Administrador  \\\\\\\\
