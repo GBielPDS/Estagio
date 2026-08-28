@@ -131,6 +131,46 @@ body {
   padding: 36px 24px 64px;
 }
 
+/* Compatibilidade com as paginas PHP que usam o menu lateral. */
+.sidebar + .conteudo {
+  width: calc(100% - 240px);
+  max-width: none;
+  margin-left: 240px;
+}
+
+.cabecalho-home {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.cabecalho-home h1 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 28px;
+}
+
+.usuario {
+  color: var(--texto-suave);
+}
+
+.dashboard {
+  padding: 28px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  box-shadow: var(--sombra-md);
+}
+
+.dashboard h2 {
+  margin: 0 0 8px;
+  color: var(--navy);
+}
+
 .cabecalho-pagina { margin-bottom: 24px; }
 
 .cabecalho-pagina__titulo {
@@ -597,6 +637,12 @@ textarea.campo__controle {
   .nav__item { white-space: nowrap; }
 
   .conteudo { padding: 26px 18px 48px; }
+
+  .sidebar + .conteudo {
+    width: calc(100% - 240px);
+    margin-left: 240px;
+    padding: 26px 18px 48px;
+  }
 
   .cartao { padding: 22px 20px 26px; }
 

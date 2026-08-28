@@ -26,7 +26,7 @@ verificarSessao();
 
     <main class="conteudo">
 
-        <header class="topo">
+        <header class="cabecalho-home">
 
             <h1>Home</h1>
 
