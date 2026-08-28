@@ -804,3 +804,44 @@ textarea.campo__controle {
   opacity: 1;
 }
 }
+
+
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 240px;
+    height: 100vh;
+
+    background-color: #222;
+
+    color: white;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+
+    padding-top: 20px;
+}
+
+.sidebar nav a {
+    padding: 15px 25px;
+
+    color: #ddd;
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.sidebar nav a:hover {
+    background-color: #444;
+    color: white;
+}
+
+.sidebar nav a.ativo {
+    background-color: #007bff;
+    color: white;
+}

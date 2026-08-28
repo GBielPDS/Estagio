@@ -1,6 +1,7 @@
 <?php
 
 require "../script/sessao.php";
+require "../script/funcoes_lancamentos.php";
 require "../script/sidebar.php";
 
 verificarSessao();
