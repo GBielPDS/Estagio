@@ -10,6 +10,12 @@ verificarSessao();
 $mensagem = "";
 $tipoMensagem = "";
 
+if (isset($_SESSION['mensagem_lancamento'])) {
+    $mensagem = $_SESSION['mensagem_lancamento']['texto'];
+    $tipoMensagem = $_SESSION['mensagem_lancamento']['tipo'];
+    unset($_SESSION['mensagem_lancamento']);
+}
+
 
 $sqlSecretaria = "SELECT id_unidade
                   FROM unidade_saude
@@ -100,10 +106,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($resultado !== false) {
 
-                    $mensagem =
-                        "Entrada realizada com sucesso!";
-
-                    $tipoMensagem = "sucesso";
+                    $_SESSION['mensagem_lancamento'] = [
+                        'texto' => 'Entrada realizada com sucesso!',
+                        'tipo' => 'sucesso'
+                    ];
+                    header('Location: lancamentos.php');
+                    exit();
 
                 } else {
 
@@ -142,10 +150,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($resultado !== false) {
 
-                    $mensagem =
-                        "Saída realizada com sucesso!";
-
-                    $tipoMensagem = "sucesso";
+                    $_SESSION['mensagem_lancamento'] = [
+                        'texto' => 'Saída realizada com sucesso!',
+                        'tipo' => 'sucesso'
+                    ];
+                    header('Location: lancamentos.php');
+                    exit();
 
                 } else {
 
@@ -759,6 +769,17 @@ function removerProduto(botao)
     botao.parentElement.remove();
 
 }
+
+
+document.addEventListener(
+    'wheel',
+    function(evento)
+    {
+        if (evento.target.matches('input[type="number"]')) {
+            evento.target.blur();
+        }
+    }
+);
 
 
 alterarTipo();
