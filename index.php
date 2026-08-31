@@ -79,6 +79,7 @@ verificarSessao();
                     </div>
       </nav>
     </div>
+  </header>
  
     <main class="conteudo">
 
