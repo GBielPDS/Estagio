@@ -1,11 +1,45 @@
 <?php
 
 require "../script/sessao.php";
+require "../script/conexao.php";
+require "../script/funcoes_historico.php";
 require "../script/sidebar.php";
 
 verificarSessao();
 
 
+$filtroTipo = $_GET['tipo'] ?? '';
+$dataInicio = $_GET['data_inicio'] ?? '';
+$dataFim = $_GET['data_fim'] ?? '';
+$filtroCategoria = $_GET['categoria'] ?? '';
+$filtroUnidade = $_GET['unidade'] ?? '';
+
+$resultadoCategorias =
+    buscarCategorias($conn);
+
+$resultadoUnidades =
+    buscarUnidadesHistorico($conn);
+
+$resultadoHistorico =
+    buscarHistorico(
+        $conn,
+        $filtroTipo,
+        $dataInicio,
+        $dataFim,
+        $filtroCategoria,
+        $filtroUnidade
+    );
+
+    $historico = [];
+
+
+while (
+    $registro =
+    $resultadoHistorico->fetch_assoc()
+) {
+
+    $historico[] = $registro;
+}
 ?>
 
 <!DOCTYPE html>
@@ -78,44 +112,420 @@ verificarSessao();
     </div>
 </header>
 
-    <?php sidebar('Lancamentos'); ?>
+    <main class="conteudo">
 
-   <main class="conteudo">
+
     <div class="cabecalho-pagina">
-      <h1 class="cabecalho-pagina__titulo">Histórico</h1>
-      <p class="cabecalho-pagina__descricao">Consulte os lançamentos de entrada e saída registrados.</p>
+
+        <h1 class="cabecalho-pagina__titulo">
+            Histórico
+        </h1>
+
+        <p class="cabecalho-pagina__descricao">
+            Consulte os lançamentos de entrada e saída registrados.
+        </p>
+
     </div>
+
 
     <section class="cartao cartao--produtos">
 
-      <div class="filtros">
-        <div class="campo campo--filtro-categoria">
-          <label class="campo__rotulo" for="filtro-tipo">Tipo</label>
-          <select class="campo__controle" id="filtro-tipo">
-            <option value="">Todos os tipos</option>
-            <option value="entrada">Entrada</option>
-            <option value="saida">Saída</option>
-          </select>
-        </div>
 
-        <div class="campo campo--filtro-categoria">
-          <label class="campo__rotulo" for="filtro-data-inicio">De</label>
-          <input class="campo__controle" type="date" id="filtro-data-inicio">
-        </div>
+        <form
+            method="GET"
+            class="filtros"
+        >
 
-        <div class="campo campo--filtro-categoria">
-          <label class="campo__rotulo" for="filtro-data-fim">Até</label>
-          <input class="campo__controle" type="date" id="filtro-data-fim">
-        </div>
 
-        <button class="botao botao--primario" type="button" id="pesquisar">Pesquisar</button>
-        <button class="botao botao--secundario" type="button" id="limpar-filtros">Limpar filtros</button>
-      </div>
+            <div class="campo campo--filtro-categoria">
 
-      <div id="tabela-historico"></div>
+                <label
+                    class="campo__rotulo"
+                    for="filtro-tipo"
+                >
+                    Tipo
+                </label>
+
+
+                <select
+                    class="campo__controle"
+                    id="filtro-tipo"
+                    name="tipo"
+                >
+
+                    <option
+                        value=""
+                        <?= $filtroTipo === ''
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Todos os tipos
+                    </option>
+
+
+                    <option
+                        value="entrada"
+                        <?= $filtroTipo === 'entrada'
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Entrada
+                    </option>
+
+
+                    <option
+                        value="saida"
+                        <?= $filtroTipo === 'saida'
+                            ? 'selected'
+                            : '' ?>
+                    >
+                        Saída
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="campo campo--filtro-categoria">
+
+                <label
+                    class="campo__rotulo"
+                    for="filtro-data-inicio"
+                >
+                    De
+                </label>
+
+
+                <input
+                    class="campo__controle"
+                    type="date"
+                    id="filtro-data-inicio"
+                    name="data_inicio"
+                    value="<?= htmlspecialchars(
+                        $dataInicio
+                    ) ?>"
+                >
+
+            </div>
+
+
+            <div class="campo campo--filtro-categoria">
+
+                <label
+                    class="campo__rotulo"
+                    for="filtro-data-fim"
+                >
+                    Até
+                </label>
+
+
+                <input
+                    class="campo__controle"
+                    type="date"
+                    id="filtro-data-fim"
+                    name="data_fim"
+                    value="<?= htmlspecialchars(
+                        $dataFim
+                    ) ?>"
+                >
+
+            </div>
+
+
+            <div class="campo campo--filtro-categoria">
+
+                <label
+                    class="campo__rotulo"
+                    for="filtro-categoria"
+                >
+                    Categoria
+                </label>
+
+
+                <select
+                    class="campo__controle"
+                    id="filtro-categoria"
+                    name="categoria"
+                >
+
+                    <option value="">
+                        Todas as categorias
+                    </option>
+
+
+                    <?php while (
+                        $categoria =
+                        $resultadoCategorias->fetch_assoc()
+                    ): ?>
+
+                        <option
+                            value="<?= $categoria['id_categoria'] ?>"
+                            <?= $filtroCategoria ==
+                                $categoria['id_categoria']
+                                ? 'selected'
+                                : '' ?>
+                        >
+
+                            <?= htmlspecialchars(
+                                $categoria['nome']
+                            ) ?>
+
+                        </option>
+
+                    <?php endwhile; ?>
+
+                </select>
+
+            </div>
+
+
+            <div class="campo campo--filtro-categoria">
+
+                <label
+                    class="campo__rotulo"
+                    for="filtro-unidade"
+                >
+                    Unidade de saúde
+                </label>
+
+
+                <select
+                    class="campo__controle"
+                    id="filtro-unidade"
+                    name="unidade"
+                >
+
+                    <option value="">
+                        Todas as unidades
+                    </option>
+
+
+                    <?php while (
+                        $unidade =
+                        $resultadoUnidades->fetch_assoc()
+                    ): ?>
+
+                        <option
+                            value="<?= $unidade['id_unidade'] ?>"
+                            <?= $filtroUnidade ==
+                                $unidade['id_unidade']
+                                ? 'selected'
+                                : '' ?>
+                        >
+
+                            <?= htmlspecialchars(
+                                $unidade['nome']
+                            ) ?>
+
+                        </option>
+
+                    <?php endwhile; ?>
+
+                </select>
+
+            </div>
+
+
+            <button
+                class="botao botao--primario"
+                type="submit"
+            >
+
+                Pesquisar
+
+            </button>
+
+
+            <a
+                class="botao botao--secundario"
+                href="historico.php"
+            >
+
+                Limpar filtros
+
+            </a>
+
+
+        </form>
+
+
+        <br>
+
+
+        <div id="tabela-historico"></div>
+
 
     </section>
-  </main>
+
+
+</main>
+
+
+<footer class="rodape">
+
+    GestSaúde · Módulo de Controle de Estoque
+
+</footer>
+
+
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+
+
+<script>
+
+
+const dadosHistorico = [
+
+    <?php foreach ($historico as $registro): ?>
+
+    [
+
+        <?= json_encode(
+            $registro['id_movimentacao']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['tipo']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['produto']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['categoria']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['quantidade']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['unidade_medida']
+        ) ?>,
+
+        <?= json_encode(
+            $registro['unidade_saude'] ??
+            'Secretaria de Saúde'
+        ) ?>,
+
+        <?= json_encode(
+            $registro['usuario']
+        ) ?>,
+
+        <?= json_encode(
+            date(
+                'd/m/Y H:i',
+                strtotime(
+                    $registro['data_hora']
+                )
+            )
+        ) ?>,
+
+        <?= json_encode(
+            $registro['observacao'] ??
+            ''
+        ) ?>
+
+    ],
+
+    <?php endforeach; ?>
+
+];
+
+
+new gridjs.Grid({
+
+    columns: [
+
+        {
+            name: "ID",
+            width: "70px"
+        },
+
+        {
+            name: "Tipo",
+            formatter: (celula) => {
+
+                if (celula === "Entrada") {
+
+                    return gridjs.html(
+                        '<span class="tipo-entrada">Entrada</span>'
+                    );
+
+                }
+
+                return gridjs.html(
+                    '<span class="tipo-saida">Saída</span>'
+                );
+
+            }
+        },
+
+        "Produto",
+
+        "Categoria",
+
+        "Quantidade",
+
+        "Unidade",
+
+        "Unidade de Saúde",
+
+        "Usuário",
+
+        "Data/Hora",
+
+        "Observação"
+
+    ],
+
+    data: dadosHistorico,
+
+    pagination: {
+
+        limit: 10
+
+    },
+
+    sort: true,
+
+    search: true,
+
+    language: {
+
+        search: {
+            placeholder: "Pesquisar..."
+        },
+
+        pagination: {
+
+            previous: "Anterior",
+
+            next: "Próximo",
+
+            showing: "Mostrando",
+
+            results: () => "registros"
+
+        },
+
+        noRecordsFound:
+            "Nenhum registro encontrado",
+
+        loading:
+            "Carregando..."
+
+    }
+
+}).render(
+    document.getElementById(
+        "tabela-historico"
+    )
+);
+
+</script>
 
   <footer class="rodape">GestSaúde · Módulo de Controle de Estoque</footer>
 <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
