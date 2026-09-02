@@ -63,7 +63,7 @@ verificarSessao();
            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
           Histórico
         </a>
-        <a class="nav__item" href="estoque.html">
+        <a class="nav__item" href="pages/estoque.php">
            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 8.35V20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 10v.01"/><path d="M6 14v.01"/><path d="M10 10v.01"/><path d="M10 14v.01"/><path d="M14 10v.01"/><path d="M14 14v.01"/><path d="M18 10v.01"/><path d="M18 14v.01"/><path d="M6 18v.01"/><path d="M10 18v.01"/><path d="M14 18v.01"/><path d="M18 18v.01"/></svg>
           Estoque
         </a>
@@ -71,10 +71,10 @@ verificarSessao();
         <div class="user-menu">
                     <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
                     <div class="dropdown-content">
-                        <a href="perfil.html"><i class="fa-solid fa-user"></i> Meu Perfil</a>
-                        <a href="configuracoes.html"><i class="fa-solid fa-gear"></i> Configurações</a>
+                        <a href="pages/perfil.php"><i class="fa-solid fa-user"></i> Meu Perfil</a>
+                        <a href="pages/perfil.php"><i class="fa-solid fa-gear"></i> Configurações</a>
                         <hr>
-                        <a href="login.html" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i>
+                        <a href="pages/login.php" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i>
                             Sair</a>
                     </div>
       </nav>
@@ -151,7 +151,7 @@ verificarSessao();
         <p class="modulo__descricao">Histórico de Produtos e Lançamentos.</p>
       </a>
 
-      <a class="modulo" href="estoque.html">
+      <a class="modulo" href="pages/estoque.php">
         <div class="modulo__icone">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 8.35V20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 10v.01"/><path d="M6 14v.01"/><path d="M10 10v.01"/><path d="M10 14v.01"/><path d="M14 10v.01"/><path d="M14 14v.01"/><path d="M18 10v.01"/><path d="M18 14v.01"/><path d="M6 18v.01"/><path d="M10 18v.01"/><path d="M14 18v.01"/><path d="M18 18v.01"/></svg>
           </div>

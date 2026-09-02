@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          
 
             <div class="footer-links">
-                <a href="refazer_senha.html">Esqueceu sua senha?</a>
+                <a href="login.php">Esqueceu sua senha?</a>
                 <a href="cadastrar_usuario.php">Primeiro Acesso</a>
             </div>
 

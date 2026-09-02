@@ -74,7 +74,7 @@ while (
       </a>
 
       <nav class="nav" aria-label="Módulos do estoque">
-        <a class="nav__item" href="pages/cadastrar_produto.php">
+        <a class="nav__item" href="cadastrar_produto.php">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
           Cadastro
         </a>
@@ -102,10 +102,10 @@ while (
         <div class="user-menu">
                     <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
                     <div class="dropdown-content">
-                        <a href="perfil.html"><i class="fa-solid fa-user"></i> Meu Perfil</a>
-                        <a href="configuracoes.html"><i class="fa-solid fa-gear"></i> Configurações</a>
+                        <a href="perfil.php"><i class="fa-solid fa-user"></i> Meu Perfil</a>
+                        <a href="perfil.php"><i class="fa-solid fa-gear"></i> Configurações</a>
                         <hr>
-                        <a href="login.html" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i>
+                        <a href="login.php" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i>
                             Sair</a>
                     </div>
       </nav>
