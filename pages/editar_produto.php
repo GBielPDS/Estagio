@@ -2,17 +2,47 @@
 
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
-require '../script/funcoes_produtos.php';
-require "../script/sidebar.php";
+require_once '../script/funcoes_produtos.php';
+require_once '../script/sidebar.php';
 
 verificarSessao();
+verificarTipo(['Administrador']);
 
-$tipoUsuario = $_SESSION['tipo'] ?? '';
-$mostrarEstoqueMinimo = $tipoUsuario === 'Administrador';
+$mensagem = '';
+$tipoMensagem = '';
+
+if (!isset($_GET['id'])) {
+    header('Location: produtos.php');
+    exit;
+}
+
+$idProduto = (int) $_GET['id'];
+$produto = buscarProdutoPorId($conn, $idProduto);
+
+if (!$produto) {
+    die('Produto não encontrado.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome = trim($_POST['nome'] ?? '');
+    $categoriaId = (int) ($_POST['categoria_id'] ?? 0);
+    $unidade = trim($_POST['unidade'] ?? '');
+    $estoque = trim($_POST['estoque'] ?? '0');
+    $estoqueMinimo = trim($_POST['estoque_minimo'] ?? '0');
+
+    $resultado = atualizarProduto($conn, $idProduto, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo);
+
+    if ($resultado['sucesso']) {
+        header('Location: produtos.php?mensagem=' . urlencode($resultado['mensagem']));
+        exit;
+    }
+
+    $mensagem = $resultado['mensagem'];
+    $tipoMensagem = 'erro';
+}
 
 $categorias = buscarCategorias($conn);
 $unidades = buscarUnidades($conn);
-
 ?>
 
 <!DOCTYPE html>
@@ -22,7 +52,7 @@ $unidades = buscarUnidades($conn);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/style.css">
-    <title>Produtos</title>
+    <title>Editar produto</title>
 </head>
 
 <body>
@@ -86,70 +116,68 @@ $unidades = buscarUnidades($conn);
     </header>
 
     <main class="conteudo">
+        <div class="cabecalho-pagina">
+            <h1 class="cabecalho-pagina__titulo">Editar produto</h1>
+            <p class="cabecalho-pagina__descricao">Atualize os dados do item e o limite mínimo de estoque.</p>
+        </div>
 
-        <section class="cartao cartao--produtos">
-            <div class="filtros">
+        <?php if ($mensagem !== ''): ?>
+            <div class="mensagem-modal mensagem-erro">
+                <div class="mensagem-conteudo">
+                    <strong>Atenção!</strong>
+                    <p><?= htmlspecialchars($mensagem) ?></p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <section class="cartao">
+            <form method="POST" class="formulario">
                 <div class="campo campo--largo">
-                    <label class="campo__rotulo" for="pesquisa-produto">Pesquisar produto</label>
-                    <input class="campo__controle" type="search" id="pesquisa-produto"
-                        placeholder="Digite o nome do produto" autocomplete="off">
+                    <label class="campo__rotulo" for="nome">Nome do produto</label>
+                    <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required>
                 </div>
 
-                <div class="campo campo--filtro-categoria">
-                    <label class="campo__rotulo" for="filtro-categoria">Categoria</label>
-                    <select class="campo__controle" id="filtro-categoria">
-                        <option value="">Todas as categorias</option>
+                <div class="campo">
+                    <label class="campo__rotulo" for="categoria_id">Categoria</label>
+                    <select class="campo__controle" id="categoria_id" name="categoria_id" required>
                         <?php foreach ($categorias as $categoria): ?>
-                            <option value="<?= htmlspecialchars($categoria['nome'], ENT_QUOTES, 'UTF-8') ?>">
+                            <option value="<?= (int) $categoria['id_categoria'] ?>"
+                                <?= (int) $produto['categoria_id'] === (int) $categoria['id_categoria'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($categoria['nome']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <div class="campo campo--filtro-categoria">
-                    <label class="campo__rotulo" for="filtro-unidade">Unidade</label>
-                    <select class="campo__controle" id="filtro-unidade">
-                        <option value="">Todas as unidades</option>
+                <div class="campo">
+                    <label class="campo__rotulo" for="unidade">Unidade</label>
+                    <select class="campo__controle" id="unidade" name="unidade" required>
                         <?php foreach ($unidades as $itemUnidade): ?>
-                            <option value="<?= htmlspecialchars($itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>">
+                            <option value="<?= htmlspecialchars($itemUnidade['unidade']) ?>"
+                                <?= $produto['unidade'] === $itemUnidade['unidade'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($itemUnidade['unidade']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <button class="botao botao--secundario" type="button" id="limpar-filtros">
-                    Limpar filtros
-                </button>
-            </div>
+                <div class="campo">
+                    <label class="campo__rotulo" for="estoque">Estoque atual</label>
+                    <input class="campo__controle" type="number" id="estoque" name="estoque" min="0" step="1" value="<?= (int) $produto['estoque'] ?>" required>
+                </div>
 
-            <p id="nenhum-produto" hidden>Nenhum produto encontrado.</p>
+                <div class="campo">
+                    <label class="campo__rotulo" for="estoque_minimo">Estoque mínimo</label>
+                    <input class="campo__controle" type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1" value="<?= (int) $produto['estoque_minimo'] ?>" required>
+                </div>
 
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Categoria</th>
-                        <th>Unidade de medida</th>
-                        <th>Quantidade em estoque</th>
-                        <?php if ($mostrarEstoqueMinimo): ?>
-                            <th>Estoque mínimo</th>
-                            <th>Ações</th>
-                        <?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody id="produtos-tbody">
-                    <?php listarProdutos($conn, $mostrarEstoqueMinimo); ?>
-                </tbody>
-            </table>
+                <div class="campo campo--largo" style="display:flex; gap:12px; margin-top:12px;">
+                    <button class="botao botao--primario" type="submit">Salvar alterações</button>
+                    <a class="botao botao--secundario" href="produtos.php">Cancelar</a>
+                </div>
+            </form>
         </section>
-
     </main>
 
-    <script src="../script/produtos.js"></script>
-
 </body>
-
 </html>

@@ -114,7 +114,85 @@ function cadastrarProduto($conn, $nome, $categoriaId, $unidade, $estoque, $estoq
     return ['sucesso' => true];
 }
 
-function listarProdutos($conn)
+function buscarProdutoPorId($conn, $id)
+{
+    $sql = 'SELECT p.id_produto, p.nome, p.unidade, p.estoque, p.estoque_minimo,
+                   p.categoria_id, c.nome AS categoria
+            FROM produto p
+            INNER JOIN categoria c ON c.id_categoria = p.categoria_id
+            WHERE p.id_produto = ?';
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+    $produto = $resultado->fetch_assoc();
+    $stmt->close();
+
+    return $produto ?: null;
+}
+
+function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo)
+{
+    $nome = trim($nome);
+    $unidade = trim($unidade);
+
+    if ($nome === '' || $unidade === '') {
+        return ['sucesso' => false, 'mensagem' => 'Nome e unidade do produto são obrigatórios.'];
+    }
+
+    if ((string) $estoque !== '' && (string) (int) $estoque !== (string) $estoque) {
+        return ['sucesso' => false, 'mensagem' => 'O estoque deve ser um número inteiro maior ou igual a zero.'];
+    }
+
+    if ((int) $estoque < 0) {
+        return ['sucesso' => false, 'mensagem' => 'O estoque deve ser um número inteiro maior ou igual a zero.'];
+    }
+
+    if ((string) $estoqueMinimo !== '' && (string) (int) $estoqueMinimo !== (string) $estoqueMinimo) {
+        return ['sucesso' => false, 'mensagem' => 'O estoque mínimo deve ser um número inteiro maior ou igual a zero.'];
+    }
+
+    if ((int) $estoqueMinimo < 0) {
+        return ['sucesso' => false, 'mensagem' => 'O estoque mínimo deve ser um número inteiro maior ou igual a zero.'];
+    }
+
+    $sql = 'UPDATE produto
+            SET nome = ?, unidade = ?, estoque = ?, estoque_minimo = ?, categoria_id = ?
+            WHERE id_produto = ?';
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar a atualização do produto.'];
+    }
+
+    $stmt->bind_param(
+        'ssiiii',
+        $nome,
+        $unidade,
+        $estoque,
+        $estoqueMinimo,
+        $categoriaId,
+        $id
+    );
+
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível atualizar o produto.'];
+    }
+
+    $stmt->close();
+
+    return ['sucesso' => true, 'mensagem' => 'Produto atualizado com sucesso.'];
+}
+
+function listarProdutos($conn, $mostrarEstoqueMinimo = false)
 {
     $sql = "SELECT p.id_produto, p.nome, p.unidade, p.estoque,
                    p.estoque_minimo, c.nome AS categoria
@@ -137,6 +215,17 @@ function listarProdutos($conn)
         echo '<td>' . htmlspecialchars($produto['categoria']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['unidade']) . '</td>';
         echo '<td>' . htmlspecialchars($produto['estoque']) . '</td>';
+
+        if ($mostrarEstoqueMinimo) {
+            echo '<td>' . htmlspecialchars($produto['estoque_minimo']) . '</td>';
+        }
+
+        if ($mostrarEstoqueMinimo) {
+            echo '<td>'
+                . '<a class="botao botao--secundario" href="editar_produto.php?id=' . (int) $produto['id_produto'] . '">Editar</a>'
+                . '</td>';
+        }
+
         echo '</tr>';
     }
 }
