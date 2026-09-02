@@ -28,6 +28,11 @@ function sidebar($paginaAtiva = '')
                 ($paginaAtiva === 'Historico' ? 'ativo' : '') . '">
                 Historico
             </a>
+
+            <a href="' . BASE_URL . 'pages/graficos.php" class="' .
+                ($paginaAtiva === 'Gráficos' ? 'ativo' : '') . '">
+                Gráficos
+            </a>
     ';
 
     /////// Itens exclusivos do Administrador  \\\\\\\\
