@@ -113,3 +113,40 @@ function buscarEstoque(
 
     return $stmt->get_result();
 }
+
+function buscarAlertasEstoque($conn)
+{
+    $sql = "SELECT
+                p.id_produto,
+                p.nome,
+                p.unidade,
+                p.estoque,
+                p.estoque_minimo,
+                c.nome AS categoria
+            FROM produto p
+            INNER JOIN categoria c ON c.id_categoria = p.categoria_id
+            WHERE p.estoque = 0
+               OR p.estoque < p.estoque_minimo
+            ORDER BY p.estoque ASC, p.nome ASC";
+
+    $resultado = $conn->query($sql);
+
+    if (!$resultado) {
+        return [];
+    }
+
+    $alertas = [];
+
+    while ($produto = $resultado->fetch_assoc()) {
+        $produto['situacao'] = (int) $produto['estoque'] === 0
+            ? 'vazio'
+            : 'abaixo-minimo';
+        $produto['quantidade_faltante'] = max(
+            0,
+            (int) $produto['estoque_minimo'] - (int) $produto['estoque']
+        );
+        $alertas[] = $produto;
+    }
+
+    return $alertas;
+}

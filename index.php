@@ -1,9 +1,17 @@
 <?php
 
 require_once 'script/sessao.php';
+require_once 'script/conexao.php';
+require_once 'script/funcoes_estoque.php';
 require 'script/sidebar.php';
 
 verificarSessao();
+
+$alertasEstoque = buscarAlertasEstoque($conn);
+$produtosVazios = count(array_filter($alertasEstoque, function ($alerta) {
+  return $alerta['situacao'] === 'vazio';
+}));
+$produtosAbaixoMinimo = count($alertasEstoque) - $produtosVazios;
 
 ?>
 
@@ -87,6 +95,23 @@ verificarSessao();
       <h1 class="cabecalho-pagina__titulo">Controle de Estoque</h1>
       <p class="cabecalho-pagina__descricao">Escolha a operação que deseja realizar no almoxarifado.</p>
     </div>
+
+      <section class="resumo-alertas <?= count($alertasEstoque) > 0 ? 'resumo-alertas--atencao' : 'resumo-alertas--regular' ?>" aria-labelledby="titulo-alertas">
+        <div>
+          <span class="resumo-alertas__rotulo">Pendências de estoque</span>
+          <h2 id="titulo-alertas">
+            <?= count($alertasEstoque) > 0 ? count($alertasEstoque) . ' produto(s) precisam de atenção' : 'Estoque regular' ?>
+          </h2>
+          <?php if (count($alertasEstoque) > 0): ?>
+            <p><?= $produtosVazios ?> vazio(s) e <?= $produtosAbaixoMinimo ?> abaixo do estoque mínimo.</p>
+          <?php else: ?>
+            <p>Nenhum produto está vazio ou abaixo do estoque mínimo.</p>
+          <?php endif; ?>
+        </div>
+        <a class="botao <?= count($alertasEstoque) > 0 ? 'botao--alerta' : 'botao--secundario' ?>" href="pages/alertas.php">
+          Ver alertas
+        </a>
+      </section>
 
     <div class="cabecalho-pagina-usuario">
 

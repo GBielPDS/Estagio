@@ -29,6 +29,11 @@ function sidebar($paginaAtiva = '')
                 Historico
             </a>
 
+            <a href="' . BASE_URL . 'pages/alertas.php" class="' .
+                ($paginaAtiva === 'alertas' ? 'ativo' : '') . '">
+                Alertas
+            </a>
+
             <a href="' . BASE_URL . 'pages/graficos.php" class="' .
                 ($paginaAtiva === 'Gráficos' ? 'ativo' : '') . '">
                 Gráficos
