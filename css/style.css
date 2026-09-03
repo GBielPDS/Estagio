@@ -173,6 +173,13 @@ body {
 
 .cabecalho-pagina { margin-bottom: 24px; }
 
+.cabecalho-pagina--com-acao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .cabecalho-pagina__titulo {
   margin: 0 0 4px;
   font-size: 26px;
@@ -277,6 +284,8 @@ textarea.campo__controle {
   font-size: 12.5px;
   color: var(--texto-suave);
 }
+
+[hidden] { display: none !important; }
 
 .campo--erro .campo__controle {
   border-color: var(--erro);
@@ -733,6 +742,11 @@ textarea.campo__controle {
   .cartao { padding: 22px 20px 26px; }
 
   .formulario { grid-template-columns: 1fr; }
+
+  .cabecalho-pagina--com-acao {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
   .acoes { flex-direction: column-reverse; }
 

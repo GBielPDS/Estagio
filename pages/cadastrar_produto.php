@@ -225,7 +225,7 @@ $unidades = buscarUnidades($conn);
                     </select>
                 </div>
 
-                <div class="campo campo--largo" id="campo_nova_categoria">
+                <div class="campo campo--largo" id="campo_nova_categoria" <?= $novaCategoria === '' ? 'hidden' : '' ?>>
                     <label class="campo__rotulo" for="nova_categoria">Nome da nova categoria</label>
                     <input class="campo__controle" type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
                         value="<?= htmlspecialchars($novaCategoria) ?>">
@@ -247,7 +247,7 @@ $unidades = buscarUnidades($conn);
                     </select>
                 </div>
 
-                <div class="campo campo--largo" id="campo_nova_unidade">
+                <div class="campo campo--largo" id="campo_nova_unidade" <?= $novaUnidade === '' ? 'hidden' : '' ?>>
                     <label class="campo__rotulo" for="nova_unidade">Nome da nova unidade</label>
                     <input class="campo__controle" type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
                         value="<?= htmlspecialchars($novaUnidade) ?>">

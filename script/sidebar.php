@@ -28,7 +28,6 @@ function sidebar($paginaAtiva = '')
             </a>
 
             <nav class="nav" aria-label="Módulos do estoque">
-                <a class="nav__item" href="' . BASE_URL . 'pages/cadastrar_produto.php"' . $ativo('cadastrar-produto') . '>Cadastro</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php"' . $ativo('lancamentos') . '>Entrada</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php"' . $ativo('saida') . '>Saída</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/produtos.php"' . $ativo('produtos') . '>Produtos</a>

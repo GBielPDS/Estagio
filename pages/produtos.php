@@ -87,6 +87,14 @@ $unidades = buscarUnidades($conn);
 
     <main class="conteudo">
 
+        <div class="cabecalho-pagina cabecalho-pagina--com-acao">
+            <div>
+                <h1 class="cabecalho-pagina__titulo">Produtos</h1>
+                <p class="cabecalho-pagina__descricao">Consulte e pesquise os produtos cadastrados.</p>
+            </div>
+            <a class="botao botao--primario" href="cadastrar_produto.php">Cadastrar novo produto</a>
+        </div>
+
         <section class="cartao cartao--produtos">
             <div class="filtros">
                 <div class="campo campo--largo">
