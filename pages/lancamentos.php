@@ -7,6 +7,12 @@ require "../script/sidebar.php";
 
 verificarSessao();
 
+$tipoSelecionado = $_GET['tipo'] ?? 'Entrada';
+
+if (!in_array($tipoSelecionado, ['Entrada', 'Saida'], true)) {
+    $tipoSelecionado = 'Entrada';
+}
+
 $mensagem = "";
 $tipoMensagem = "";
 
@@ -234,7 +240,7 @@ $resultadoUnidades =
 <body>
 
 
-<?php sidebar('Lancamentos'); ?>
+<?php sidebar($tipoSelecionado === 'Saida' ? 'saida' : 'lancamentos'); ?>
 
 <header class="topo topo--legado">
     <div class="topo__interno">
@@ -335,7 +341,7 @@ $resultadoUnidades =
                         type="radio"
                         name="tipo"
                         value="Entrada"
-                        checked
+                        <?= $tipoSelecionado === 'Entrada' ? 'checked' : '' ?>
                         onchange="alterarTipo()"
                     >
 
@@ -353,6 +359,7 @@ $resultadoUnidades =
                         type="radio"
                         name="tipo"
                         value="Saida"
+                        <?= $tipoSelecionado === 'Saida' ? 'checked' : '' ?>
                         onchange="alterarTipo()"
                     >
 
