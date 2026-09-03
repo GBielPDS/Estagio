@@ -43,16 +43,17 @@ function sidebar($paginaAtiva = '')
     }
 
     echo '
-                <div class="user-menu">
-                    <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
-                    <div class="dropdown-content">
-                        <a href="' . BASE_URL . 'pages/perfil.php">Meu Perfil</a>
-                        <a href="' . BASE_URL . 'pages/perfil.php">Configurações</a>
-                        <hr>
-                        <a href="' . BASE_URL . 'pages/login.php" style="color: #ef4444;">Sair</a>
-                    </div>
-                </div>
             </nav>
+
+            <div class="user-menu">
+                <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
+                <div class="dropdown-content">
+                    <a href="' . BASE_URL . 'pages/perfil.php">Meu Perfil</a>
+                    <a href="' . BASE_URL . 'pages/perfil.php">Configurações</a>
+                    <hr>
+                    <a class="sair-link" href="' . BASE_URL . 'script/logout.php">Sair</a>
+                </div>
+            </div>
         </div>
     </header>
     ';

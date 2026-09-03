@@ -64,6 +64,7 @@ body {
 .topo--legado { display: none; }
 
 .topo__interno {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
@@ -96,9 +97,13 @@ body {
 }
 
 .nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 4px;
-  margin-left: auto;
+  width: min(900px, calc(100% - 300px));
+  justify-content: center;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -869,11 +874,13 @@ textarea.campo__controle {
    MENU DO USUÁRIO (AVATAR E DROPDOWN)
 ========================================= */
 .user-menu {
-  position: relative;
   display: flex;
   align-items: center;
   cursor: pointer;
-  margin-left: 10px;
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .avatar {
@@ -992,12 +999,23 @@ textarea.campo__controle {
 
   .marca { grid-column: 1; grid-row: 1; }
   
-  .user-menu { grid-column: 2; grid-row: 1; margin-left: 0; }
+  .user-menu {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 0;
+    transform: none;
+    justify-self: end;
+  }
 
   .nav {
+    position: static;
+    transform: none;
     grid-column: 1 / -1;
     grid-row: 2;
     margin-left: 0;
+    width: auto;
+    justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 6px; 
 
