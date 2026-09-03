@@ -431,6 +431,30 @@ textarea.campo__controle {
 
 .aviso svg { flex-shrink: 0; margin-top: 2px; }
 
+.mensagem-modal {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid;
+  border-radius: var(--raio-md);
+  box-shadow: var(--sombra-sm);
+}
+
+.mensagem-sucesso {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.mensagem-erro {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.mensagem-conteudo strong { display: block; margin-bottom: 4px; }
+.mensagem-conteudo p { margin: 0; font-size: 13.5px; }
+.mensagem-conteudo button { margin-top: 12px; }
+
 .rodape {
   max-width: var(--largura-max);
   margin: 0 auto;

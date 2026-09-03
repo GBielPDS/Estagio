@@ -198,14 +198,21 @@ $unidades = buscarUnidades($conn);
             </div>
         <?php endif; ?>
 
-        <form method="POST">
-            <label for="nome">Nome do produto:</label>
-            <input type="text" id="nome" name="nome" maxlength="100"
-                value="<?= htmlspecialchars($nome) ?>" required>
+        <section class="cartao">
+            <h2 class="cartao__titulo">Informações do produto</h2>
+            <p class="cartao__legenda">Preencha os dados do item para adicioná-lo ao catálogo.</p>
 
-            <label for="categoria_id">Categoria:</label>
-            <select id="categoria_id" name="categoria_id">
-                <option value="">Selecione uma categoria</option>
+            <form method="POST" class="formulario">
+                <div class="campo campo--largo">
+                    <label class="campo__rotulo" for="nome">Nome do produto</label>
+                    <input class="campo__controle" type="text" id="nome" name="nome" maxlength="100"
+                        value="<?= htmlspecialchars($nome) ?>" required>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__rotulo" for="categoria_id">Categoria</label>
+                    <select class="campo__controle" id="categoria_id" name="categoria_id">
+                        <option value="">Selecione uma categoria</option>
                 <?php foreach ($categorias as $categoria): ?>
                     <option value="<?= $categoria['id_categoria'] ?>"
                         <?= (string) $categoriaSelecionada === (string) $categoria['id_categoria'] ? 'selected' : '' ?>>
@@ -215,17 +222,19 @@ $unidades = buscarUnidades($conn);
                 <option value="__nova__" <?= $novaCategoria !== '' ? 'selected' : '' ?>>
                     Criar nova categoria...
                 </option>
-            </select>
+                    </select>
+                </div>
 
-            <div id="campo_nova_categoria">
-                <label for="nova_categoria">Nome da nova categoria:</label>
-                <input type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
-                value="<?= htmlspecialchars($novaCategoria) ?>">
-            </div>
+                <div class="campo campo--largo" id="campo_nova_categoria">
+                    <label class="campo__rotulo" for="nova_categoria">Nome da nova categoria</label>
+                    <input class="campo__controle" type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
+                        value="<?= htmlspecialchars($novaCategoria) ?>">
+                </div>
 
-            <label for="unidade">Unidade:</label>
-            <select id="unidade" name="unidade">
-                <option value="">Selecione uma unidade</option>
+                <div class="campo">
+                    <label class="campo__rotulo" for="unidade">Unidade</label>
+                    <select class="campo__controle" id="unidade" name="unidade">
+                        <option value="">Selecione uma unidade</option>
                 <?php foreach ($unidades as $itemUnidade): ?>
                     <option value="<?= htmlspecialchars($itemUnidade['unidade']) ?>"
                         <?= $unidadeSelecionada === $itemUnidade['unidade'] ? 'selected' : '' ?>>
@@ -235,24 +244,33 @@ $unidades = buscarUnidades($conn);
                 <option value="__nova__" <?= $novaUnidade !== '' ? 'selected' : '' ?>>
                     Criar nova unidade...
                 </option>
-            </select>
+                    </select>
+                </div>
 
-            <div id="campo_nova_unidade">
-                <label for="nova_unidade">Nome da nova unidade:</label>
-                <input type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
-                    value="<?= htmlspecialchars($novaUnidade) ?>">
-            </div>
+                <div class="campo campo--largo" id="campo_nova_unidade">
+                    <label class="campo__rotulo" for="nova_unidade">Nome da nova unidade</label>
+                    <input class="campo__controle" type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
+                        value="<?= htmlspecialchars($novaUnidade) ?>">
+                </div>
 
-            <label for="estoque">Estoque inicial:</label>
-            <input type="number" id="estoque" name="estoque" min="0" step="1"
-                value="<?= htmlspecialchars($estoque) ?>" placeholder="Deixe vazio para 0">
+                <div class="campo">
+                    <label class="campo__rotulo" for="estoque">Estoque inicial</label>
+                    <input class="campo__controle" type="number" id="estoque" name="estoque" min="0" step="1"
+                        value="<?= htmlspecialchars($estoque) ?>" placeholder="Deixe vazio para 0">
+                </div>
 
-            <label for="estoque_minimo">Estoque mínimo:</label>
-            <input type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1"
-                value="<?= htmlspecialchars($estoqueMinimo) ?>" placeholder="Deixe vazio para 0">
+                <div class="campo">
+                    <label class="campo__rotulo" for="estoque_minimo">Estoque mínimo</label>
+                    <input class="campo__controle" type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1"
+                        value="<?= htmlspecialchars($estoqueMinimo) ?>" placeholder="Deixe vazio para 0">
+                </div>
 
-            <button type="submit">Cadastrar produto</button>
-        </form>
+                <div class="acoes">
+                    <a class="botao botao--secundario" href="produtos.php">Cancelar</a>
+                    <button class="botao botao--primario" type="submit">Cadastrar produto</button>
+                </div>
+            </form>
+        </section>
     </main>
 
     <script>
