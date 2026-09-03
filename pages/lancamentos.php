@@ -306,13 +306,13 @@ $resultadoUnidades =
     </div>
 
     <?php if ($mensagem !== ''): ?>
-
-        <div class="mensagem <?= htmlspecialchars($tipoMensagem) ?>">
-
-            <?= htmlspecialchars($mensagem) ?>
-
+        <div class="mensagem-modal <?= $tipoMensagem === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro' ?>">
+            <div class="mensagem-conteudo">
+                <strong><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Não foi possível concluir' ?></strong>
+                <p><?= htmlspecialchars($mensagem) ?></p>
+                <button type="button" onclick="fecharMensagem()">OK</button>
+            </div>
         </div>
-
     <?php endif; ?>
 
 
@@ -843,6 +843,15 @@ document.addEventListener(
 
 
 alterarTipo();
+
+function fecharMensagem()
+{
+    const mensagem = document.querySelector('.mensagem-modal');
+
+    if (mensagem) {
+        mensagem.remove();
+    }
+}
 
 </script>
 

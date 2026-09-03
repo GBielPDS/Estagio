@@ -462,7 +462,20 @@ textarea.campo__controle {
 
 .mensagem-conteudo strong { display: block; margin-bottom: 4px; }
 .mensagem-conteudo p { margin: 0; font-size: 13.5px; }
-.mensagem-conteudo button { margin-top: 12px; }
+.mensagem-conteudo button {
+  margin-top: 12px;
+  padding: 8px 18px;
+  border: 1px solid currentColor;
+  border-radius: var(--raio-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mensagem-conteudo button:hover { background: rgba(255, 255, 255, .55); }
 
 .rodape {
   max-width: var(--largura-max);
@@ -545,6 +558,74 @@ textarea.campo__controle {
   color: var(--azul-primario);
   font-size: 12px;
   font-weight: 600;
+}
+
+.tabela-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: var(--texto);
+  font-size: 13.5px;
+}
+
+.table th,
+.table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--borda);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th {
+  background: var(--campo);
+  color: var(--navy);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover td { background: #fbfdff; }
+
+.table--produtos th:first-child,
+.table--produtos td:first-child { width: 7%; }
+
+.table--produtos th:nth-child(2),
+.table--produtos td:nth-child(2) { width: 22%; }
+
+.table--produtos th:nth-child(3),
+.table--produtos td:nth-child(3) { width: 16%; }
+
+.table--produtos th:nth-child(4),
+.table--produtos td:nth-child(4) { width: 16%; }
+
+.table--produtos th:nth-child(5),
+.table--produtos td:nth-child(5) { width: 16%; }
+
+.table--produtos th:nth-child(6),
+.table--produtos td:nth-child(6) { width: 11%; }
+
+.table--produtos th:nth-child(7),
+.table--produtos td:nth-child(7) { width: 12%; }
+
+.table td {
+  overflow-wrap: anywhere;
+}
+
+.table td .botao {
+  min-width: 0;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
 }
 
 /* =========================================

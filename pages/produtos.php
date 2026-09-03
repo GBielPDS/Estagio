@@ -134,24 +134,26 @@ $unidades = buscarUnidades($conn);
 
             <p id="nenhum-produto" hidden>Nenhum produto encontrado.</p>
 
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Categoria</th>
-                        <th>Unidade de medida</th>
-                        <th>Quantidade em estoque</th>
-                        <?php if ($mostrarEstoqueMinimo): ?>
-                            <th>Estoque mínimo</th>
-                            <th>Ações</th>
-                        <?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody id="produtos-tbody">
-                    <?php listarProdutos($conn, $mostrarEstoqueMinimo); ?>
-                </tbody>
-            </table>
+            <div class="tabela-scroll">
+                <table class="table table--produtos">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Unidade de medida</th>
+                            <th>Quantidade em estoque</th>
+                            <?php if ($mostrarEstoqueMinimo): ?>
+                                <th>Estoque mínimo</th>
+                                <th>Ações</th>
+                            <?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody id="produtos-tbody">
+                        <?php listarProdutos($conn, $mostrarEstoqueMinimo); ?>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
     </main>
