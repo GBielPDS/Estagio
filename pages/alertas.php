@@ -24,7 +24,7 @@ $alertas = buscarAlertasEstoque($conn);
 
     <?php sidebar('alertas'); ?>
 
-    <header class="topo">
+    <header class="topo topo--legado">
         <div class="topo__interno">
             <a class="marca" href="../index.php">
                 <span class="marca__texto">GEST<span>SAÚDE</span></span>

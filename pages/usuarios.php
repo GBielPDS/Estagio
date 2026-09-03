@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php sidebar('usuarios'); ?>
 
-    <header class="topo">
+    <header class="topo topo--legado">
         <div class="topo__interno">
             <a class="marca" href="../index.php">
                 <svg class="marca__svg" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">

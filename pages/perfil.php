@@ -22,18 +22,6 @@ verificarSessao();
 
     <main class="conteudo">
 
-        <header class="topo">
-
-            <h1>
-                
-                <strong>
-                    <?= htmlspecialchars($_SESSION['nome']) ?>    
-                </strong>
-            
-            </h1>
-
-        </header>
-    
         <section class="dashboard">
 
             <h2>Em Breve</h2>

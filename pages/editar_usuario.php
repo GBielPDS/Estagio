@@ -57,12 +57,6 @@ if (!$usuario) {
 
     <main class="conteudo">
 
-        <header class="topo">
-
-            <h1>Editar Usuário</h1>
-
-        </header>
-
         <Section class="dashboard">
 
             <form method="POST">
