@@ -9,7 +9,7 @@ verificarSessao();
 
 
 $tipo =
-    $_GET['tipo'] ?? '';
+    $_GET['tipo'] ?? 'Saida';
 
 $dataInicio =
     $_GET['data_inicio'] ?? '';
