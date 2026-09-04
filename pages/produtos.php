@@ -9,6 +9,8 @@ verificarSessao();
 
 $tipoUsuario = $_SESSION['tipo'] ?? '';
 $mostrarEstoqueMinimo = $tipoUsuario === 'Administrador';
+$mensagemProduto = $_SESSION['mensagem_produto'] ?? null;
+unset($_SESSION['mensagem_produto']);
 
 $categorias = buscarCategorias($conn);
 $unidades = buscarUnidades($conn);
@@ -94,6 +96,12 @@ $unidades = buscarUnidades($conn);
             </div>
             <a class="botao botao--primario" href="cadastrar_produto.php">Cadastrar novo produto</a>
         </div>
+
+        <?php if ($mensagemProduto !== null): ?>
+            <div class="mensagem-formulario mensagem-<?= $mensagemProduto['tipo'] === 'sucesso' ? 'sucesso' : 'erro' ?>">
+                <?= htmlspecialchars($mensagemProduto['texto'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
 
         <section class="cartao cartao--produtos">
             <div class="filtros">

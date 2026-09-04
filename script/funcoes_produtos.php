@@ -192,6 +192,59 @@ function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $
     return ['sucesso' => true, 'mensagem' => 'Produto atualizado com sucesso.'];
 }
 
+function excluirProduto($conn, $id)
+{
+    $sql = 'SELECT id_produto FROM produto WHERE id_produto = ?';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível verificar o produto.'];
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $produtoExiste = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    if (!$produtoExiste) {
+        return ['sucesso' => false, 'mensagem' => 'Produto não encontrado.'];
+    }
+
+    $sql = 'SELECT id_item FROM item_lancamento WHERE produto_id = ? LIMIT 1';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível verificar o histórico do produto.'];
+    }
+
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $possuiHistorico = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    if ($possuiHistorico) {
+        return [
+            'sucesso' => false,
+            'mensagem' => 'Este produto não pode ser excluído porque possui movimentações registradas.'
+        ];
+    }
+
+    $sql = 'DELETE FROM produto WHERE id_produto = ?';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível preparar a exclusão do produto.'];
+    }
+
+    $stmt->bind_param('i', $id);
+    $sucesso = $stmt->execute();
+    $stmt->close();
+
+    return $sucesso
+        ? ['sucesso' => true, 'mensagem' => 'Produto excluído com sucesso.']
+        : ['sucesso' => false, 'mensagem' => 'Não foi possível excluir o produto.'];
+}
+
 function listarProdutos($conn, $mostrarEstoqueMinimo = false)
 {
     $sql = "SELECT p.id_produto, p.nome, p.unidade, p.estoque,

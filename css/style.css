@@ -356,6 +356,23 @@ textarea.campo__controle {
   color: var(--navy);
 }
 
+.botao--perigo {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.botao--perigo:hover { background: #b91c1c; }
+.botao--perigo:active { background: #991b1b; }
+
+.formulario--exclusao {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--borda);
+}
+
 .aviso {
   display: none;
   align-items: flex-start;

@@ -24,6 +24,18 @@ if (!$produto) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['excluir_produto'])) {
+        $resultadoExclusao = excluirProduto($conn, $idProduto);
+
+        $_SESSION['mensagem_produto'] = [
+            'texto' => $resultadoExclusao['mensagem'],
+            'tipo' => $resultadoExclusao['sucesso'] ? 'sucesso' : 'erro'
+        ];
+
+        header('Location: produtos.php');
+        exit;
+    }
+
     $nome = trim($_POST['nome'] ?? '');
     $categoriaId = (int) ($_POST['categoria_id'] ?? 0);
     $unidade = trim($_POST['unidade'] ?? '');
@@ -175,6 +187,13 @@ $unidades = buscarUnidades($conn);
                     <button class="botao botao--primario" type="submit">Salvar alterações</button>
                     <a class="botao botao--secundario" href="produtos.php">Cancelar</a>
                 </div>
+            </form>
+
+            <form method="POST" class="formulario formulario--exclusao"
+                onsubmit="return confirm('Deseja realmente excluir este produto?');">
+                <button class="botao botao--perigo" type="submit" name="excluir_produto" value="1">
+                    Excluir produto
+                </button>
             </form>
         </section>
     </main>
