@@ -4,7 +4,7 @@ require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
 
-$modoAdministrador = isset($_GET['admin']) && $_GET['admin'] === '1';
+$modoAdministrador = ($_GET['admin'] ?? $_POST['admin'] ?? '') === '1';
 
 if ($modoAdministrador) {
     verificarSessao();
@@ -42,8 +42,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = cadastrarUsuario($conn, $nome, $email, $senha, $tipo);
 
         if ($resultado['sucesso']) {
-            $mensagem = 'Cadastro realizado com sucesso.';
-            $tipo_mensagem = 'sucesso';
+            $_SESSION['mensagem_cadastro'] = [
+                'texto' => 'Cadastro realizado com sucesso.',
+                'tipo' => 'sucesso'
+            ];
+
+            if ($modoAdministrador) {
+                header('Location: ' . BASE_URL . 'pages/usuarios.php');
+            } else {
+                header('Location: ' . BASE_URL . 'pages/login.php');
+            }
+
+            exit;
         } else {
             $mensagem = $resultado['mensagem'];
             $tipo_mensagem = 'erro';
@@ -62,57 +72,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Cadastro</title>
 </head>
 
-<body>
+<body class="pagina-login">
 
-    <h1><?= $modoAdministrador ? 'Cadastrar usuário' : 'Cadastro' ?></h1>
+    <div class="login-container">
 
-    <?php if ($mensagem !== ''): ?>
+        <div class="logo">
+            <img src="../gestsaude-logo.svg" alt="Logo GestSaúde">
+        </div>
 
-        <p>
-            <?php echo $mensagem; ?>
-        </p>
+        <h2 class="titulo-formulario"><?= $modoAdministrador ? 'Cadastrar usuário' : 'Cadastro' ?></h2>
 
-    <?php endif; ?>
-
-    <form method="POST" action="">
-
-        <label for="nome">Nome:</label>
-        <br>
-        <input type="text" id="nome" name="nome">
-
-        <br><br>
-
-        <label for="email">Email:</label>
-        <br>
-        <input type="email" id="email" name="email">
-
-        <br><br>
-
-        <label for="senha">Senha:</label>
-        <br>
-        <input type="password" id="senha" name="senha">
-
-        <?php if ($modoAdministrador): ?>
-            <br><br>
-
-            <label for="tipo">Tipo de usuário:</label>
-            <br>
-            <select id="tipo" name="tipo">
-                <option value="Usuario" <?= $tipo === 'Usuario' ? 'selected' : '' ?>>Usuario</option>
-                <option value="Suporte" <?= $tipo === 'Suporte' ? 'selected' : '' ?>>Suporte</option>
-                <option value="Administrador" <?= $tipo === 'Administrador' ? 'selected' : '' ?>>Administrador</option>
-            </select>
+        <?php if ($mensagem !== ''): ?>
+            <div class="mensagem-formulario mensagem-<?= $tipo_mensagem === 'sucesso' ? 'sucesso' : 'erro' ?>">
+                <?= htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
         <?php endif; ?>
 
-        <br><br>
+        <form method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" class="formulario-acesso">
 
-        <button type="submit">Cadastrar</button>
+            <?php if ($modoAdministrador): ?>
+                <input type="hidden" name="admin" value="1">
+            <?php endif; ?>
 
-    </form>
+            <div class="grupamento">
+                <label for="nome">Nome</label>
+                <input type="text" id="nome" name="nome" placeholder="Seu nome completo" required>
+            </div>
 
-    <br>
+            <div class="grupamento">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" placeholder="usuario@gmail.com" required>
+            </div>
 
-    <a href="login.php">Já possui uma conta? Fazer login</a>
+            <div class="grupamento">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" placeholder="Digite sua senha" required>
+            </div>
+
+            <?php if ($modoAdministrador): ?>
+                <div class="grupamento">
+                    <label for="tipo">Tipo de usuário</label>
+                    <select id="tipo" name="tipo" class="campo-select">
+                        <option value="Usuario" <?= $tipo === 'Usuario' ? 'selected' : '' ?>>Usuario</option>
+                        <option value="Suporte" <?= $tipo === 'Suporte' ? 'selected' : '' ?>>Suporte</option>
+                        <option value="Administrador" <?= $tipo === 'Administrador' ? 'selected' : '' ?>>Administrador</option>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <button type="submit" class="button-submit">Cadastrar</button>
+
+        </form>
+
+        <div class="footer-links">
+            <a href="login.php">Já possui uma conta? Fazer login</a>
+        </div>
+
+    </div>
 
 </body>
 

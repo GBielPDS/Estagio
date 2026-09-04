@@ -8,6 +8,9 @@ require "../script/sidebar.php";
 verificarSessao();
 verificarTipo(['Administrador']);
 
+$mensagemCadastro = $_SESSION['mensagem_cadastro'] ?? null;
+unset($_SESSION['mensagem_cadastro']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['excluir_id'])) {
@@ -95,6 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h1 class="cabecalho-pagina__titulo">Usuários</h1>
             <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
         </div>
+
+        <?php if ($mensagemCadastro !== null): ?>
+            <div class="mensagem-formulario mensagem-<?= $mensagemCadastro['tipo'] === 'sucesso' ? 'sucesso' : 'erro' ?>">
+                <?= htmlspecialchars($mensagemCadastro['texto'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
 
         <div class="cabecalho-pagina">
             <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php?admin=1" class="botao botao--primario">

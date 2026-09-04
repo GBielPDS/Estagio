@@ -6,6 +6,12 @@ require_once '../script/conexao.php';
 $mensagem = '';
 $tipo_mensagem = '';
 
+if (isset($_SESSION['mensagem_cadastro'])) {
+    $mensagem = $_SESSION['mensagem_cadastro']['texto'];
+    $tipo_mensagem = $_SESSION['mensagem_cadastro']['tipo'];
+    unset($_SESSION['mensagem_cadastro']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email = trim($_POST['email']);
