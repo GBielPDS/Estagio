@@ -160,6 +160,64 @@ function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
     return true;
 }
 
+function atualizarPerfilUsuario($conn, $id, $nome, $email, $senha = '')
+{
+    $nome = trim($nome);
+    $email = trim($email);
+
+    if ($nome === '' || $email === '') {
+        return ['sucesso' => false, 'mensagem' => 'Nome e e-mail são obrigatórios.'];
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['sucesso' => false, 'mensagem' => 'Digite um e-mail válido.'];
+    }
+
+    $sql = 'SELECT id_usuario FROM usuario WHERE email = ? AND id_usuario <> ?';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível verificar o e-mail.'];
+    }
+
+    $stmt->bind_param('si', $email, $id);
+    $stmt->execute();
+    $emailEmUso = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    if ($emailEmUso) {
+        return ['sucesso' => false, 'mensagem' => 'Este e-mail já está cadastrado.'];
+    }
+
+    if ($senha !== '') {
+        $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+        $sql = 'UPDATE usuario SET nome = ?, email = ?, senha = ? WHERE id_usuario = ?';
+        $stmt = $conn->prepare($sql);
+
+        if (!$stmt) {
+            return ['sucesso' => false, 'mensagem' => 'Não foi possível preparar a atualização.'];
+        }
+
+        $stmt->bind_param('sssi', $nome, $email, $senhaHash, $id);
+    } else {
+        $sql = 'UPDATE usuario SET nome = ?, email = ? WHERE id_usuario = ?';
+        $stmt = $conn->prepare($sql);
+
+        if (!$stmt) {
+            return ['sucesso' => false, 'mensagem' => 'Não foi possível preparar a atualização.'];
+        }
+
+        $stmt->bind_param('ssi', $nome, $email, $id);
+    }
+
+    $sucesso = $stmt->execute();
+    $stmt->close();
+
+    return $sucesso
+        ? ['sucesso' => true, 'mensagem' => 'Perfil atualizado com sucesso.']
+        : ['sucesso' => false, 'mensagem' => 'Não foi possível atualizar o perfil.'];
+}
+
 function excluirUsuario($conn, $id)
 {
     $sql = "DELETE FROM usuario WHERE id_usuario = ?";
