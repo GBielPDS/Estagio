@@ -56,21 +56,14 @@ function listarUsuarios($conn)
         echo "<td>" . htmlspecialchars($usuario['tipo']) . "</td>";
 
         echo "<td>
-        <button type='button' 
+        <button type='button'
+            class='botao botao--secundario botao--pequeno'
             onclick=\"window.location.href='editar_usuario.php?id={$usuario['id_usuario']}'\">
             Editar
         </button>
         
-        <form method='POST' style='display:inline;'>
-                    
-            <input type='hidden' name='excluir_id' value={$usuario['id_usuario']}>
-
-            <button type='submit'
-                onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
-                Excluir
-            </button>
-
-        </form>
+        
+        <form method='POST' class='formulario-excluir' > <input type='hidden' name='excluir_id' value='{$usuario['id_usuario']}' > <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente excluir este usuário?')\" > Excluir </button> </form>
         </td>";
     }
 }
@@ -94,6 +87,9 @@ function buscarUsuarioPorId($conn, $id)
 
     return $resultado->fetch_assoc();
 }
+
+
+
 
 function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
 {

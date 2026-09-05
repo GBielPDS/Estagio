@@ -65,61 +65,59 @@ if (!$usuario) {
 
     <main class="conteudo">
 
-        <Section class="dashboard">
+        <div class="cabecalho-pagina">
+            <h1 class="cabecalho-pagina__titulo">Editar usuário</h1>
+            <p class="cabecalho-pagina__descricao">Atualize os dados do usuário.</p>
+        </div>
 
-            <form method="POST">
+        <Section class="cartao">
 
-                <label>Nome:</label>
-                <input
-                    type="text"
-                    name="nome"
-                    value="<?= htmlspecialchars($usuario['nome']) ?>"
-                    required
-                >
+            <form method="POST" class="formulario">
+                <div class="campo campo--largo">
+                    <label class="campo__rotulo">Nome:</label>
+                    <input class="campo__controle"                
+                        type="text"
+                        name="nome"
+                        value="<?= htmlspecialchars($usuario['nome']) ?>"
+                        required
+                    >
+                </div>
 
-                <br><br>
 
-                <label>Email:</label>
-                <input
+                <div class="campo campo--largo"">
+                <label class="campo__rotulo">Email:</label>
+                <input class="campo__controle"
                     type="email"
                     name="email"
                     value="<?= htmlspecialchars($usuario['email']) ?>"
                     required
                 >
+                </div>
 
-                <br><br>
 
-                <label>Nova senha:</label>
-                <input
+                <div class="campo campo--largo"">
+                <label class="campo__rotulo">Nova senha:</label>
+                <input class="campo__controle"
                     type="password"
                     name="senha"
                     placeholder="Deixe vazio para manter a senha atual"
                 >
+                </div>
 
-                <br><br>
+                <div class="campo campo--largo"> 
+                    <label class="campo__rotulo" for="tipo" > Tipo de usuário </label> 
+                    <select class="campo__controle" id="tipo" name="tipo" > 
+                    
+                        <option value="Administrador" <?= $usuario['tipo'] === 'Administrador' ? 'selected' : '' ?> > Administrador 
+                        </option> 
+                        <option value="Suporte" <?= $usuario['tipo'] === 'Suporte' ? 'selected' : '' ?> > Suporte 
+                        </option> 
+                        <option value="Usuario" <?= $usuario['tipo'] === 'Usuario' ? 'selected' : '' ?> > Usuário </option> 
+                    </select> 
+                </div>
 
-                <label>Tipo:</label>
-
-                <select name="tipo">
-                    <option value="Administrador"
-                        <?= $usuario['tipo'] == 'Administrador' ? 'selected' : '' ?>>
-                        Administrador
-                    </option>
-
-                    <option value="Suporte"
-                        <?= $usuario['tipo'] == 'Suporte' ? 'selected' : '' ?>>
-                        Suporte
-                    </option>
-
-                    <option value="Usuario"
-                        <?= $usuario['tipo'] == 'Usuario' ? 'selected' : '' ?>>
-                        Usuário
-                    </option>
-                </select>
-
-                <br><br>
-
-                <button type="submit">Salvar</button>
+                <div class="formulario__acoes"> <a href="usuarios.php" class="botao botao--secundario" > Cancelar </a> 
+                <button type="submit" class="botao botao--primario" onclick="document.getElementById('acao').value='atualizar'" > Salvar </button> 
 
             </form>
 
