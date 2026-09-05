@@ -5,6 +5,7 @@ require_once __DIR__ . '/funcoes_estoque.php';
 function iconesNavegacao()
 {
     return [
+        'cadastro' => '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
         'entrada' => '<path d="M12 3v12"/><path d="m17 10-5 5-5-5"/><path d="M4 21h16"/>',
         'saida' => '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 3h16"/>',
         'produtos' => '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/>',
@@ -57,19 +58,13 @@ function sidebar($paginaAtiva = '')
             </a>
 
             <nav class="nav" aria-label="Módulos do estoque">
+                <a class="nav__item" href="' . BASE_URL . 'pages/cadastrar_produto.php"' . $ativo('cadastrar-produto') . '>' . $icone('cadastro') . 'Cadastro</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Entrada"' . $ativo('lancamentos') . '>' . $icone('entrada') . 'Entrada</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Saida"' . $ativo('saida') . '>' . $icone('saida') . 'Saída</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/produtos.php"' . $ativo('produtos') . '>' . $icone('produtos') . 'Produtos</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/historico.php"' . $ativo('historico') . '>' . $icone('historico') . 'Histórico</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/estoque.php"' . $ativo('estoque') . '>' . $icone('estoque') . 'Estoque</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/alertas.php"' . $ativo('alertas') . '>' . $icone('alertas') . 'Alertas</a>
                 <a class="nav__item" href="' . BASE_URL . 'pages/graficos.php"' . $ativo('graficos') . '>' . $icone('graficos') . 'Gráficos</a>';
-
-    if ($tipo === 'Administrador') {
-        echo '
-                <a class="nav__item" href="' . BASE_URL . 'pages/usuarios.php"' . $ativo('usuarios') . '>Usuários</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/logs.php"' . $ativo('logs') . '>Logs</a>';
-    }
 
     echo '
             </nav>

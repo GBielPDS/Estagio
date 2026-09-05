@@ -12,6 +12,7 @@ $produtosVazios = count(array_filter($alertasEstoque, function ($alerta) {
     return $alerta['situacao'] === 'vazio';
 }));
 $produtosAbaixoMinimo = count($alertasEstoque) - $produtosVazios;
+$icones = iconesNavegacao();
 ?>
 
 <!DOCTYPE html>
@@ -64,37 +65,49 @@ $produtosAbaixoMinimo = count($alertasEstoque) - $produtosVazios;
 
         <div class="grade-modulos">
             <a class="modulo" href="pages/cadastrar_produto.php">
-                <div class="modulo__icone">+</div>
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['cadastro'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Cadastro de Itens</h2>
                 <p class="modulo__descricao">Inclua um novo item no catálogo com categoria, unidade de medida e fornecedor.</p>
             </a>
 
-            <a class="modulo" href="pages/lancamentos.php">
-                <div class="modulo__icone">Entrada</div>
+            <a class="modulo" href="pages/lancamentos.php?tipo=Entrada">
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['entrada'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Entrada de Produtos</h2>
                 <p class="modulo__descricao">Registre o recebimento de materiais, com quantidade, data, hora e responsável.</p>
             </a>
 
-            <a class="modulo" href="pages/lancamentos.php">
-                <div class="modulo__icone">Saída</div>
+            <a class="modulo" href="pages/lancamentos.php?tipo=Saida">
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['saida'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Saída de Produtos</h2>
                 <p class="modulo__descricao">Lance a retirada de materiais por setor solicitante, com observação opcional.</p>
             </a>
 
             <a class="modulo" href="pages/produtos.php">
-                <div class="modulo__icone">Itens</div>
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['produtos'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Produtos</h2>
                 <p class="modulo__descricao">Verifique a lista dos produtos cadastrados.</p>
             </a>
 
             <a class="modulo" href="pages/historico.php">
-                <div class="modulo__icone">Hist.</div>
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['historico'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Histórico</h2>
                 <p class="modulo__descricao">Consulte o histórico de produtos e lançamentos.</p>
             </a>
 
             <a class="modulo" href="pages/estoque.php">
-                <div class="modulo__icone">Est.</div>
+                <div class="modulo__icone">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['estoque'] ?></svg>
+                </div>
                 <h2 class="modulo__titulo">Estoque</h2>
                 <p class="modulo__descricao">Verifique a quantidade de produtos no estoque.</p>
             </a>

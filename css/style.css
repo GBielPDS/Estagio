@@ -164,10 +164,10 @@ body {
 }
 
 .dashboard {
-  padding: 28px;
+  padding: 28px 32px 32px;
   background: var(--superficie);
   border: 1px solid var(--borda);
-  border-radius: var(--raio-md);
+  border-radius: var(--raio-lg);
   box-shadow: var(--sombra-md);
 }
 
@@ -220,7 +220,7 @@ body {
   color: var(--texto-suave);
 }
 
-.perfil-pagina { max-width: 760px; }
+.perfil-pagina { max-width: var(--largura-max); }
 
 .perfil-resumo {
   display: flex;
