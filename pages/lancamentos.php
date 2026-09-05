@@ -940,9 +940,10 @@ if (formLancamento) {
 
             if (dados.sucesso) {
                 exibirMensagem('sucesso', 'Sucesso!', dados.mensagem || 'Lançamento realizado com sucesso!');
-                setTimeout(() => {
-                    window.location.href = 'lancamentos.php';
-                }, 1400);
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = textoOriginal;
+                }
             } else {
                 exibirMensagem('erro', 'Não foi possível concluir', dados.mensagem || 'Erro ao realizar lançamento.');
                 if (btnSubmit) {
