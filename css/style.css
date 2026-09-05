@@ -903,7 +903,7 @@ textarea.campo__controle {
 
 .footer-links {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     margin-top: 24px;
     font-size: 13px;
     font-family: 'Inter', 'Poppins', sans-serif;
