@@ -130,13 +130,19 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
         }
 
-        return $movimentacao_id;
+        return [
+            'sucesso' => true,
+            'id' => $movimentacao_id
+        ];
 
     } catch (Exception $e) {
 
         $conn->rollback();
 
-        return false;
+        return [
+            'sucesso' => false,
+            'mensagem' => $e->getMessage()
+        ];
     }
 }
 
@@ -220,7 +226,7 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                 );
             }
 
-            $sqlProduto = "SELECT id_produto, nome, unidade
+            $sqlProduto = "SELECT id_produto, nome, unidade, estoque
                            FROM produto
                            WHERE id_produto = ?";
 
@@ -238,6 +244,12 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
 
             $dadosProduto = $resultado->fetch_assoc();
             $stmtProduto->close();
+
+            if ($quantidade > (int) $dadosProduto['estoque']) {
+                throw new Exception(
+                    "Estoque insuficiente para o produto '{$dadosProduto['nome']}'. Disponível: {$dadosProduto['estoque']}, Solicitado: {$quantidade}."
+                );
+            }
 
 
             $stmtItem->bind_param(
@@ -270,7 +282,7 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
 
             if ($stmtEstoque->affected_rows === 0) {
                 throw new Exception(
-                    "Estoque insuficiente para o produto ID $produto_id."
+                    "Estoque insuficiente para o produto '{$dadosProduto['nome']}'."
                 );
             }
 
@@ -290,12 +302,18 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
         }
 
-        return $movimentacao_id;
+        return [
+            'sucesso' => true,
+            'id' => $movimentacao_id
+        ];
 
     } catch (Exception $e) {
 
         $conn->rollback();
 
-        return false;
+        return [
+            'sucesso' => false,
+            'mensagem' => $e->getMessage()
+        ];
     }
 }

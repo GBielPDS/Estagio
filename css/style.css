@@ -216,8 +216,37 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 150px auto;
   gap: 10px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+#form-lancamento .produto-item__info {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  margin-top: -2px;
+  line-height: 1.4;
+}
+
+#form-lancamento .produto-item__info .dica-estoque {
+  color: var(--texto-suave);
+}
+
+#form-lancamento .produto-item__info .dica-estoque strong {
+  color: var(--texto);
+}
+
+#form-lancamento .produto-item__info .erro-estoque {
+  color: #dc2626;
+  font-weight: 600;
+  display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 5px;
+}
+
+#form-lancamento .produto-item.com-erro select,
+#form-lancamento .produto-item.com-erro input[type="number"] {
+  border-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 #form-lancamento .botao-remover {

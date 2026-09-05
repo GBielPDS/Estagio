@@ -89,14 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
 
-
         if ($tipo === 'Entrada') {
 
             if ($idSecretaria === null) {
 
-                $mensagem =
-                    "A Secretaria de Saúde não está cadastrada.";
-
+                $mensagem = "A Secretaria de Saúde não está cadastrada.";
                 $tipoMensagem = "erro";
 
             } else {
@@ -109,38 +106,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $usuario_id
                 );
 
+                if (!empty($resultado['sucesso'])) {
 
-                if ($resultado !== false) {
-
-                    $_SESSION['mensagem_lancamento'] = [
-                        'texto' => 'Entrada realizada com sucesso!',
-                        'tipo' => 'sucesso'
-                    ];
-                    header('Location: lancamentos.php');
-                    exit();
+                    $mensagem = 'Entrada realizada com sucesso!';
+                    $tipoMensagem = 'sucesso';
 
                 } else {
 
-                    $mensagem =
-                        "Erro ao realizar a entrada.";
-
+                    $mensagem = $resultado['mensagem'] ?? "Erro ao realizar a entrada.";
                     $tipoMensagem = "erro";
                 }
             }
         }
 
-
         elseif ($tipo === 'Saida') {
 
-            $unidadeDestino =
-                (int) ($_POST['unidade_destino'] ?? 0);
-
+            $unidadeDestino = (int) ($_POST['unidade_destino'] ?? 0);
 
             if ($unidadeDestino <= 0) {
 
-                $mensagem =
-                    "Selecione uma unidade de saúde.";
-
+                $mensagem = "Selecione uma unidade de saúde.";
                 $tipoMensagem = "erro";
 
             } else {
@@ -153,32 +138,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $usuario_id
                 );
 
+                if (!empty($resultado['sucesso'])) {
 
-                if ($resultado !== false) {
-
-                    $_SESSION['mensagem_lancamento'] = [
-                        'texto' => 'Saída realizada com sucesso!',
-                        'tipo' => 'sucesso'
-                    ];
-                    header('Location: lancamentos.php');
-                    exit();
+                    $mensagem = 'Saída realizada com sucesso!';
+                    $tipoMensagem = 'sucesso';
 
                 } else {
 
-                    $mensagem =
-                        "Erro ao realizar a saída. Verifique o estoque dos produtos.";
-
+                    $mensagem = $resultado['mensagem'] ?? "Erro ao realizar a saída. Verifique o estoque dos produtos.";
                     $tipoMensagem = "erro";
                 }
             }
 
         } else {
 
-            $mensagem =
-                "Tipo de lançamento inválido.";
-
+            $mensagem = "Tipo de lançamento inválido.";
             $tipoMensagem = "erro";
         }
+    }
+
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+        || isset($_POST['ajax']);
+
+    if ($isAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'sucesso' => $tipoMensagem === 'sucesso',
+            'mensagem' => $mensagem
+        ]);
+        exit;
+    }
+
+    if ($tipoMensagem === 'sucesso') {
+        $_SESSION['mensagem_lancamento'] = [
+            'texto' => $mensagem,
+            'tipo' => 'sucesso'
+        ];
+        header('Location: lancamentos.php?tipo=' . urlencode($tipo));
+        exit();
     }
 }
 
@@ -492,6 +489,7 @@ $resultadoUnidades =
 
                     </button>
 
+                    <div class="produto-item__info"></div>
 
                 </div>
 
@@ -555,224 +553,273 @@ $resultadoUnidades =
 
 <script>
 
-
 let contadorProdutos = 1;
 
+function fecharMensagem(recarregar = false)
+{
+    const mensagem = document.querySelector('.mensagem-modal');
+    if (mensagem) {
+        mensagem.remove();
+    }
+    if (recarregar) {
+        window.location.href = 'lancamentos.php';
+    }
+}
+
+function exibirMensagem(tipo, titulo, texto)
+{
+    fecharMensagem();
+
+    const mainConteudo = document.querySelector('main.conteudo');
+    const dashboard = document.querySelector('.dashboard');
+
+    const modal = document.createElement('div');
+    modal.className = `mensagem-modal ${tipo === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro'}`;
+    const acaoClique = tipo === 'sucesso' ? 'fecharMensagem(true)' : 'fecharMensagem(false)';
+
+    modal.innerHTML = `
+        <div class="mensagem-conteudo">
+            <strong>${titulo}</strong>
+            <p>${texto}</p>
+            <button type="button" onclick="${acaoClique}">OK</button>
+        </div>
+    `;
+
+    if (dashboard && mainConteudo) {
+        mainConteudo.insertBefore(modal, dashboard);
+    } else if (mainConteudo) {
+        mainConteudo.prepend(modal);
+    }
+
+    modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function alterarTipo()
 {
-
-    const tipo =
-        document.querySelector(
-            'input[name="tipo"]:checked'
-        ).value;
-
-
-    const selectUnidade =
-        document.getElementById(
-            'unidade_destino'
-        );
-
-
-    const opcoesUnidade =
-        selectUnidade.querySelectorAll(
-            'option'
-        );
-
+    const tipo = document.querySelector('input[name="tipo"]:checked').value;
+    const selectUnidade = document.getElementById('unidade_destino');
+    const opcoesUnidade = selectUnidade.querySelectorAll('option');
 
     if (tipo === 'Entrada') {
+        opcoesUnidade.forEach(function(opcao) {
+            opcao.hidden = false;
+        });
 
-
-        opcoesUnidade.forEach(
-            function(opcao)
-            {
-
-                opcao.hidden = false;
-
-            }
-        );
-
-
-        selectUnidade.value =
-            "<?= $idSecretaria ?>";
-
-
+        selectUnidade.value = "<?= $idSecretaria ?>";
         selectUnidade.disabled = true;
-
-    }
-
-
-    else {
-
-
+    } else {
         selectUnidade.disabled = false;
-
-
         selectUnidade.value = "";
 
-
-        opcoesUnidade.forEach(
-            function(opcao)
-            {
-
-                if (
-                    opcao.dataset.secretaria === 'true'
-                ) {
-
-                    opcao.hidden = true;
-
-                } else {
-
-                    opcao.hidden = false;
-
-                }
-
+        opcoesUnidade.forEach(function(opcao) {
+            if (opcao.dataset.secretaria === 'true') {
+                opcao.hidden = true;
+            } else {
+                opcao.hidden = false;
             }
-        );
-
+        });
     }
 
-
     atualizarProdutos();
-
+    validarTodosProdutos();
 }
-
 
 function atualizarProdutos()
 {
-    const tipo =
-        document.querySelector(
-            'input[name="tipo"]:checked'
-        ).value;
+    const tipo = document.querySelector('input[name="tipo"]:checked').value;
+    const selects = document.querySelectorAll('.select-produto');
 
+    selects.forEach(function(select) {
+        const opcoes = select.querySelectorAll('option');
 
-    const selects =
-        document.querySelectorAll(
-            '.select-produto'
-        );
+        opcoes.forEach(function(opcao) {
+            if (opcao.value === '') {
+                return;
+            }
 
+            const estoque = parseInt(opcao.dataset.estoque, 10);
 
-    selects.forEach(
-        function(select)
-        {
-
-            const opcoes =
-                select.querySelectorAll(
-                    'option'
-                );
-
-
-            opcoes.forEach(
-                function(opcao)
-                {
-
-                    if (opcao.value === '') {
-                        return;
-                    }
-
-
-                    const estoque =
-                        parseInt(
-                            opcao.dataset.estoque
-                        );
-
-
-                    if (tipo === 'Saida') {
-
-                        if (estoque <= 0) {
-
-                            opcao.hidden = true;
-
-                        } else {
-
-                            opcao.hidden = false;
-
-                        }
-
-                    }
-
-
-                    else {
-
-                        opcao.hidden = false;
-
-                    }
-
+            if (tipo === 'Saida') {
+                if (estoque <= 0) {
+                    opcao.hidden = true;
+                } else {
+                    opcao.hidden = false;
                 }
-            );
-
-        }
-    );
+            } else {
+                opcao.hidden = false;
+            }
+        });
+    });
 }
 
+function validarLinha(linhaDiv)
+{
+    const tipo = document.querySelector('input[name="tipo"]:checked')
+        ? document.querySelector('input[name="tipo"]:checked').value
+        : 'Saida';
+    const select = linhaDiv.querySelector('.select-produto');
+    const inputQtd = linhaDiv.querySelector('input[type="number"]');
+    let infoDiv = linhaDiv.querySelector('.produto-item__info');
+
+    if (!infoDiv) {
+        infoDiv = document.createElement('div');
+        infoDiv.className = 'produto-item__info';
+        linhaDiv.appendChild(infoDiv);
+    }
+
+    linhaDiv.classList.remove('com-erro');
+    infoDiv.innerHTML = '';
+
+    if (!select || !select.value) {
+        if (inputQtd) inputQtd.removeAttribute('max');
+        return { valido: true };
+    }
+
+    const selectedOption = select.options[select.selectedIndex];
+    const estoque = selectedOption && selectedOption.dataset.estoque !== undefined
+        ? parseInt(selectedOption.dataset.estoque, 10)
+        : null;
+
+    const nomeProd = selectedOption ? selectedOption.text.split('—')[0].trim() : 'Produto';
+
+    if (tipo === 'Saida') {
+        if (estoque !== null) {
+            inputQtd.max = estoque;
+            const qtdVal = inputQtd.value !== '' ? parseInt(inputQtd.value, 10) : null;
+
+            if (estoque <= 0) {
+                linhaDiv.classList.add('com-erro');
+                infoDiv.innerHTML = `<span class="erro-estoque">⚠️ Produto sem estoque disponível (0).</span>`;
+                return { valido: false, erro: `O produto "${nomeProd}" não possui estoque disponível.` };
+            }
+
+            if (qtdVal !== null && qtdVal > estoque) {
+                linhaDiv.classList.add('com-erro');
+                infoDiv.innerHTML = `<span class="erro-estoque">⚠️ Quantidade (${qtdVal}) excede o estoque disponível (${estoque}).</span>`;
+                return { valido: false, erro: `Quantidade solicitada (${qtdVal}) excede o estoque disponível (${estoque}) para "${nomeProd}".` };
+            } else if (qtdVal !== null && qtdVal <= 0) {
+                linhaDiv.classList.add('com-erro');
+                infoDiv.innerHTML = `<span class="erro-estoque">⚠️ A quantidade deve ser no mínimo 1.</span>`;
+                return { valido: false, erro: `A quantidade para "${nomeProd}" deve ser maior que zero.` };
+            } else {
+                infoDiv.innerHTML = `<span class="dica-estoque">Estoque disponível: <strong>${estoque}</strong></span>`;
+                return { valido: true };
+            }
+        }
+    } else {
+        // Entrada
+        if (inputQtd) inputQtd.removeAttribute('max');
+        const qtdVal = inputQtd.value !== '' ? parseInt(inputQtd.value, 10) : null;
+        if (qtdVal !== null && qtdVal <= 0) {
+            linhaDiv.classList.add('com-erro');
+            infoDiv.innerHTML = `<span class="erro-estoque">⚠️ A quantidade deve ser no mínimo 1.</span>`;
+            return { valido: false, erro: `A quantidade para "${nomeProd}" deve ser maior que zero.` };
+        }
+        if (estoque !== null) {
+            infoDiv.innerHTML = `<span class="dica-estoque">Estoque atual: <strong>${estoque}</strong></span>`;
+        }
+    }
+
+    return { valido: true };
+}
+
+function validarTodosProdutos()
+{
+    const tipo = document.querySelector('input[name="tipo"]:checked')
+        ? document.querySelector('input[name="tipo"]:checked').value
+        : 'Saida';
+    const linhas = document.querySelectorAll('#produtos-container .produto-item');
+    let formValido = true;
+    let erros = [];
+
+    const somaPorProduto = {};
+    const linhasPorProduto = {};
+
+    linhas.forEach(function(linha) {
+        const res = validarLinha(linha);
+        if (!res.valido) {
+            formValido = false;
+            if (res.erro && !erros.includes(res.erro)) {
+                erros.push(res.erro);
+            }
+        }
+
+        if (tipo === 'Saida') {
+            const select = linha.querySelector('.select-produto');
+            const inputQtd = linha.querySelector('input[type="number"]');
+            if (select && select.value && inputQtd && inputQtd.value) {
+                const prodId = select.value;
+                const qtd = parseInt(inputQtd.value, 10) || 0;
+                const selectedOption = select.options[select.selectedIndex];
+                const estoque = selectedOption && selectedOption.dataset.estoque !== undefined
+                    ? parseInt(selectedOption.dataset.estoque, 10)
+                    : 0;
+                const nomeProd = selectedOption.text.split('—')[0].trim();
+
+                if (!somaPorProduto[prodId]) {
+                    somaPorProduto[prodId] = { total: 0, estoque: estoque, nome: nomeProd };
+                    linhasPorProduto[prodId] = [];
+                }
+                somaPorProduto[prodId].total += qtd;
+                linhasPorProduto[prodId].push(linha);
+            }
+        }
+    });
+
+    // Validar soma cumulativa quando o mesmo produto for adicionado em múltiplas linhas
+    if (tipo === 'Saida') {
+        for (const prodId in somaPorProduto) {
+            const item = somaPorProduto[prodId];
+            if (linhasPorProduto[prodId].length > 1 && item.total > item.estoque) {
+                formValido = false;
+                const msg = `A soma das linhas para "${item.nome}" (${item.total}) excede o estoque disponível (${item.estoque}).`;
+                if (!erros.includes(msg)) {
+                    erros.push(msg);
+                }
+
+                linhasPorProduto[prodId].forEach(function(linha) {
+                    linha.classList.add('com-erro');
+                    const infoDiv = linha.querySelector('.produto-item__info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `<span class="erro-estoque">⚠️ Soma das linhas deste produto (${item.total}) excede o estoque (${item.estoque}).</span>`;
+                    }
+                });
+            }
+        }
+    }
+
+    return { valido: formValido, erros: erros };
+}
 
 function adicionarProduto()
 {
-
-    const container =
-        document.getElementById(
-            'produtos-container'
-        );
-
-
-    const div =
-        document.createElement('div');
-
-
-    div.classList.add(
-        'produto-item'
-    );
-
+    const container = document.getElementById('produtos-container');
+    const div = document.createElement('div');
+    div.classList.add('produto-item');
 
     div.innerHTML = `
-
         <select
             name="produtos[${contadorProdutos}][produto_id]"
             class="select-produto"
             required
         >
-
             <option value="">
                 Selecione um produto
             </option>
 
-
             <?php
-
-
-            $resultadoProdutos =
-                $conn->query($sqlProdutos);
-
-            while (
-                $produto =
-                $resultadoProdutos->fetch_assoc()
-            ):
-
+            $resultadoProdutos = $conn->query($sqlProdutos);
+            while ($produto = $resultadoProdutos->fetch_assoc()):
             ?>
-
                 <option
                     value="<?= $produto['id_produto'] ?>"
                     data-estoque="<?= $produto['estoque'] ?>"
                 >
-
-                    <?= htmlspecialchars(
-                        $produto['nome']
-                    ) ?>
-
-                    — Estoque:
-
-                    <?= $produto['estoque'] ?>
-
-                    <?= htmlspecialchars(
-                        $produto['unidade']
-                    ) ?>
-
+                    <?= htmlspecialchars($produto['nome']) ?>
+                    — Estoque: <?= $produto['estoque'] ?> <?= htmlspecialchars($produto['unidade']) ?>
                 </option>
-
             <?php endwhile; ?>
-
         </select>
-
 
         <input
             type="number"
@@ -782,77 +829,139 @@ function adicionarProduto()
             required
         >
 
-
         <button
             type="button"
             class="botao-remover"
             onclick="removerProduto(this)"
         >
-
             Remover
-
         </button>
 
+        <div class="produto-item__info"></div>
     `;
 
-
     container.appendChild(div);
-
-
     contadorProdutos++;
 
-
     atualizarProdutos();
-
+    validarLinha(div);
 }
-
 
 function removerProduto(botao)
 {
-
-    const produtos =
-        document.querySelectorAll(
-            '.produto-item'
-        );
-
+    const produtos = document.querySelectorAll('.produto-item');
 
     if (produtos.length <= 1) {
-
-        alert(
-            'É necessário ter pelo menos um produto.'
-        );
-
+        alert('É necessário ter pelo menos um produto.');
         return;
     }
 
-
     botao.parentElement.remove();
-
+    validarTodosProdutos();
 }
 
+// Interceptação de scroll acidental em inputs numéricos
+document.addEventListener('wheel', function(evento) {
+    if (evento.target.matches('input[type="number"]')) {
+        evento.target.blur();
+    }
+});
 
-document.addEventListener(
-    'wheel',
-    function(evento)
-    {
-        if (evento.target.matches('input[type="number"]')) {
-            evento.target.blur();
+// Eventos em tempo real para validação de produtos
+const produtosContainer = document.getElementById('produtos-container');
+if (produtosContainer) {
+    produtosContainer.addEventListener('input', function(e) {
+        if (e.target.matches('input[type="number"]')) {
+            validarTodosProdutos();
         }
-    }
-);
+    });
 
-
-alterarTipo();
-
-function fecharMensagem()
-{
-    const mensagem = document.querySelector('.mensagem-modal');
-
-    if (mensagem) {
-        mensagem.remove();
-    }
+    produtosContainer.addEventListener('change', function(e) {
+        if (e.target.matches('.select-produto') || e.target.matches('input[type="number"]')) {
+            validarTodosProdutos();
+        }
+    });
 }
 
+// Submissão assíncrona (AJAX/Fetch) para manter formulário 100% intacto em caso de erro
+const formLancamento = document.getElementById('form-lancamento');
+if (formLancamento) {
+    formLancamento.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // 1. Validação local antes de enviar
+        const validacao = validarTodosProdutos();
+        if (!validacao.valido) {
+            const mensagemErro = validacao.erros.length > 0
+                ? validacao.erros[0]
+                : 'Corrija os produtos com erro de quantidade antes de enviar.';
+            exibirMensagem('erro', 'Não foi possível concluir', mensagemErro);
+
+            const primeiraLinhaErro = document.querySelector('.produto-item.com-erro');
+            if (primeiraLinhaErro) {
+                primeiraLinhaErro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        // 2. Estado de envio
+        const btnSubmit = formLancamento.querySelector('button[type="submit"]');
+        const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Realizar lançamento';
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Processando lançamento...';
+        }
+
+        // 3. Montar FormData
+        const formData = new FormData(formLancamento);
+        const selectUnidade = document.getElementById('unidade_destino');
+        if (selectUnidade && selectUnidade.value) {
+            formData.set('unidade_destino', selectUnidade.value);
+        }
+        formData.append('ajax', '1');
+
+        try {
+            const resposta = await fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const textoResposta = await resposta.text();
+            let dados;
+            try {
+                dados = JSON.parse(textoResposta);
+            } catch (parseErr) {
+                console.error("Resposta inválida do servidor:", textoResposta);
+                throw new Error("Resposta inesperada do servidor ao processar o lançamento.");
+            }
+
+            if (dados.sucesso) {
+                exibirMensagem('sucesso', 'Sucesso!', dados.mensagem || 'Lançamento realizado com sucesso!');
+                setTimeout(() => {
+                    window.location.href = 'lancamentos.php';
+                }, 1400);
+            } else {
+                exibirMensagem('erro', 'Não foi possível concluir', dados.mensagem || 'Erro ao realizar lançamento.');
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = textoOriginal;
+                }
+            }
+        } catch (erro) {
+            exibirMensagem('erro', 'Erro de comunicação', erro.message || 'Falha ao comunicar com o servidor.');
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = textoOriginal;
+            }
+        }
+    });
+}
+
+// Inicializar estado na carga da página
+alterarTipo();
 </script>
 
 
