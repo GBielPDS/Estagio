@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_produtos.php';
+require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
 verificarSessao();
@@ -93,6 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($transacaoIniciada) {
                     $conn->commit();
                 }
+
+                registrarLog(
+                    $conn,
+                    'Cadastro de produto',
+                    'Produto ' . $nome . ' cadastrado com estoque inicial de ' . $estoque . '.',
+                    $_SESSION['id_usuario']
+                );
+
                 $mensagem = 'Produto cadastrado com sucesso.';
                 $tipoMensagem = 'sucesso';
                 $nome = '';

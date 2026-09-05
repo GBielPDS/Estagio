@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_produtos.php';
+require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
 verificarSessao();
@@ -27,6 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['excluir_produto'])) {
         $resultadoExclusao = excluirProduto($conn, $idProduto);
 
+        if ($resultadoExclusao['sucesso']) {
+            registrarLog(
+                $conn,
+                'Exclusão de produto',
+                'Produto ' . $produto['nome'] . ' (ID ' . $idProduto . ') excluído.',
+                $_SESSION['id_usuario']
+            );
+        }
+
         $_SESSION['mensagem_produto'] = [
             'texto' => $resultadoExclusao['mensagem'],
             'tipo' => $resultadoExclusao['sucesso'] ? 'sucesso' : 'erro'
@@ -45,6 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $resultado = atualizarProduto($conn, $idProduto, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo);
 
     if ($resultado['sucesso']) {
+        registrarLog(
+            $conn,
+            'Edição de produto',
+            'Produto ' . $nome . ' (ID ' . $idProduto . ') atualizado.',
+            $_SESSION['id_usuario']
+        );
+
         header('Location: produtos.php?mensagem=' . urlencode($resultado['mensagem']));
         exit;
     }

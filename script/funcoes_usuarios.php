@@ -27,12 +27,12 @@ function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
         return ['sucesso' => false, 'mensagem' => 'Erro ao preparar o cadastro.'];
     }
 
-    $stmt->bind_param('ssss', $nome, $email, $senhaHash, $tipo);
     $sucesso = $stmt->execute();
+    $novoId = $conn->insert_id;
     $stmt->close();
 
     return $sucesso
-        ? ['sucesso' => true]
+        ? ['sucesso' => true, 'id' => $novoId]
         : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
 }
 
@@ -51,7 +51,7 @@ function listarUsuarios($conn)
         echo "<td>" . $usuario['id_usuario'] . "</td>";
         echo "<td>" . htmlspecialchars($usuario['nome']) . "</td>";
         echo "<td>" . htmlspecialchars($usuario['email']) . "</td>";
-        echo "<td>" . htmlspecialchars($usuario['senha']) . "</td>";
+        echo "<td>••••••••</td>";
         echo "<td>" . htmlspecialchars($usuario['tipo']) . "</td>";
 
         echo "<td>
@@ -146,18 +146,10 @@ function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
         );
     }
 
-    return $stmt->execute();
+    $sucesso = $stmt->execute();
+    $stmt->close();
 
-    $descricao = "Usuário ID {$id} atualizado.";
-
-    registrarLog(
-        $conn,
-        "Atualização de usuário",
-        $descricao,
-        $usuarioLogado
-    );
-
-    return true;
+    return $sucesso;
 }
 
 function atualizarPerfilUsuario($conn, $id, $nome, $email, $senha = '')

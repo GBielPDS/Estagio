@@ -2,6 +2,7 @@
 
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
+require_once '../script/funcoes_logs.php';
 
 $mensagem = '';
 $tipo_mensagem = '';
@@ -38,12 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (password_verify($senha, $usuario['senha'])) {
 
-                session_start();
-
                 $_SESSION['id_usuario'] = $usuario['id_usuario'];
                 $_SESSION['nome'] = $usuario['nome'];
                 $_SESSION['email'] = $usuario['email'];
                 $_SESSION['tipo'] = $usuario['tipo'];
+
+                registrarLog(
+                    $conn,
+                    'Login',
+                    'Usuário ' . $usuario['nome'] . ' entrou no sistema.',
+                    $usuario['id_usuario']
+                );
 
                 header('Location: ' . BASE_URL . 'index.php');
                 exit();

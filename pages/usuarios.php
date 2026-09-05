@@ -3,6 +3,7 @@
 require "../script/sessao.php";
 require "../script/conexao.php";
 require "../script/funcoes_usuarios.php";
+require "../script/funcoes_logs.php";
 require "../script/sidebar.php";
 
 verificarSessao();
@@ -15,10 +16,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['excluir_id'])) {
 
-        $id = $_POST['excluir_id'];
+        $id = (int) $_POST['excluir_id'];
 
-        excluirUsuario($conn, $id);
-
+        if ($id === (int) $_SESSION['id_usuario']) {
+            $mensagemCadastro = ['texto' => 'Você não pode excluir o seu próprio usuário.', 'tipo' => 'erro'];
+        } else {
+            $usuarioExcluir = buscarUsuarioPorId($conn, $id);
+            if ($usuarioExcluir) {
+                if (excluirUsuario($conn, $id)) {
+                    registrarLog(
+                        $conn,
+                        'Exclusão de usuário',
+                        'Usuário ' . $usuarioExcluir['nome'] . ' (ID ' . $id . ') excluído.',
+                        $_SESSION['id_usuario']
+                    );
+                    $mensagemCadastro = ['texto' => 'Usuário excluído com sucesso.', 'tipo' => 'sucesso'];
+                } else {
+                    $mensagemCadastro = ['texto' => 'Não foi possível excluir o usuário.', 'tipo' => 'erro'];
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,21 @@
 <?php
 
+function registrarLog($conn, $acao, $descricao, $usuario_id)
+{
+    $sql = 'INSERT INTO log (acao, descricao, usuario_id) VALUES (?, ?, ?)';
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('ssi', $acao, $descricao, $usuario_id);
+    $sucesso = $stmt->execute();
+    $stmt->close();
+
+    return $sucesso;
+}
+
 function buscarUsuariosLogs($conn)
 {
     $sql = "SELECT
@@ -76,7 +92,8 @@ function buscarLogs(
 
     $sql .= " ORDER BY
                 l.data_hora DESC,
-                l.id_log DESC";
+                l.id_log DESC
+              LIMIT 300";
 
 
     $stmt = $conn->prepare($sql);

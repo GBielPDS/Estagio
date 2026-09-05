@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/funcoes_logs.php';
+
 function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usuario_id)
 {
     $conn->begin_transaction();
@@ -53,6 +55,7 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             throw new Exception("Erro ao preparar estoque.");
         }
 
+        $logsParaRegistrar = [];
 
         foreach ($produtos as $produto) {
 
@@ -66,7 +69,7 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             }
 
 
-            $sqlProduto = "SELECT id_produto
+            $sqlProduto = "SELECT id_produto, nome, unidade
                            FROM produto
                            WHERE id_produto = ?";
 
@@ -82,6 +85,7 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
                 );
             }
 
+            $dadosProduto = $resultado->fetch_assoc();
             $stmtProduto->close();
 
 
@@ -110,12 +114,21 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
                     "Erro ao atualizar estoque."
                 );
             }
+
+            $logsParaRegistrar[] = [
+                'acao' => 'Entrada de produto',
+                'descricao' => "Entrada de {$quantidade} {$dadosProduto['unidade']} de {$dadosProduto['nome']}."
+            ];
         }
 
         $stmtItem->close();
         $stmtEstoque->close();
 
         $conn->commit();
+
+        foreach ($logsParaRegistrar as $logItem) {
+            registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
+        }
 
         return $movimentacao_id;
 
@@ -132,6 +145,19 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
     $conn->begin_transaction();
 
     try {
+
+        $nomeUnidade = 'Unidade de Saúde';
+        $sqlUnidade = "SELECT nome FROM unidade_saude WHERE id_unidade = ?";
+        $stmtUni = $conn->prepare($sqlUnidade);
+        if ($stmtUni) {
+            $stmtUni->bind_param("i", $unidadeDestino);
+            $stmtUni->execute();
+            $resUni = $stmtUni->get_result();
+            if ($linhaUni = $resUni->fetch_assoc()) {
+                $nomeUnidade = $linhaUni['nome'];
+            }
+            $stmtUni->close();
+        }
 
         $sql = "INSERT INTO movimentacao
                 (tipo, unidade_destino_id, observacao, usuario_id)
@@ -181,6 +207,7 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             throw new Exception("Erro ao preparar estoque.");
         }
 
+        $logsParaRegistrar = [];
 
         foreach ($produtos as $produto) {
 
@@ -192,6 +219,25 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                     "A quantidade deve ser maior que zero."
                 );
             }
+
+            $sqlProduto = "SELECT id_produto, nome, unidade
+                           FROM produto
+                           WHERE id_produto = ?";
+
+            $stmtProduto = $conn->prepare($sqlProduto);
+            $stmtProduto->bind_param("i", $produto_id);
+            $stmtProduto->execute();
+
+            $resultado = $stmtProduto->get_result();
+
+            if ($resultado->num_rows === 0) {
+                throw new Exception(
+                    "Produto ID $produto_id não encontrado."
+                );
+            }
+
+            $dadosProduto = $resultado->fetch_assoc();
+            $stmtProduto->close();
 
 
             $stmtItem->bind_param(
@@ -227,6 +273,11 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                     "Estoque insuficiente para o produto ID $produto_id."
                 );
             }
+
+            $logsParaRegistrar[] = [
+                'acao' => 'Saída de produto',
+                'descricao' => "Saída de {$quantidade} {$dadosProduto['unidade']} de {$dadosProduto['nome']} para {$nomeUnidade}."
+            ];
         }
 
 
@@ -234,6 +285,10 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
         $stmtEstoque->close();
 
         $conn->commit();
+
+        foreach ($logsParaRegistrar as $logItem) {
+            registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
+        }
 
         return $movimentacao_id;
 

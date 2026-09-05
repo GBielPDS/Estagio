@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
+require_once '../script/funcoes_logs.php';
 
 $modoAdministrador = ($_GET['admin'] ?? $_POST['admin'] ?? '') === '1';
 
@@ -32,9 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'Digite um email válido.';
         $tipo_mensagem = 'erro';
 
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $mensagem = 'Digite um email válido.';
-        $tipo_mensagem = 'erro';
     } elseif (!in_array($tipo, ['Administrador', 'Suporte', 'Usuario'], true)) {
         $mensagem = 'Tipo de usuário inválido.';
         $tipo_mensagem = 'erro';
@@ -42,6 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = cadastrarUsuario($conn, $nome, $email, $senha, $tipo);
 
         if ($resultado['sucesso']) {
+            if ($modoAdministrador && isset($_SESSION['id_usuario'])) {
+                registrarLog(
+                    $conn,
+                    'Cadastro de usuário',
+                    'Usuário ' . $nome . ' (' . $tipo . ') cadastrado.',
+                    $_SESSION['id_usuario']
+                );
+            } elseif (!empty($resultado['id'])) {
+                registrarLog(
+                    $conn,
+                    'Cadastro de usuário',
+                    'Novo usuário ' . $nome . ' realizou primeiro acesso.',
+                    $resultado['id']
+                );
+            }
+
             $_SESSION['mensagem_cadastro'] = [
                 'texto' => 'Cadastro realizado com sucesso.',
                 'tipo' => 'sucesso'

@@ -1,9 +1,10 @@
 <?php
 
 require_once '../script/sessao.php';
-require "../script/conexao.php";
-require "../script/funcoes_usuarios.php";
-require "../script/sidebar.php";
+require_once "../script/conexao.php";
+require_once "../script/funcoes_usuarios.php";
+require_once "../script/funcoes_logs.php";
+require_once "../script/sidebar.php";
 
 verificarSessao();
 
@@ -13,17 +14,24 @@ if (!isset($_GET['id'])) {
     die("Usuário não informado.");
 }
 
-$id = $_GET['id'];
+$id = (int) $_GET['id'];
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $nome = $_POST['nome'];
-    $email = $_POST['email'];
-    $senha = $_POST['senha'];
-    $tipo = $_POST['tipo'];
+    $nome = trim($_POST['nome'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $senha = $_POST['senha'] ?? '';
+    $tipo = $_POST['tipo'] ?? '';
 
     if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)) {
+
+        registrarLog(
+            $conn,
+            'Atualização de usuário',
+            'Usuário ' . $nome . ' (ID ' . $id . ') atualizado.',
+            $_SESSION['id_usuario']
+        );
 
         header("Location: usuarios.php");
         exit;

@@ -3,6 +3,7 @@
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
+require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
 verificarSessao();
@@ -35,6 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensagem = $resultado['mensagem'];
             $tipoMensagem = 'sucesso';
             $usuario = buscarUsuarioPorId($conn, $idUsuario);
+
+            registrarLog(
+                $conn,
+                'Atualização de perfil',
+                'Perfil atualizado pelo próprio usuário.',
+                $idUsuario
+            );
         } else {
             $mensagem = $resultado['mensagem'];
             $tipoMensagem = 'erro';
