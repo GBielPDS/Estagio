@@ -303,11 +303,26 @@ $resultadoUnidades =
     </div>
 
     <?php if ($mensagem !== ''): ?>
-        <div class="mensagem-modal <?= $tipoMensagem === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro' ?>">
-            <div class="mensagem-conteudo">
-                <strong><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Não foi possível concluir' ?></strong>
-                <p><?= htmlspecialchars($mensagem) ?></p>
-                <button type="button" onclick="fecharMensagem()">OK</button>
+        <div class="modal-overlay <?= $tipoMensagem === 'sucesso' ? 'modal-overlay--sucesso' : 'modal-overlay--erro' ?>">
+            <div class="modal-card">
+                <div class="modal-icone">
+                    <?php if ($tipoMensagem === 'sucesso'): ?>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    <?php else: ?>
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                    <?php endif; ?>
+                </div>
+                <h3 class="modal-titulo"><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Atenção' ?></h3>
+                <p class="modal-texto"><?= htmlspecialchars($mensagem) ?></p>
+                <button type="button" class="modal-botao" onclick="fecharMensagem(<?= $tipoMensagem === 'sucesso' ? 'true' : 'false' ?>)">
+                    <?= $tipoMensagem === 'sucesso' ? 'OK, Concluir' : 'Entendido, Corrigir' ?>
+                </button>
             </div>
         </div>
     <?php endif; ?>
@@ -557,9 +572,13 @@ let contadorProdutos = 1;
 
 function fecharMensagem(recarregar = false)
 {
-    const mensagem = document.querySelector('.mensagem-modal');
-    if (mensagem) {
-        mensagem.remove();
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+    const inlineMsg = document.querySelector('.mensagem-modal');
+    if (inlineMsg) {
+        inlineMsg.remove();
     }
     if (recarregar) {
         window.location.href = 'lancamentos.php';
@@ -568,30 +587,51 @@ function fecharMensagem(recarregar = false)
 
 function exibirMensagem(tipo, titulo, texto)
 {
-    fecharMensagem();
+    fecharMensagem(false);
 
-    const mainConteudo = document.querySelector('main.conteudo');
-    const dashboard = document.querySelector('.dashboard');
+    const isSucesso = tipo === 'sucesso';
+    const acaoClique = isSucesso ? 'fecharMensagem(true)' : 'fecharMensagem(false)';
+    const classeTipo = isSucesso ? 'modal-overlay--sucesso' : 'modal-overlay--erro';
 
-    const modal = document.createElement('div');
-    modal.className = `mensagem-modal ${tipo === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro'}`;
-    const acaoClique = tipo === 'sucesso' ? 'fecharMensagem(true)' : 'fecharMensagem(false)';
+    const iconeHtml = isSucesso
+        ? `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="20 6 9 17 4 12"></polyline>
+           </svg>`
+        : `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="10"></circle>
+             <line x1="12" y1="8" x2="12" y2="12"></line>
+             <line x1="12" y1="16" x2="12.01" y2="16"></line>
+           </svg>`;
 
-    modal.innerHTML = `
-        <div class="mensagem-conteudo">
-            <strong>${titulo}</strong>
-            <p>${texto}</p>
-            <button type="button" onclick="${acaoClique}">OK</button>
+    const textoBotao = isSucesso ? 'OK, Concluir' : 'Entendido, Corrigir';
+
+    const overlay = document.createElement('div');
+    overlay.className = `modal-overlay ${classeTipo}`;
+    overlay.innerHTML = `
+        <div class="modal-card">
+            <div class="modal-icone">
+                ${iconeHtml}
+            </div>
+            <h3 class="modal-titulo">${titulo}</h3>
+            <p class="modal-texto">${texto}</p>
+            <button type="button" class="modal-botao" onclick="${acaoClique}">
+                ${textoBotao}
+            </button>
         </div>
     `;
 
-    if (dashboard && mainConteudo) {
-        mainConteudo.insertBefore(modal, dashboard);
-    } else if (mainConteudo) {
-        mainConteudo.prepend(modal);
-    }
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay && !isSucesso) {
+            fecharMensagem(false);
+        }
+    });
 
-    modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.body.appendChild(overlay);
+
+    const btn = overlay.querySelector('.modal-botao');
+    if (btn) {
+        btn.focus();
+    }
 }
 
 function alterarTipo()
