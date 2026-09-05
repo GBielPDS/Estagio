@@ -94,9 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <main class="conteudo">
 
-        <div class="cabecalho-pagina">
+        <div class="cabecalho-pagina cabecalho-pagina--com-acao">
+            <div>
             <h1 class="cabecalho-pagina__titulo">Usuários</h1>
             <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
+            </div>
+            <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php?admin=1" class="botao botao--primario">
+                Cadastrar usuário
+            </a>
         </div>
 
         <?php if ($mensagemCadastro !== null): ?>
@@ -105,25 +110,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
-        <div class="cabecalho-pagina">
-            <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php?admin=1" class="botao botao--primario">
-                Cadastrar usuário
-            </a>
+        <div class="tabela-rolagem">
+            <table class="table table--usuarios">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Senha</th>
+                        <th>Tipo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php listarUsuarios($conn); ?>
+                </tbody>
+            </table>
         </div>
-        
-        <table class="table">
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Email</th>
-                <th>Senha</th>
-                <th>Tipo</th>
-                <th>Ações</th>
-            </tr>
-
-            <?php listarUsuarios($conn); ?>
-
-        </table>
 
     </main>
 

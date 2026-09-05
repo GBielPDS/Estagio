@@ -300,9 +300,9 @@ $resultadoEstoque =
         <br>
 
 
-        <div class="tabela-container">
+        <div class="tabela-rolagem">
 
-            <table class="tabela">
+            <table class="tabela tabela--estoque">
 
                 <thead>
 
@@ -319,6 +319,8 @@ $resultadoEstoque =
                         <th>Unidade</th>
 
                         <th>Estoque mínimo</th>
+
+                        <th>Status</th>
 
                     </tr>
 
@@ -393,6 +395,16 @@ $resultadoEstoque =
 
                                 </td>
 
+                                <td>
+                                    <?php if ((int) $produto['estoque'] === 0): ?>
+                                        <span class="badge-status badge-status--zerado">Zerado</span>
+                                    <?php elseif ((int) $produto['estoque'] < (int) $produto['estoque_minimo']): ?>
+                                        <span class="badge-status badge-status--baixo">Estoque baixo</span>
+                                    <?php else: ?>
+                                        <span class="badge-status badge-status--disponivel">Disponível</span>
+                                    <?php endif; ?>
+                                </td>
+
                             </tr>
 
                         <?php endwhile; ?>
@@ -403,7 +415,7 @@ $resultadoEstoque =
                         <tr>
 
                             <td
-                                colspan="6"
+                                colspan="7"
                                 style="text-align: center;"
                             >
 
