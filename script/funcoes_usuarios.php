@@ -27,6 +27,7 @@ function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
         return ['sucesso' => false, 'mensagem' => 'Erro ao preparar o cadastro.'];
     }
 
+    $stmt->bind_param('ssss', $nome, $email, $senhaHash, $tipo);
     $sucesso = $stmt->execute();
     $novoId = $conn->insert_id;
     $stmt->close();
