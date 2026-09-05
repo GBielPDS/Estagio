@@ -1,12 +1,41 @@
 <?php
 
+require_once __DIR__ . '/funcoes_estoque.php';
+
+function iconesNavegacao()
+{
+    return [
+        'entrada' => '<path d="M12 3v12"/><path d="m17 10-5 5-5-5"/><path d="M4 21h16"/>',
+        'saida' => '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 3h16"/>',
+        'produtos' => '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/>',
+        'historico' => '<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>',
+        'estoque' => '<path d="M22 8.35V20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 10v.01"/><path d="M6 14v.01"/><path d="M10 10v.01"/><path d="M10 14v.01"/><path d="M14 10v.01"/><path d="M14 14v.01"/><path d="M18 10v.01"/><path d="M18 14v.01"/><path d="M6 18v.01"/><path d="M10 18v.01"/><path d="M14 18v.01"/><path d="M18 18v.01"/>',
+        'alertas' => '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+        'graficos' => '<path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 15 3-4 3 2 5-7"/>'
+    ];
+}
+
 function sidebar($paginaAtiva = '')
 {
+    global $conn;
+
     $tipo = $_SESSION['tipo'] ?? '';
+    $nome = trim($_SESSION['nome'] ?? '');
+    $iniciais = strtoupper(substr($nome !== '' ? $nome : '?', 0, 1));
     $paginaAtiva = strtolower($paginaAtiva);
+    $icones = iconesNavegacao();
+    $totalAlertas = 0;
+
+    if (isset($conn) && function_exists('buscarAlertasEstoque')) {
+        $totalAlertas = count(buscarAlertasEstoque($conn));
+    }
 
     $ativo = function ($pagina) use ($paginaAtiva) {
         return $paginaAtiva === strtolower($pagina) ? ' aria-current="page"' : '';
+    };
+
+    $icone = function ($nome) use ($icones) {
+        return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icones[$nome] . '</svg>';
     };
 
     echo '
@@ -28,13 +57,13 @@ function sidebar($paginaAtiva = '')
             </a>
 
             <nav class="nav" aria-label="Módulos do estoque">
-                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Entrada"' . $ativo('lancamentos') . '>Entrada</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Saida"' . $ativo('saida') . '>Saída</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/produtos.php"' . $ativo('produtos') . '>Produtos</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/historico.php"' . $ativo('historico') . '>Histórico</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/estoque.php"' . $ativo('estoque') . '>Estoque</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/alertas.php"' . $ativo('alertas') . '>Alertas</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/graficos.php"' . $ativo('graficos') . '>Gráficos</a>';
+                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Entrada"' . $ativo('lancamentos') . '>' . $icone('entrada') . 'Entrada</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Saida"' . $ativo('saida') . '>' . $icone('saida') . 'Saída</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/produtos.php"' . $ativo('produtos') . '>' . $icone('produtos') . 'Produtos</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/historico.php"' . $ativo('historico') . '>' . $icone('historico') . 'Histórico</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/estoque.php"' . $ativo('estoque') . '>' . $icone('estoque') . 'Estoque</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/alertas.php"' . $ativo('alertas') . '>' . $icone('alertas') . 'Alertas</a>
+                <a class="nav__item" href="' . BASE_URL . 'pages/graficos.php"' . $ativo('graficos') . '>' . $icone('graficos') . 'Gráficos</a>';
 
     if ($tipo === 'Administrador') {
         echo '
@@ -46,10 +75,18 @@ function sidebar($paginaAtiva = '')
             </nav>
 
             <div class="user-menu">
-                <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
+                <span class="avatar avatar--iniciais" aria-label="Abrir menu do perfil">' . htmlspecialchars($iniciais, ENT_QUOTES, 'UTF-8') . '</span>
                 <div class="dropdown-content">
                     <a href="' . BASE_URL . 'pages/perfil.php">Meu Perfil</a>
-                    <a href="' . BASE_URL . 'pages/perfil.php">Configurações</a>
+                    <a class="dropdown-notificacao" href="' . BASE_URL . 'pages/alertas.php">Notificações <span class="notificacao-contador">' . $totalAlertas . '</span></a>';
+
+    if ($tipo === 'Administrador') {
+        echo '
+                    <a href="' . BASE_URL . 'pages/usuarios.php">Usuários</a>
+                    <a href="' . BASE_URL . 'pages/logs.php">Logs</a>';
+    }
+
+    echo '
                     <hr>
                     <a class="sair-link" href="' . BASE_URL . 'script/logout.php">Sair</a>
                 </div>
