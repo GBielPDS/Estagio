@@ -35,7 +35,105 @@ Navegador
 
 ---
 
-## 3. Explicação Detalhada das Páginas (`pages/` e `index.php`)
+## 3. Modelo Lógico do Banco de Dados
+
+O banco de dados se chama **`almoxarifado`** e adota o padrão relacional com suporte a integridade referencial estrita e transações ACID (mecanismo **InnoDB** obrigatório).
+
+### 3.1. Esquema Relacional Formal (Notação Lógica)
+- **`usuario`** (<u>id_usuario</u>, nome, email, senha, tipo)
+- **`categoria`** (<u>id_categoria</u>, nome)
+- **`produto`** (<u>id_produto</u>, nome, unidade, estoque, estoque_minimo, #categoria_id)
+  - *#categoria_id referencia categoria(id_categoria)*
+- **`unidade_saude`** (<u>id_unidade</u>, nome, endereco, telefone, ativo)
+- **`movimentacao`** (<u>id_movimentacao</u>, tipo, data_hora, observacao, #usuario_id, #unidade_destino_id)
+  - *#usuario_id referencia usuario(id_usuario)*
+  - *#unidade_destino_id referencia unidade_saude(id_unidade)*
+- **`item_lancamento`** (<u>id_item</u>, quantidade, #movimentacao_id, #produto_id)
+  - *#movimentacao_id referencia movimentacao(id_movimentacao)*
+  - *#produto_id referencia produto(id_produto)*
+- **`log`** (<u>id_log</u>, data_hora, acao, descricao, #usuario_id)
+  - *#usuario_id referencia usuario(id_usuario)*
+
+---
+
+### 3.2. Dicionário de Dados e Estrutura das Tabelas
+
+#### Tabela: `usuario` (Contas de Acesso e Permissões)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_usuario` | `INT` | Não | **PK** | Identificador único incremental do usuário. |
+| `nome` | `VARCHAR(100)` | Não | — | Nome completo do usuário. |
+| `email` | `VARCHAR(100)` | Não | **UK** | Email institucional único para login no sistema. |
+| `senha` | `VARCHAR(255)` | Não | — | Hash criptográfico gerado via `password_hash()` (BCrypt). |
+| `tipo` | `ENUM(...)` | Não | — | Nível de acesso: `'Administrador'`, `'Suporte'` ou `'Usuario'`. |
+
+#### Tabela: `categoria` (Classificação de Insumos)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_categoria` | `INT` | Não | **PK** | Identificador único da categoria. |
+| `nome` | `VARCHAR(100)` | Não | **UK** | Nome único da categoria (ex: Medicamentos, Curativos, EPIs). |
+
+#### Tabela: `produto` (Catálogo de Materiais e Estoque Atual)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_produto` | `INT` | Não | **PK** | Identificador único do insumo/medicamento. |
+| `nome` | `VARCHAR(100)` | Não | — | Nome descritivo comercial ou genérico do produto. |
+| `unidade` | `VARCHAR(20)` | Não | — | Unidade de medida (ex: Frasco, Caixa, Ampola, Unidade). |
+| `estoque` | `INT` | Não | — | Saldo físico atual em estoque (`DEFAULT 0`). Regra: `CHECK (estoque >= 0)`. |
+| `estoque_minimo` | `INT` | Não | — | Cota de segurança para disparar alertas (`DEFAULT 0`). Regra: `>= 0`. |
+| `categoria_id` | `INT` | Não | **FK** | Referência para a categoria (`categoria.id_categoria`). |
+
+#### Tabela: `unidade_saude` (Destinos das Distribuições)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_unidade` | `INT` | Não | **PK** | Identificador único da unidade de saúde. |
+| `nome` | `VARCHAR(100)` | Não | **UK** | Nome da unidade (ex: UBS Central, Policlínica, Secretaria de Saúde). |
+| `endereco` | `VARCHAR(255)` | Sim | — | Endereço físico da unidade de atendimento. |
+| `telefone` | `VARCHAR(20)` | Sim | — | Telefone de contato da unidade. |
+| `ativo` | `BOOLEAN` | Não | — | Flag de controle lógico de ativação (`DEFAULT TRUE`). |
+
+#### Tabela: `movimentacao` (Cabeçalho de Entradas e Saídas)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_movimentacao` | `INT` | Não | **PK** | Identificador da movimentação em lote. |
+| `tipo` | `ENUM(...)` | Não | — | Natureza da operação: `'Entrada'` ou `'Saida'`. |
+| `data_hora` | `DATETIME` | Não | — | Data e hora exata da gravação (`DEFAULT CURRENT_TIMESTAMP`). |
+| `unidade_destino_id`| `INT` | Sim | **FK** | Unidade recebedora (obrigatória na Saída, Secretaria na Entrada). |
+| `observacao` | `TEXT` | Sim | — | Justificativa, número de nota fiscal ou anotação do operador. |
+| `usuario_id` | `INT` | Não | **FK** | Operador responsável pelo lançamento (`usuario.id_usuario`). |
+
+#### Tabela: `item_lancamento` (Itens Pertencentes a uma Movimentação)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_item` | `INT` | Não | **PK** | Identificador único do item movimentado. |
+| `movimentacao_id` | `INT` | Não | **FK** | Movimentação à qual o item pertence (`ON DELETE CASCADE`). |
+| `produto_id` | `INT` | Não | **FK** | Insumo movimentado (`ON DELETE RESTRICT`). |
+| `quantidade` | `INT` | Não | — | Quantidade lançada. Regra: `CHECK (quantidade > 0)`. |
+
+#### Tabela: `log` (Trilha de Auditoria do Sistema)
+| Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |
+| :--- | :--- | :---: | :---: | :--- |
+| `id_log` | `INT` | Não | **PK** | Identificador do evento de auditoria. |
+| `data_hora` | `DATETIME` | Não | — | Timestamp do momento da ação (`DEFAULT CURRENT_TIMESTAMP`). |
+| `acao` | `VARCHAR(100)` | Não | — | Nome da operação (ex: Login, Logout, Entrada, Saída, Exclusão). |
+| `descricao` | `TEXT` | Sim | — | Detalhes auditáveis da ação (ex: quantidades, nomes e destinos). |
+| `usuario_id` | `INT` | Não | **FK** | Usuário que executou a ação (`usuario.id_usuario`). |
+
+---
+
+### 3.3. Integridade Referencial e Ações em Cascata (Foreign Keys)
+| Tabela de Origem | Chave Estrangeira | Tabela de Destino | Chave Referenciada | ON UPDATE | ON DELETE | Motivação da Regra |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- |
+| `produto` | `categoria_id` | `categoria` | `id_categoria` | CASCADE | RESTRICT | Impede apagar categoria que ainda possua produtos vinculados. |
+| `movimentacao` | `usuario_id` | `usuario` | `id_usuario` | CASCADE | RESTRICT | Preserva o autor histórico da movimentação no almoxarifado. |
+| `movimentacao` | `unidade_destino_id`| `unidade_saude` | `id_unidade` | CASCADE | RESTRICT | Impede deletar unidade que já recebeu remessas de materiais. |
+| `item_lancamento` | `movimentacao_id` | `movimentacao` | `id_movimentacao`| CASCADE | CASCADE | Se a movimentação for cancelada, remove os itens vinculados. |
+| `item_lancamento` | `produto_id` | `produto` | `id_produto` | CASCADE | RESTRICT | Impede deletar produto que já tenha histórico de movimentação. |
+| `log` | `usuario_id` | `usuario` | `id_usuario` | CASCADE | RESTRICT | Garante a imutabilidade da trilha de auditoria para fins legais. |
+
+---
+
+## 4. Explicação Detalhada das Páginas (`pages/` e `index.php`)
 
 ### `index.php` (Dashboard Principal)
 - **O que faz:** Página inicial após o login.
@@ -121,7 +219,7 @@ Navegador
 
 ---
 
-## 4. Explicação Detalhada dos Scripts (`script/`)
+## 5. Explicação Detalhada dos Scripts (`script/`)
 
 ### `script/conexao.php`
 - Cria a instância global `$conn = new mysqli($host, $usuario, $senha, $banco)`.
@@ -199,13 +297,13 @@ Possui as duas funções mais importantes do sistema:
 
 ---
 
-## 5. Todas as "Gambiarras", Truques e Decisões Técnicas do Código
+## 6. Particularidades Técnicas, Casos Especiais e Decisões de Arquitetura
 
-Para o técnico de TI que precisar dar manutenção, esta seção documenta todos os pontos específicos onde foi necessário implementar macetes técnicos:
+Para o técnico de TI que precisar dar manutenção, esta seção documenta os pontos de atenção, soluções de contorno e tratamentos específicos adotados no código:
 
 ### 1. Injeção Manual de Campo `disabled` via JavaScript (`pages/lancamentos.php`)
 - **O Problema:** No HTML padrão, quando um elemento de formulário tem o atributo `disabled` (como `<select id="unidade_destino" disabled>`), o navegador **omite esse campo** ao criar um objeto `new FormData(form)`. Nas entradas de material, a unidade de destino é fixada na Secretaria de Saúde e fica `disabled`. Logo, o PHP não recebia o ID da unidade de destino.
-- **O Macete:** No JavaScript que intercepta o submit, forçamos a inserção manual do campo antes de enviar o `fetch`:
+- **Solução Adotada:** No JavaScript que intercepta o submit, forçamos a inserção manual do campo antes de enviar o `fetch`:
   ```javascript
   const formData = new FormData(formLancamento);
   const selectUnidade = document.getElementById('unidade_destino');
@@ -243,7 +341,7 @@ Para o técnico de TI que precisar dar manutenção, esta seção documenta todo
 
 ### 4. Concatenação de Horário nos Filtros de Data (`script/funcoes_logs.php`)
 - **O Problema:** O campo `data_hora` da tabela `log` é do tipo `DATETIME` (`2026-09-05 14:32:10`). Quando o operador filtrava logs de "01/09/2026" até "05/09/2026", o input `date` do HTML mandava apenas `'2026-09-05'`. O MySQL comparava com `'2026-09-05 00:00:00'`, e com isso todos os logs acontecidos durante o próprio dia 05 eram ignorados.
-- **O Macete:** No PHP, concatenamos `" 23:59:59"` na data final:
+- **Solução Adotada:** No PHP, concatenamos `" 23:59:59"` na data final:
   ```php
   if ($dataFim !== '') {
       $sql .= " AND l.data_hora <= ?";
@@ -271,7 +369,7 @@ Para o técnico de TI que precisar dar manutenção, esta seção documenta todo
 
 ### 8. Bloqueio de Rolagem do Mouse nos Inputs Numéricos
 - **O Problema:** Quando o operador usa o scroll do mouse para descer a página longa de lançamentos, se o cursor do mouse passar por cima de um `<input type="number">`, o navegador por padrão incrementa ou decrementa o número sem o usuário perceber.
-- **O Macete:** Foi adicionado um listener global no JavaScript de lançamentos:
+- **Solução Adotada:** Foi adicionado um listener global no JavaScript de lançamentos:
   ```javascript
   document.addEventListener('wheel', function(evento) {
       if (evento.target.matches('input[type="number"]')) {
@@ -282,7 +380,7 @@ Para o técnico de TI que precisar dar manutenção, esta seção documenta todo
 
 ### 9. Bloqueio de Auto-Exclusão do Administrador (`pages/usuarios.php`)
 - **O Problema:** Se o único administrador logado clicasse para excluir o seu próprio usuário, ele ficaria sem acesso ao sistema e ninguém mais conseguiria gerenciar os acessos.
-- **O Macete:** No backend de `usuarios.php`, antes de executar a exclusão, verifica-se:
+- **Solução Adotada:** No backend de `usuarios.php`, antes de executar a exclusão, verifica-se:
   ```php
   if ((int)$idUsuarioExcluir === (int)$_SESSION['id_usuario']) {
       // Bloqueia com mensagem: "Você não pode excluir o seu próprio usuário conectado."
