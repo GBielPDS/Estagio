@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once "../script/conexao.php";
 require_once "../script/funcoes_usuarios.php";
@@ -7,7 +9,6 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-
 verificarTipo(['Administrador']);
 
 if (!isset($_GET['id'])) {
@@ -16,29 +17,25 @@ if (!isset($_GET['id'])) {
 
 $id = (int) $_GET['id'];
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $nome = trim($_POST['nome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $tipo = $_POST['tipo'] ?? '';
+    $nome = trim((string) ($_POST['nome'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $senha = (string) ($_POST['senha'] ?? '');
+    $tipo = (string) ($_POST['tipo'] ?? '');
 
     if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)) {
-
         registrarLog(
             $conn,
             'Atualização de usuário',
             'Usuário ' . $nome . ' (ID ' . $id . ') atualizado.',
-            $_SESSION['id_usuario']
+            (int) $_SESSION['id_usuario']
         );
 
         header("Location: usuarios.php");
         exit;
-
-    } else {
-        echo "Erro ao atualizar usuário.";
     }
+
+    echo "Erro ao atualizar usuário.";
 }
 
 $usuario = buscarUsuarioPorId($conn, $id);
@@ -46,7 +43,6 @@ $usuario = buscarUsuarioPorId($conn, $id);
 if (!$usuario) {
     die("Usuário não encontrado.");
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -70,7 +66,7 @@ if (!$usuario) {
             <p class="cabecalho-pagina__descricao">Atualize os dados do usuário.</p>
         </div>
 
-        <Section class="cartao">
+        <section class="cartao">
 
             <form method="POST" class="formulario">
                 <div class="campo campo--largo">
@@ -78,50 +74,47 @@ if (!$usuario) {
                     <input class="campo__controle"                
                         type="text"
                         name="nome"
-                        value="<?= htmlspecialchars($usuario['nome']) ?>"
+                        value="<?= htmlspecialchars((string) $usuario['nome'], ENT_QUOTES, 'UTF-8') ?>"
                         required
                     >
                 </div>
 
-
-                <div class="campo campo--largo"">
-                <label class="campo__rotulo">Email:</label>
-                <input class="campo__controle"
-                    type="email"
-                    name="email"
-                    value="<?= htmlspecialchars($usuario['email']) ?>"
-                    required
-                >
+                <div class="campo campo--largo">
+                    <label class="campo__rotulo">Email:</label>
+                    <input class="campo__controle"
+                        type="email"
+                        name="email"
+                        value="<?= htmlspecialchars((string) $usuario['email'], ENT_QUOTES, 'UTF-8') ?>"
+                        required
+                    >
                 </div>
 
-
-                <div class="campo campo--largo"">
-                <label class="campo__rotulo">Nova senha:</label>
-                <input class="campo__controle"
-                    type="password"
-                    name="senha"
-                    placeholder="Deixe vazio para manter a senha atual"
-                >
+                <div class="campo campo--largo">
+                    <label class="campo__rotulo">Nova senha:</label>
+                    <input class="campo__controle"
+                        type="password"
+                        name="senha"
+                        placeholder="Deixe vazio para manter a senha atual"
+                    >
                 </div>
 
                 <div class="campo campo--largo"> 
-                    <label class="campo__rotulo" for="tipo" > Tipo de usuário </label> 
-                    <select class="campo__controle" id="tipo" name="tipo" > 
-                    
-                        <option value="Administrador" <?= $usuario['tipo'] === 'Administrador' ? 'selected' : '' ?> > Administrador 
-                        </option> 
-                        <option value="Suporte" <?= $usuario['tipo'] === 'Suporte' ? 'selected' : '' ?> > Suporte 
-                        </option> 
-                        <option value="Usuario" <?= $usuario['tipo'] === 'Usuario' ? 'selected' : '' ?> > Usuário </option> 
+                    <label class="campo__rotulo" for="tipo">Tipo de usuário</label> 
+                    <select class="campo__controle" id="tipo" name="tipo"> 
+                        <option value="Administrador" <?= $usuario['tipo'] === 'Administrador' ? 'selected' : '' ?>>Administrador</option> 
+                        <option value="Suporte" <?= $usuario['tipo'] === 'Suporte' ? 'selected' : '' ?>>Suporte</option> 
+                        <option value="Usuario" <?= $usuario['tipo'] === 'Usuario' ? 'selected' : '' ?>>Usuário</option> 
                     </select> 
                 </div>
 
-                <div class="formulario__acoes"> <a href="usuarios.php" class="botao botao--secundario" > Cancelar </a> 
-                <button type="submit" class="botao botao--primario" onclick="document.getElementById('acao').value='atualizar'" > Salvar </button> 
+                <div class="formulario__acoes">
+                    <a href="usuarios.php" class="botao botao--secundario">Cancelar</a> 
+                    <button type="submit" class="botao botao--primario">Salvar</button> 
+                </div>
 
             </form>
 
-        </Section>
+        </section>
 
     </main>
 

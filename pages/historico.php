@@ -1,44 +1,37 @@
 <?php
 
-require "../script/sessao.php";
-require "../script/conexao.php";
-require "../script/funcoes_historico.php";
-require "../script/sidebar.php";
+declare(strict_types=1);
+
+require_once "../script/sessao.php";
+require_once "../script/conexao.php";
+require_once "../script/funcoes_historico.php";
+require_once "../script/sidebar.php";
 
 verificarSessao();
 
+$filtroTipo = (string) ($_GET['tipo'] ?? '');
+$dataInicio = (string) ($_GET['data_inicio'] ?? '');
+$dataFim = (string) ($_GET['data_fim'] ?? '');
+$filtroCategoria = (string) ($_GET['categoria'] ?? '');
+$filtroUnidade = (string) ($_GET['unidade'] ?? '');
 
-$filtroTipo = $_GET['tipo'] ?? '';
-$dataInicio = $_GET['data_inicio'] ?? '';
-$dataFim = $_GET['data_fim'] ?? '';
-$filtroCategoria = $_GET['categoria'] ?? '';
-$filtroUnidade = $_GET['unidade'] ?? '';
+$resultadoCategorias = buscarCategorias($conn);
+$resultadoUnidades = buscarUnidadesHistorico($conn);
+$resultadoHistorico = buscarHistorico(
+    $conn,
+    $filtroTipo,
+    $dataInicio,
+    $dataFim,
+    $filtroCategoria,
+    $filtroUnidade
+);
 
-$resultadoCategorias =
-    buscarCategorias($conn);
+$historico = [];
 
-$resultadoUnidades =
-    buscarUnidadesHistorico($conn);
-
-$resultadoHistorico =
-    buscarHistorico(
-        $conn,
-        $filtroTipo,
-        $dataInicio,
-        $dataFim,
-        $filtroCategoria,
-        $filtroUnidade
-    );
-
-    $historico = [];
-
-
-while (
-    $registro =
-    $resultadoHistorico->fetch_assoc()
-) {
-
-    $historico[] = $registro;
+if ($resultadoHistorico) {
+    while ($registro = $resultadoHistorico->fetch_assoc()) {
+        $historico[] = $registro;
+    }
 }
 ?>
 
@@ -53,7 +46,7 @@ while (
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css" />
-    <title>Historico</title>
+    <title>Histórico</title>
 </head>
 <body>
     <?php sidebar('historico'); ?>
@@ -102,435 +95,174 @@ while (
         </a>
 
         <div class="user-menu">
-                    <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
-                    <div class="dropdown-content">
-                        <a href="perfil.php"><i class="fa-solid fa-user"></i> Meu Perfil</a>
-                        <a href="perfil.php"><i class="fa-solid fa-gear"></i> Configurações</a>
-                        <hr>
-                        <a href="login.php" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i>
-                            Sair</a>
-                    </div>
+            <img src="https://ui-avatars.com/api/?name=V+W&background=e2e8f0&color=64748b&size=150" alt="Perfil" class="avatar">
+            <div class="dropdown-content">
+                <a href="perfil.php"><i class="fa-solid fa-user"></i> Meu Perfil</a>
+                <a href="perfil.php"><i class="fa-solid fa-gear"></i> Configurações</a>
+                <hr>
+                <a href="login.php" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+            </div>
+        </div>
       </nav>
     </div>
 </header>
 
     <main class="conteudo">
 
-
     <div class="cabecalho-pagina">
-
-        <h1 class="cabecalho-pagina__titulo">
-            Histórico
-        </h1>
-
-        <p class="cabecalho-pagina__descricao">
-            Consulte os lançamentos de entrada e saída registrados.
-        </p>
-
+        <h1 class="cabecalho-pagina__titulo">Histórico</h1>
+        <p class="cabecalho-pagina__descricao">Consulte os lançamentos de entrada e saída registrados.</p>
     </div>
-
 
     <section class="cartao cartao--produtos">
 
-
-        <form
-            method="GET"
-            class="filtros"
-        >
-
+        <form method="GET" class="filtros">
 
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-tipo"
-                >
-                    Tipo
-                </label>
-
-
-                <select
-                    class="campo__controle"
-                    id="filtro-tipo"
-                    name="tipo"
-                >
-
-                    <option
-                        value=""
-                        <?= $filtroTipo === ''
-                            ? 'selected'
-                            : '' ?>
-                    >
-                        Todos os tipos
-                    </option>
-
-
-                    <option
-                        value="entrada"
-                        <?= $filtroTipo === 'entrada'
-                            ? 'selected'
-                            : '' ?>
-                    >
-                        Entrada
-                    </option>
-
-
-                    <option
-                        value="saida"
-                        <?= $filtroTipo === 'saida'
-                            ? 'selected'
-                            : '' ?>
-                    >
-                        Saída
-                    </option>
-
+                <label class="campo__rotulo" for="filtro-tipo">Tipo</label>
+                <select class="campo__controle" id="filtro-tipo" name="tipo">
+                    <option value="" <?= $filtroTipo === '' ? 'selected' : '' ?>>Todos os tipos</option>
+                    <option value="entrada" <?= $filtroTipo === 'entrada' ? 'selected' : '' ?>>Entrada</option>
+                    <option value="saida" <?= $filtroTipo === 'saida' ? 'selected' : '' ?>>Saída</option>
                 </select>
-
             </div>
 
-
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-data-inicio"
-                >
-                    De
-                </label>
-
-
+                <label class="campo__rotulo" for="filtro-data-inicio">De</label>
                 <input
                     class="campo__controle"
                     type="date"
                     id="filtro-data-inicio"
                     name="data_inicio"
-                    value="<?= htmlspecialchars(
-                        $dataInicio
-                    ) ?>"
+                    value="<?= htmlspecialchars($dataInicio, ENT_QUOTES, 'UTF-8') ?>"
                 >
-
             </div>
 
-
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-data-fim"
-                >
-                    Até
-                </label>
-
-
+                <label class="campo__rotulo" for="filtro-data-fim">Até</label>
                 <input
                     class="campo__controle"
                     type="date"
                     id="filtro-data-fim"
                     name="data_fim"
-                    value="<?= htmlspecialchars(
-                        $dataFim
-                    ) ?>"
+                    value="<?= htmlspecialchars($dataFim, ENT_QUOTES, 'UTF-8') ?>"
                 >
-
             </div>
-
 
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-categoria"
-                >
-                    Categoria
-                </label>
-
-
-                <select
-                    class="campo__controle"
-                    id="filtro-categoria"
-                    name="categoria"
-                >
-
-                    <option value="">
-                        Todas as categorias
-                    </option>
-
-
-                    <?php while (
-                        $categoria =
-                        $resultadoCategorias->fetch_assoc()
-                    ): ?>
-
-                        <option
-                            value="<?= $categoria['id_categoria'] ?>"
-                            <?= $filtroCategoria ==
-                                $categoria['id_categoria']
-                                ? 'selected'
-                                : '' ?>
-                        >
-
-                            <?= htmlspecialchars(
-                                $categoria['nome']
-                            ) ?>
-
-                        </option>
-
-                    <?php endwhile; ?>
-
+                <label class="campo__rotulo" for="filtro-categoria">Categoria</label>
+                <select class="campo__controle" id="filtro-categoria" name="categoria">
+                    <option value="">Todas as categorias</option>
+                    <?php if ($resultadoCategorias): ?>
+                        <?php while ($categoria = $resultadoCategorias->fetch_assoc()): ?>
+                            <option
+                                value="<?= (int) $categoria['id_categoria'] ?>"
+                                <?= (string) $filtroCategoria === (string) $categoria['id_categoria'] ? 'selected' : '' ?>
+                            >
+                                <?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
                 </select>
-
             </div>
-
 
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-unidade"
-                >
-                    Unidade de saúde
-                </label>
-
-
-                <select
-                    class="campo__controle"
-                    id="filtro-unidade"
-                    name="unidade"
-                >
-
-                    <option value="">
-                        Todas as unidades
-                    </option>
-
-
-                    <?php while (
-                        $unidade =
-                        $resultadoUnidades->fetch_assoc()
-                    ): ?>
-
-                        <option
-                            value="<?= $unidade['id_unidade'] ?>"
-                            <?= $filtroUnidade ==
-                                $unidade['id_unidade']
-                                ? 'selected'
-                                : '' ?>
-                        >
-
-                            <?= htmlspecialchars(
-                                $unidade['nome']
-                            ) ?>
-
-                        </option>
-
-                    <?php endwhile; ?>
-
+                <label class="campo__rotulo" for="filtro-unidade">Unidade de saúde</label>
+                <select class="campo__controle" id="filtro-unidade" name="unidade">
+                    <option value="">Todas as unidades</option>
+                    <?php if ($resultadoUnidades): ?>
+                        <?php while ($unidade = $resultadoUnidades->fetch_assoc()): ?>
+                            <option
+                                value="<?= (int) $unidade['id_unidade'] ?>"
+                                <?= (string) $filtroUnidade === (string) $unidade['id_unidade'] ? 'selected' : '' ?>
+                            >
+                                <?= htmlspecialchars((string) $unidade['nome'], ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
                 </select>
-
             </div>
 
-
-            <button
-                class="botao botao--primario"
-                type="submit"
-            >
-
-                Pesquisar
-
-            </button>
-
-
-            <a
-                class="botao botao--secundario"
-                href="historico.php"
-            >
-
-                Limpar filtros
-
-            </a>
-
+            <button class="botao botao--primario" type="submit">Pesquisar</button>
+            <a class="botao botao--secundario" href="historico.php">Limpar filtros</a>
 
         </form>
 
-
         <br>
-
 
         <div id="tabela-historico"></div>
 
-
     </section>
-
 
 </main>
 
-
-<footer class="rodape">
-
-    GestSaúde · Módulo de Controle de Estoque
-
-</footer>
-
+<footer class="rodape">GestSaúde · Módulo de Controle de Estoque</footer>
 
 <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 
-
 <script>
-
-
 const dadosHistorico = [
-
     <?php foreach ($historico as $registro): ?>
-
     [
-
-        <?= json_encode(
-            $registro['id_movimentacao']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['tipo']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['produto']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['categoria']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['quantidade']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['unidade_medida']
-        ) ?>,
-
-        <?= json_encode(
-            $registro['unidade_saude'] ??
-            'Secretaria de Saúde'
-        ) ?>,
-
-        <?= json_encode(
-            $registro['usuario']
-        ) ?>,
-
-        <?= json_encode(
-            date(
-                'd/m/Y H:i',
-                strtotime(
-                    $registro['data_hora']
-                )
-            )
-        ) ?>,
-
-        <?= json_encode(
-            $registro['observacao'] ??
-            ''
-        ) ?>
-
+        <?= json_encode((int) $registro['id_movimentacao'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) $registro['tipo'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) $registro['produto'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) $registro['categoria'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((int) $registro['quantidade'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) $registro['unidade_medida'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) ($registro['unidade_saude'] ?? 'Secretaria de Saúde'), JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) $registro['usuario'], JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode(date('d/m/Y H:i', strtotime((string) $registro['data_hora'])), JSON_THROW_ON_ERROR) ?>,
+        <?= json_encode((string) ($registro['observacao'] ?? ''), JSON_THROW_ON_ERROR) ?>
     ],
-
     <?php endforeach; ?>
-
 ];
 
-
 new gridjs.Grid({
-
     columns: [
-
         {
             name: "ID",
             width: "70px"
         },
-
         {
             name: "Tipo",
             formatter: (celula) => {
-
                 if (celula === "Entrada") {
-
-                    return gridjs.html(
-                        '<span class="tipo-entrada">Entrada</span>'
-                    );
-
+                    return gridjs.html('<span class="tipo-entrada">Entrada</span>');
                 }
-
-                return gridjs.html(
-                    '<span class="tipo-saida">Saída</span>'
-                );
-
+                return gridjs.html('<span class="tipo-saida">Saída</span>');
             }
         },
-
         "Produto",
-
         "Categoria",
-
         "Quantidade",
-
         "Unidade",
-
         "Unidade de Saúde",
-
         "Usuário",
-
         "Data/Hora",
-
         "Observação"
-
     ],
-
     data: dadosHistorico,
-
     pagination: {
-
         limit: 10
-
     },
-
     sort: true,
-
     search: true,
-
     language: {
-
         search: {
             placeholder: "Pesquisar..."
         },
-
         pagination: {
-
             previous: "Anterior",
-
             next: "Próximo",
-
             showing: "Mostrando",
-
             results: () => "registros"
-
         },
-
-        noRecordsFound:
-            "Nenhum registro encontrado",
-
-        loading:
-            "Carregando..."
-
+        noRecordsFound: "Nenhum registro encontrado",
+        loading: "Carregando..."
     }
-
-}).render(
-    document.getElementById(
-        "tabela-historico"
-    )
-);
-
+}).render(document.getElementById("tabela-historico"));
 </script>
-
-  <footer class="rodape">GestSaúde · Módulo de Controle de Estoque</footer>
-<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
 
 </body>
 </html>

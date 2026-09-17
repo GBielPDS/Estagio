@@ -1,6 +1,8 @@
 <?php
 
-function registrarLog($conn, $acao, $descricao, $usuario_id)
+declare(strict_types=1);
+
+function registrarLog(mysqli $conn, string $acao, string $descricao, int $usuario_id): bool
 {
     $sql = 'INSERT INTO log (acao, descricao, usuario_id) VALUES (?, ?, ?)';
     $stmt = $conn->prepare($sql);
@@ -16,7 +18,7 @@ function registrarLog($conn, $acao, $descricao, $usuario_id)
     return $sucesso;
 }
 
-function buscarUsuariosLogs($conn)
+function buscarUsuariosLogs(mysqli $conn): mysqli_result|false
 {
     $sql = "SELECT
                 id_usuario,
@@ -24,19 +26,15 @@ function buscarUsuariosLogs($conn)
             FROM usuario
             ORDER BY nome";
 
-    $resultado = $conn->query($sql);
-
-    return $resultado;
+    return $conn->query($sql);
 }
 
-
 function buscarLogs(
-    $conn,
-    $dataInicio = '',
-    $dataFim = '',
-    $usuario = ''
-) {
-
+    mysqli $conn,
+    string $dataInicio = '',
+    string $dataFim = '',
+    string $usuario = ''
+): mysqli_result|false {
     $sql = "SELECT
                 l.id_log,
                 l.data_hora,
@@ -44,78 +42,48 @@ function buscarLogs(
                 l.descricao,
                 l.usuario_id,
                 u.nome AS usuario
-
             FROM log l
-
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-
             WHERE 1 = 1";
-
 
     $parametros = [];
     $tipos = "";
 
-
     if ($dataInicio !== '') {
-
         $sql .= " AND l.data_hora >= ?";
-
-        $parametros[] =
-            $dataInicio . " 00:00:00";
-
+        $parametros[] = $dataInicio . " 00:00:00";
         $tipos .= "s";
     }
-
 
     if ($dataFim !== '') {
-
         $sql .= " AND l.data_hora <= ?";
-
-        $parametros[] =
-            $dataFim . " 23:59:59";
-
+        $parametros[] = $dataFim . " 23:59:59";
         $tipos .= "s";
     }
 
-
     if ($usuario !== '') {
-
         $sql .= " AND l.usuario_id = ?";
-
-        $parametros[] =
-            (int) $usuario;
-
+        $parametros[] = (int) $usuario;
         $tipos .= "i";
     }
-
 
     $sql .= " ORDER BY
                 l.data_hora DESC,
                 l.id_log DESC
               LIMIT 300";
 
-
     $stmt = $conn->prepare($sql);
 
-
     if (!$stmt) {
-
         return false;
     }
 
-
     if (!empty($parametros)) {
-
-        $stmt->bind_param(
-            $tipos,
-            ...$parametros
-        );
+        $stmt->bind_param($tipos, ...$parametros);
     }
 
-
     $stmt->execute();
-
 
     return $stmt->get_result();
 }

@@ -1,6 +1,8 @@
 <?php
 
-function buscarCategorias($conn)
+declare(strict_types=1);
+
+function buscarCategorias(mysqli $conn): array
 {
     $sql = 'SELECT id_categoria, nome FROM categoria ORDER BY nome';
     $resultado = $conn->query($sql);
@@ -12,7 +14,7 @@ function buscarCategorias($conn)
     return $resultado->fetch_all(MYSQLI_ASSOC);
 }
 
-function buscarUnidades($conn)
+function buscarUnidades(mysqli $conn): array
 {
     $sql = "SELECT DISTINCT unidade
             FROM produto
@@ -27,7 +29,7 @@ function buscarUnidades($conn)
     return $resultado->fetch_all(MYSQLI_ASSOC);
 }
 
-function criarCategoria($conn, $nome)
+function criarCategoria(mysqli $conn, string $nome): array
 {
     $nome = trim($nome);
 
@@ -37,6 +39,11 @@ function criarCategoria($conn, $nome)
 
     $sql = 'SELECT id_categoria FROM categoria WHERE nome = ?';
     $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar consulta.'];
+    }
+
     $stmt->bind_param('s', $nome);
     $stmt->execute();
 
@@ -49,6 +56,11 @@ function criarCategoria($conn, $nome)
 
     $sql = 'INSERT INTO categoria (nome) VALUES (?)';
     $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar cadastro da categoria.'];
+    }
+
     $stmt->bind_param('s', $nome);
 
     if (!$stmt->execute()) {
@@ -56,18 +68,23 @@ function criarCategoria($conn, $nome)
         return ['sucesso' => false, 'mensagem' => 'Não foi possível cadastrar a categoria.'];
     }
 
-    $idCategoria = $stmt->insert_id;
+    $idCategoria = (int) $stmt->insert_id;
     $stmt->close();
 
     return ['sucesso' => true, 'id' => $idCategoria];
 }
 
-function produtoJaExiste($conn, $nome, $categoriaId, $unidade)
+function produtoJaExiste(mysqli $conn, string $nome, int $categoriaId, string $unidade): bool
 {
     $sql = 'SELECT id_produto
             FROM produto
             WHERE nome = ? AND categoria_id = ? AND unidade = ?';
     $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return false;
+    }
+
     $stmt->bind_param('sis', $nome, $categoriaId, $unidade);
     $stmt->execute();
 
@@ -77,10 +94,15 @@ function produtoJaExiste($conn, $nome, $categoriaId, $unidade)
     return $existe;
 }
 
-function unidadeJaExiste($conn, $unidade)
+function unidadeJaExiste(mysqli $conn, string $unidade): bool
 {
     $sql = 'SELECT id_produto FROM produto WHERE unidade = ? LIMIT 1';
     $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return false;
+    }
+
     $stmt->bind_param('s', $unidade);
     $stmt->execute();
 
@@ -90,10 +112,18 @@ function unidadeJaExiste($conn, $unidade)
     return $existe;
 }
 
-function cadastrarProduto($conn, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo)
-{
+function cadastrarProduto(
+    mysqli $conn,
+    string $nome,
+    int $categoriaId,
+    string $unidade,
+    int|string $estoque,
+    int|string $estoqueMinimo
+): array {
     $nome = trim($nome);
     $unidade = trim($unidade);
+    $estoqueInt = (int) $estoque;
+    $estoqueMinimoInt = (int) $estoqueMinimo;
 
     if (produtoJaExiste($conn, $nome, $categoriaId, $unidade)) {
         return ['sucesso' => false, 'mensagem' => 'Este produto já existe com essa categoria e unidade.'];
@@ -103,7 +133,12 @@ function cadastrarProduto($conn, $nome, $categoriaId, $unidade, $estoque, $estoq
             (nome, unidade, estoque, estoque_minimo, categoria_id)
             VALUES (?, ?, ?, ?, ?)';
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('ssiii', $nome, $unidade, $estoque, $estoqueMinimo, $categoriaId);
+
+    if (!$stmt) {
+        return ['sucesso' => false, 'mensagem' => 'Não foi possível preparar o cadastro do produto.'];
+    }
+
+    $stmt->bind_param('ssiii', $nome, $unidade, $estoqueInt, $estoqueMinimoInt, $categoriaId);
 
     if (!$stmt->execute()) {
         $stmt->close();
@@ -114,7 +149,7 @@ function cadastrarProduto($conn, $nome, $categoriaId, $unidade, $estoque, $estoq
     return ['sucesso' => true];
 }
 
-function buscarProdutoPorId($conn, $id)
+function buscarProdutoPorId(mysqli $conn, int $id): ?array
 {
     $sql = 'SELECT p.id_produto, p.nome, p.unidade, p.estoque, p.estoque_minimo,
                    p.categoria_id, c.nome AS categoria
@@ -137,8 +172,15 @@ function buscarProdutoPorId($conn, $id)
     return $produto ?: null;
 }
 
-function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo)
-{
+function atualizarProduto(
+    mysqli $conn,
+    int $id,
+    string $nome,
+    int $categoriaId,
+    string $unidade,
+    int|string $estoque,
+    int|string $estoqueMinimo
+): array {
     $nome = trim($nome);
     $unidade = trim($unidade);
 
@@ -162,6 +204,9 @@ function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $
         return ['sucesso' => false, 'mensagem' => 'O estoque mínimo deve ser um número inteiro maior ou igual a zero.'];
     }
 
+    $estoqueInt = (int) $estoque;
+    $estoqueMinimoInt = (int) $estoqueMinimo;
+
     $sql = 'UPDATE produto
             SET nome = ?, unidade = ?, estoque = ?, estoque_minimo = ?, categoria_id = ?
             WHERE id_produto = ?';
@@ -176,8 +221,8 @@ function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $
         'ssiiii',
         $nome,
         $unidade,
-        $estoque,
-        $estoqueMinimo,
+        $estoqueInt,
+        $estoqueMinimoInt,
         $categoriaId,
         $id
     );
@@ -192,7 +237,7 @@ function atualizarProduto($conn, $id, $nome, $categoriaId, $unidade, $estoque, $
     return ['sucesso' => true, 'mensagem' => 'Produto atualizado com sucesso.'];
 }
 
-function excluirProduto($conn, $id)
+function excluirProduto(mysqli $conn, int $id): array
 {
     $sql = 'SELECT id_produto FROM produto WHERE id_produto = ?';
     $stmt = $conn->prepare($sql);
@@ -245,7 +290,7 @@ function excluirProduto($conn, $id)
         : ['sucesso' => false, 'mensagem' => 'Não foi possível excluir o produto.'];
 }
 
-function listarProdutos($conn, $mostrarEstoqueMinimo = false)
+function listarProdutos(mysqli $conn, bool $mostrarEstoqueMinimo = false): void
 {
     $sql = "SELECT p.id_produto, p.nome, p.unidade, p.estoque,
                    p.estoque_minimo, c.nome AS categoria
@@ -260,23 +305,25 @@ function listarProdutos($conn, $mostrarEstoqueMinimo = false)
     }
 
     while ($produto = $resultado->fetch_assoc()) {
-        echo '<tr data-nome="' . htmlspecialchars($produto['nome'], ENT_QUOTES, 'UTF-8') . '"'
-            . ' data-categoria="' . htmlspecialchars($produto['categoria'], ENT_QUOTES, 'UTF-8') . '"'
-            . ' data-unidade="' . htmlspecialchars($produto['unidade'], ENT_QUOTES, 'UTF-8') . '">';
-        echo '<td>' . htmlspecialchars($produto['id_produto']) . '</td>';
-        echo '<td>' . htmlspecialchars($produto['nome']) . '</td>';
-        echo '<td>' . htmlspecialchars($produto['categoria']) . '</td>';
-        echo '<td>' . htmlspecialchars($produto['unidade']) . '</td>';
-        echo '<td>' . htmlspecialchars($produto['estoque']) . '</td>';
+        $idProd = (int) $produto['id_produto'];
+        $nomeProd = htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8');
+        $catProd = htmlspecialchars((string) $produto['categoria'], ENT_QUOTES, 'UTF-8');
+        $uniProd = htmlspecialchars((string) $produto['unidade'], ENT_QUOTES, 'UTF-8');
+        $estProd = (int) $produto['estoque'];
+
+        echo '<tr data-nome="' . $nomeProd . '" data-categoria="' . $catProd . '" data-unidade="' . $uniProd . '">';
+        echo '<td>' . $idProd . '</td>';
+        echo '<td>' . $nomeProd . '</td>';
+        echo '<td>' . $catProd . '</td>';
+        echo '<td>' . $uniProd . '</td>';
+        echo '<td>' . $estProd . '</td>';
 
         if ($mostrarEstoqueMinimo) {
-            echo '<td>' . htmlspecialchars($produto['estoque_minimo']) . '</td>';
-        }
-
-        if ($mostrarEstoqueMinimo) {
-            echo '<td>'
-                . '<a class="botao botao--secundario" href="editar_produto.php?id=' . (int) $produto['id_produto'] . '">Editar</a>'
-                . '</td>';
+            $estMin = (int) $produto['estoque_minimo'];
+            echo '<td>' . $estMin . '</td>';
+            echo '<td>';
+            echo '<a class="botao botao--secundario" href="editar_produto.php?id=' . $idProd . '">Editar</a>';
+            echo '</td>';
         }
 
         echo '</tr>';

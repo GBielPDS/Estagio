@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_produtos.php';
@@ -20,13 +22,13 @@ $novaCategoria = '';
 $novaUnidade = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $categoriaSelecionada = $_POST['categoria_id'] ?? '';
-    $novaCategoria = trim($_POST['nova_categoria'] ?? '');
-    $unidadeSelecionada = trim($_POST['unidade'] ?? '');
-    $novaUnidade = trim($_POST['nova_unidade'] ?? '');
-    $estoque = trim($_POST['estoque'] ?? '');
-    $estoqueMinimo = trim($_POST['estoque_minimo'] ?? '');
+    $nome = trim((string) ($_POST['nome'] ?? ''));
+    $categoriaSelecionada = (string) ($_POST['categoria_id'] ?? '');
+    $novaCategoria = trim((string) ($_POST['nova_categoria'] ?? ''));
+    $unidadeSelecionada = trim((string) ($_POST['unidade'] ?? ''));
+    $novaUnidade = trim((string) ($_POST['nova_unidade'] ?? ''));
+    $estoque = trim((string) ($_POST['estoque'] ?? ''));
+    $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? ''));
 
     if ($categoriaSelecionada === '__nova__') {
         $categoriaSelecionada = '';
@@ -54,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ((int) $estoque < 0 || (int) $estoqueMinimo < 0) {
         $mensagem = 'Estoque e estoque mínimo não podem ser negativos.';
     } else {
-        $estoque = $estoque === '' ? 0 : (int) $estoque;
-        $estoqueMinimo = $estoqueMinimo === '' ? 0 : (int) $estoqueMinimo;
+        $estoqueVal = $estoque === '' ? 0 : (int) $estoque;
+        $estoqueMinimoVal = $estoqueMinimo === '' ? 0 : (int) $estoqueMinimo;
         $transacaoIniciada = false;
 
         if ($novaCategoria !== '') {
@@ -66,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$resultadoCategoria['sucesso']) {
                 $conn->rollback();
-                $mensagem = $resultadoCategoria['mensagem'];
+                $mensagem = (string) $resultadoCategoria['mensagem'];
             } else {
-                $categoriaId = $resultadoCategoria['id'];
+                $categoriaId = (int) $resultadoCategoria['id'];
             }
         } else {
             $categoriaId = (int) $categoriaSelecionada;
@@ -81,15 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $nome,
                 $categoriaId,
                 $unidade,
-                $estoque,
-                $estoqueMinimo
+                $estoqueVal,
+                $estoqueMinimoVal
             );
 
             if (!$resultadoProduto['sucesso']) {
                 if ($transacaoIniciada) {
                     $conn->rollback();
                 }
-                $mensagem = $resultadoProduto['mensagem'];
+                $mensagem = (string) $resultadoProduto['mensagem'];
             } else {
                 if ($transacaoIniciada) {
                     $conn->commit();
@@ -98,8 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 registrarLog(
                     $conn,
                     'Cadastro de produto',
-                    'Produto ' . $nome . ' cadastrado com estoque inicial de ' . $estoque . '.',
-                    $_SESSION['id_usuario']
+                    'Produto ' . $nome . ' cadastrado com estoque inicial de ' . $estoqueVal . '.',
+                    (int) $_SESSION['id_usuario']
                 );
 
                 $mensagem = 'Produto cadastrado com sucesso.';
@@ -201,7 +203,7 @@ $unidades = buscarUnidades($conn);
             <div class="mensagem-modal <?= $tipoMensagem === 'sucesso' ? 'mensagem-sucesso' : 'mensagem-erro' ?>">
                 <div class="mensagem-conteudo">
                     <strong><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Atenção!' ?></strong>
-                    <p><?= htmlspecialchars($mensagem) ?></p>
+                    <p><?= htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8') ?></p>
                     <button type="button" onclick="fecharMensagem()">OK</button>
                 </div>
             </div>
@@ -215,7 +217,7 @@ $unidades = buscarUnidades($conn);
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome do produto</label>
                     <input class="campo__controle" type="text" id="nome" name="nome" maxlength="100"
-                        value="<?= htmlspecialchars($nome) ?>" required>
+                        value="<?= htmlspecialchars($nome, ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
 
                 <div class="campo">
@@ -223,9 +225,9 @@ $unidades = buscarUnidades($conn);
                     <select class="campo__controle" id="categoria_id" name="categoria_id">
                         <option value="">Selecione uma categoria</option>
                 <?php foreach ($categorias as $categoria): ?>
-                    <option value="<?= $categoria['id_categoria'] ?>"
+                    <option value="<?= (int) $categoria['id_categoria'] ?>"
                         <?= (string) $categoriaSelecionada === (string) $categoria['id_categoria'] ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($categoria['nome']) ?>
+                        <?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
                     </option>
                 <?php endforeach; ?>
                 <option value="__nova__" <?= $novaCategoria !== '' ? 'selected' : '' ?>>
@@ -237,7 +239,7 @@ $unidades = buscarUnidades($conn);
                 <div class="campo campo--largo" id="campo_nova_categoria" <?= $novaCategoria === '' ? 'hidden' : '' ?>>
                     <label class="campo__rotulo" for="nova_categoria">Nome da nova categoria</label>
                     <input class="campo__controle" type="text" id="nova_categoria" name="nova_categoria" maxlength="100"
-                        value="<?= htmlspecialchars($novaCategoria) ?>">
+                        value="<?= htmlspecialchars($novaCategoria, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div class="campo">
@@ -245,9 +247,9 @@ $unidades = buscarUnidades($conn);
                     <select class="campo__controle" id="unidade" name="unidade">
                         <option value="">Selecione uma unidade</option>
                 <?php foreach ($unidades as $itemUnidade): ?>
-                    <option value="<?= htmlspecialchars($itemUnidade['unidade']) ?>"
+                    <option value="<?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>"
                         <?= $unidadeSelecionada === $itemUnidade['unidade'] ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($itemUnidade['unidade']) ?>
+                        <?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>
                     </option>
                 <?php endforeach; ?>
                 <option value="__nova__" <?= $novaUnidade !== '' ? 'selected' : '' ?>>
@@ -259,19 +261,19 @@ $unidades = buscarUnidades($conn);
                 <div class="campo campo--largo" id="campo_nova_unidade" <?= $novaUnidade === '' ? 'hidden' : '' ?>>
                     <label class="campo__rotulo" for="nova_unidade">Nome da nova unidade</label>
                     <input class="campo__controle" type="text" id="nova_unidade" name="nova_unidade" maxlength="20"
-                        value="<?= htmlspecialchars($novaUnidade) ?>">
+                        value="<?= htmlspecialchars($novaUnidade, ENT_QUOTES, 'UTF-8') ?>">
                 </div>
 
                 <div class="campo">
                     <label class="campo__rotulo" for="estoque">Estoque inicial</label>
                     <input class="campo__controle" type="number" id="estoque" name="estoque" min="0" step="1"
-                        value="<?= htmlspecialchars($estoque) ?>" placeholder="Deixe vazio para 0">
+                        value="<?= htmlspecialchars($estoque, ENT_QUOTES, 'UTF-8') ?>" placeholder="Deixe vazio para 0">
                 </div>
 
                 <div class="campo">
                     <label class="campo__rotulo" for="estoque_minimo">Estoque mínimo</label>
                     <input class="campo__controle" type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1"
-                        value="<?= htmlspecialchars($estoqueMinimo) ?>" placeholder="Deixe vazio para 0">
+                        value="<?= htmlspecialchars($estoqueMinimo, ENT_QUOTES, 'UTF-8') ?>" placeholder="Deixe vazio para 0">
                 </div>
 
                 <div class="acoes">

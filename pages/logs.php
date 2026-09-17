@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once "../script/sessao.php";
 require_once "../script/conexao.php";
 require_once "../script/funcoes_logs.php";
@@ -8,9 +10,9 @@ require_once "../script/sidebar.php";
 verificarSessao();
 verificarTipo(['Administrador']);
 
-$dataInicio = $_GET['data_inicio'] ?? '';
-$dataFim = $_GET['data_fim'] ?? '';
-$filtroUsuario = $_GET['usuario'] ?? '';
+$dataInicio = (string) ($_GET['data_inicio'] ?? '');
+$dataFim = (string) ($_GET['data_fim'] ?? '');
+$filtroUsuario = (string) ($_GET['usuario'] ?? '');
 
 $resultadoUsuarios = buscarUsuariosLogs($conn);
 $resultadoLogs = buscarLogs($conn, $dataInicio, $dataFim, $filtroUsuario);
@@ -47,7 +49,7 @@ $resultadoLogs = buscarLogs($conn, $dataInicio, $dataFim, $filtroUsuario);
                         <?php while ($usuario = $resultadoUsuarios->fetch_assoc()): ?>
                             <option value="<?= (int) $usuario['id_usuario'] ?>"
                                 <?= (string) $filtroUsuario === (string) $usuario['id_usuario'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($usuario['nome']) ?>
+                                <?= htmlspecialchars((string) $usuario['nome'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endwhile; ?>
                     <?php endif; ?>
@@ -57,13 +59,13 @@ $resultadoLogs = buscarLogs($conn, $dataInicio, $dataFim, $filtroUsuario);
             <div class="campo campo--filtro-categoria">
                 <label class="campo__rotulo" for="filtro-data-inicio">De</label>
                 <input class="campo__controle" type="date" id="filtro-data-inicio" name="data_inicio"
-                    value="<?= htmlspecialchars($dataInicio) ?>">
+                    value="<?= htmlspecialchars($dataInicio, ENT_QUOTES, 'UTF-8') ?>">
             </div>
 
             <div class="campo campo--filtro-categoria">
                 <label class="campo__rotulo" for="filtro-data-fim">Até</label>
                 <input class="campo__controle" type="date" id="filtro-data-fim" name="data_fim"
-                    value="<?= htmlspecialchars($dataFim) ?>">
+                    value="<?= htmlspecialchars($dataFim, ENT_QUOTES, 'UTF-8') ?>">
             </div>
 
             <button class="botao botao--primario" type="submit">Pesquisar</button>
@@ -89,10 +91,10 @@ $resultadoLogs = buscarLogs($conn, $dataInicio, $dataFim, $filtroUsuario);
                     <?php else: ?>
                         <?php while ($log = $resultadoLogs->fetch_assoc()): ?>
                             <tr>
-                                <td><?= date('d/m/Y H:i', strtotime($log['data_hora'])) ?></td>
-                                <td><?= htmlspecialchars($log['usuario']) ?></td>
-                                <td><?= htmlspecialchars($log['acao']) ?></td>
-                                <td><?= htmlspecialchars($log['descricao'] ?? '') ?></td>
+                                <td><?= date('d/m/Y H:i', strtotime((string) $log['data_hora'])) ?></td>
+                                <td><?= htmlspecialchars((string) $log['usuario'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars((string) $log['acao'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars((string) ($log['descricao'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                             </tr>
                         <?php endwhile; ?>
                     <?php endif; ?>

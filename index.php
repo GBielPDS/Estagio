@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once 'script/sessao.php';
 require_once 'script/conexao.php';
 require_once 'script/funcoes_estoque.php';
@@ -8,10 +10,9 @@ require_once 'script/sidebar.php';
 verificarSessao();
 
 $alertasEstoque = buscarAlertasEstoque($conn);
-$produtosVazios = count(array_filter($alertasEstoque, function ($alerta) {
-    return $alerta['situacao'] === 'vazio';
-}));
-$produtosAbaixoMinimo = count($alertasEstoque) - $produtosVazios;
+$totalAlertas = count($alertasEstoque);
+$produtosVazios = count(array_filter($alertasEstoque, fn(array $alerta): bool => ($alerta['situacao'] ?? '') === 'vazio'));
+$produtosAbaixoMinimo = $totalAlertas - $produtosVazios;
 $icones = iconesNavegacao();
 ?>
 
@@ -38,35 +39,35 @@ $icones = iconesNavegacao();
             <p class="cabecalho-pagina__descricao">Escolha a operação que deseja realizar no almoxarifado.</p>
         </div>
 
-        <section class="resumo-alertas <?= count($alertasEstoque) > 0 ? 'resumo-alertas--atencao' : 'resumo-alertas--regular' ?>" aria-labelledby="titulo-alertas">
+        <section class="resumo-alertas <?= $totalAlertas > 0 ? 'resumo-alertas--atencao' : 'resumo-alertas--regular' ?>" aria-labelledby="titulo-alertas">
             <div>
                 <span class="resumo-alertas__rotulo">Pendências de estoque</span>
                 <h2 id="titulo-alertas">
-                    <?= count($alertasEstoque) > 0 ? count($alertasEstoque) . ' produto(s) precisam de atenção' : 'Estoque regular' ?>
+                    <?= $totalAlertas > 0 ? $totalAlertas . ' produto(s) precisam de atenção' : 'Estoque regular' ?>
                 </h2>
-                <?php if (count($alertasEstoque) > 0): ?>
+                <?php if ($totalAlertas > 0): ?>
                     <p><?= $produtosVazios ?> vazio(s) e <?= $produtosAbaixoMinimo ?> abaixo do estoque mínimo.</p>
                 <?php else: ?>
                     <p>Nenhum produto está vazio ou abaixo do estoque mínimo.</p>
                 <?php endif; ?>
             </div>
-            <a class="botao <?= count($alertasEstoque) > 0 ? 'botao--alerta' : 'botao--secundario' ?>" href="pages/alertas.php">
+            <a class="botao <?= $totalAlertas > 0 ? 'botao--alerta' : 'botao--secundario' ?>" href="pages/alertas.php">
                 Ver alertas
             </a>
         </section>
 
         <div class="cabecalho-pagina-usuario">
             <span>Olá,</span>
-            <strong><?= htmlspecialchars($_SESSION['nome']) ?></strong>
+            <strong><?= htmlspecialchars((string) ($_SESSION['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
         </div>
 
         <h2>Bem-vindo!</h2>
-        <p>Você está conectado como <strong><?= htmlspecialchars($_SESSION['tipo']) ?></strong>.</p>
+        <p>Você está conectado como <strong><?= htmlspecialchars((string) ($_SESSION['tipo'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>.</p>
 
         <div class="grade-modulos">
             <a class="modulo" href="pages/cadastrar_produto.php">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['cadastro'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['cadastro'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Cadastro de Itens</h2>
                 <p class="modulo__descricao">Inclua um novo item no catálogo com categoria, unidade de medida e fornecedor.</p>
@@ -74,7 +75,7 @@ $icones = iconesNavegacao();
 
             <a class="modulo" href="pages/lancamentos.php?tipo=Entrada">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['entrada'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['entrada'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Entrada de Produtos</h2>
                 <p class="modulo__descricao">Registre o recebimento de materiais, com quantidade, data, hora e responsável.</p>
@@ -82,7 +83,7 @@ $icones = iconesNavegacao();
 
             <a class="modulo" href="pages/lancamentos.php?tipo=Saida">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['saida'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['saida'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Saída de Produtos</h2>
                 <p class="modulo__descricao">Lance a retirada de materiais por setor solicitante, com observação opcional.</p>
@@ -90,7 +91,7 @@ $icones = iconesNavegacao();
 
             <a class="modulo" href="pages/produtos.php">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['produtos'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['produtos'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Produtos</h2>
                 <p class="modulo__descricao">Verifique a lista dos produtos cadastrados.</p>
@@ -98,7 +99,7 @@ $icones = iconesNavegacao();
 
             <a class="modulo" href="pages/historico.php">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['historico'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['historico'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Histórico</h2>
                 <p class="modulo__descricao">Consulte o histórico de produtos e lançamentos.</p>
@@ -106,7 +107,7 @@ $icones = iconesNavegacao();
 
             <a class="modulo" href="pages/estoque.php">
                 <div class="modulo__icone">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['estoque'] ?></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><?= $icones['estoque'] ?? '' ?></svg>
                 </div>
                 <h2 class="modulo__titulo">Estoque</h2>
                 <p class="modulo__descricao">Verifique a quantidade de produtos no estoque.</p>

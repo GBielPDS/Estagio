@@ -1,10 +1,12 @@
 <?php
 
-require "../script/sessao.php";
-require "../script/conexao.php";
-require "../script/funcoes_usuarios.php";
-require "../script/funcoes_logs.php";
-require "../script/sidebar.php";
+declare(strict_types=1);
+
+require_once "../script/sessao.php";
+require_once "../script/conexao.php";
+require_once "../script/funcoes_usuarios.php";
+require_once "../script/funcoes_logs.php";
+require_once "../script/sidebar.php";
 
 verificarSessao();
 verificarTipo(['Administrador']);
@@ -13,22 +15,22 @@ $mensagemCadastro = $_SESSION['mensagem_cadastro'] ?? null;
 unset($_SESSION['mensagem_cadastro']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     if (isset($_POST['excluir_id'])) {
-
         $id = (int) $_POST['excluir_id'];
+        $sessaoId = (int) ($_SESSION['id_usuario'] ?? 0);
 
-        if ($id === (int) $_SESSION['id_usuario']) {
+        if ($id === $sessaoId) {
             $mensagemCadastro = ['texto' => 'Você não pode excluir o seu próprio usuário.', 'tipo' => 'erro'];
         } else {
             $usuarioExcluir = buscarUsuarioPorId($conn, $id);
+
             if ($usuarioExcluir) {
                 if (excluirUsuario($conn, $id)) {
                     registrarLog(
                         $conn,
                         'Exclusão de usuário',
-                        'Usuário ' . $usuarioExcluir['nome'] . ' (ID ' . $id . ') excluído.',
-                        $_SESSION['id_usuario']
+                        'Usuário ' . (string) $usuarioExcluir['nome'] . ' (ID ' . $id . ') excluído.',
+                        $sessaoId
                     );
                     $mensagemCadastro = ['texto' => 'Usuário excluído com sucesso.', 'tipo' => 'sucesso'];
                 } else {
@@ -38,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -53,13 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php sidebar('usuarios'); ?>
 
-
     <main class="conteudo">
 
         <div class="cabecalho-pagina cabecalho-pagina--com-acao">
             <div>
-            <h1 class="cabecalho-pagina__titulo">Usuários</h1>
-            <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
+                <h1 class="cabecalho-pagina__titulo">Usuários</h1>
+                <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
             </div>
             <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php?admin=1" class="botao botao--primario">
                 Cadastrar usuário
@@ -67,21 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <?php if ($mensagemCadastro !== null): ?>
-            <div class="mensagem-formulario mensagem-<?= $mensagemCadastro['tipo'] === 'sucesso' ? 'sucesso' : 'erro' ?>">
-                <?= htmlspecialchars($mensagemCadastro['texto'], ENT_QUOTES, 'UTF-8') ?>
+            <div class="mensagem-formulario mensagem-<?= ($mensagemCadastro['tipo'] ?? '') === 'sucesso' ? 'sucesso' : 'erro' ?>">
+                <?= htmlspecialchars((string) ($mensagemCadastro['texto'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
             </div>
         <?php endif; ?>
 
         <section class="cartao cartao--usuarios">
             <div class="cartao__cabecalho">
                 <div>
-                    <h2 class="cartao__titulo">
-                        Usuários cadastrados
-                    </h2>
-
-                    <p class="cartao__descricao">
-                        Consulte, edite ou exclua os usuários do sistema.
-                    </p>
+                    <h2 class="cartao__titulo">Usuários cadastrados</h2>
+                    <p class="cartao__descricao">Consulte, edite ou exclua os usuários do sistema.</p>
                 </div>
             </div>
 

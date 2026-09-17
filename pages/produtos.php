@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
-require '../script/funcoes_produtos.php';
-require "../script/sidebar.php";
+require_once '../script/funcoes_produtos.php';
+require_once '../script/sidebar.php';
 
 verificarSessao();
 
-$tipoUsuario = $_SESSION['tipo'] ?? '';
+$tipoUsuario = (string) ($_SESSION['tipo'] ?? '');
 $mostrarEstoqueMinimo = $tipoUsuario === 'Administrador';
 $mensagemProduto = $_SESSION['mensagem_produto'] ?? null;
 unset($_SESSION['mensagem_produto']);
@@ -98,8 +100,8 @@ $unidades = buscarUnidades($conn);
         </div>
 
         <?php if ($mensagemProduto !== null): ?>
-            <div class="mensagem-formulario mensagem-<?= $mensagemProduto['tipo'] === 'sucesso' ? 'sucesso' : 'erro' ?>">
-                <?= htmlspecialchars($mensagemProduto['texto'], ENT_QUOTES, 'UTF-8') ?>
+            <div class="mensagem-formulario mensagem-<?= ($mensagemProduto['tipo'] ?? '') === 'sucesso' ? 'sucesso' : 'erro' ?>">
+                <?= htmlspecialchars((string) ($mensagemProduto['texto'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
             </div>
         <?php endif; ?>
 
@@ -116,8 +118,8 @@ $unidades = buscarUnidades($conn);
                     <select class="campo__controle" id="filtro-categoria">
                         <option value="">Todas as categorias</option>
                         <?php foreach ($categorias as $categoria): ?>
-                            <option value="<?= htmlspecialchars($categoria['nome'], ENT_QUOTES, 'UTF-8') ?>">
-                                <?= htmlspecialchars($categoria['nome']) ?>
+                            <option value="<?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -128,8 +130,8 @@ $unidades = buscarUnidades($conn);
                     <select class="campo__controle" id="filtro-unidade">
                         <option value="">Todas as unidades</option>
                         <?php foreach ($unidades as $itemUnidade): ?>
-                            <option value="<?= htmlspecialchars($itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>">
-                                <?= htmlspecialchars($itemUnidade['unidade']) ?>
+                            <option value="<?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

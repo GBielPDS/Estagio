@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
 require_once '../script/funcoes_logs.php';
 
-$modoAdministrador = ($_GET['admin'] ?? $_POST['admin'] ?? '') === '1';
+$modoAdministrador = (($_GET['admin'] ?? $_POST['admin'] ?? '') === '1');
 
 if ($modoAdministrador) {
     verificarSessao();
@@ -17,22 +19,17 @@ $tipo_mensagem = '';
 $tipo = 'Usuario';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $nome = trim($_POST['nome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $tipo = $modoAdministrador ? ($_POST['tipo'] ?? 'Usuario') : 'Usuario';
+    $nome = trim((string) ($_POST['nome'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $senha = (string) ($_POST['senha'] ?? '');
+    $tipo = $modoAdministrador ? (string) ($_POST['tipo'] ?? 'Usuario') : 'Usuario';
 
     if ($nome === '' || $email === '' || $senha === '') {
-
         $mensagem = 'Preencha todos os campos.';
         $tipo_mensagem = 'erro';
-
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
         $mensagem = 'Digite um email válido.';
         $tipo_mensagem = 'erro';
-
     } elseif (!in_array($tipo, ['Administrador', 'Suporte', 'Usuario'], true)) {
         $mensagem = 'Tipo de usuário inválido.';
         $tipo_mensagem = 'erro';
@@ -45,14 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $conn,
                     'Cadastro de usuário',
                     'Usuário ' . $nome . ' (' . $tipo . ') cadastrado.',
-                    $_SESSION['id_usuario']
+                    (int) $_SESSION['id_usuario']
                 );
             } elseif (!empty($resultado['id'])) {
                 registrarLog(
                     $conn,
                     'Cadastro de usuário',
                     'Novo usuário ' . $nome . ' realizou primeiro acesso.',
-                    $resultado['id']
+                    (int) $resultado['id']
                 );
             }
 
@@ -68,10 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             exit;
-        } else {
-            $mensagem = $resultado['mensagem'];
-            $tipo_mensagem = 'erro';
         }
+
+        $mensagem = (string) $resultado['mensagem'];
+        $tipo_mensagem = 'erro';
     }
 }
 ?>
@@ -102,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="<?= htmlspecialchars($_SERVER['PHP_SELF']) ?>" class="formulario-acesso">
+        <form method="POST" action="<?= htmlspecialchars((string) $_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>" class="formulario-acesso">
 
             <?php if ($modoAdministrador): ?>
                 <input type="hidden" name="admin" value="1">

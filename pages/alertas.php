@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_estoque.php';
@@ -64,26 +66,26 @@ $alertas = buscarAlertasEstoque($conn);
             <section class="cartao">
                 <div class="lista-alertas">
                     <?php foreach ($alertas as $alerta): ?>
-                        <article class="alerta-item alerta-item--<?= htmlspecialchars($alerta['situacao']) ?>">
+                        <article class="alerta-item alerta-item--<?= htmlspecialchars((string) ($alerta['situacao'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                             <div>
                                 <div class="alerta-item__produto">
-                                    <?= htmlspecialchars($alerta['nome']) ?>
+                                    <?= htmlspecialchars((string) ($alerta['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                 </div>
                                 <div class="alerta-item__detalhe">
-                                    <?= htmlspecialchars($alerta['categoria']) ?> · <?= htmlspecialchars($alerta['unidade']) ?>
-                                    · Estoque atual: <?= (int) $alerta['estoque'] ?>
-                                    · Mínimo: <?= (int) $alerta['estoque_minimo'] ?>
+                                    <?= htmlspecialchars((string) ($alerta['categoria'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars((string) ($alerta['unidade'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    · Estoque atual: <?= (int) ($alerta['estoque'] ?? 0) ?>
+                                    · Mínimo: <?= (int) ($alerta['estoque_minimo'] ?? 0) ?>
                                 </div>
                             </div>
                             <div class="alerta-item__situacao">
-                                <?php if ($alerta['situacao'] === 'vazio'): ?>
+                                <?php if (($alerta['situacao'] ?? '') === 'vazio'): ?>
                                     Estoque vazio
-                                    <?php if ((int) $alerta['quantidade_faltante'] > 0): ?>
+                                    <?php if ((int) ($alerta['quantidade_faltante'] ?? 0) > 0): ?>
                                         <br>Faltam <?= (int) $alerta['quantidade_faltante'] ?> unidade(s)
                                     <?php endif; ?>
                                 <?php else: ?>
                                     Abaixo do mínimo<br>
-                                    Faltam <?= (int) $alerta['quantidade_faltante'] ?> unidade(s)
+                                    Faltam <?= (int) ($alerta['quantidade_faltante'] ?? 0) ?> unidade(s)
                                 <?php endif; ?>
                             </div>
                         </article>

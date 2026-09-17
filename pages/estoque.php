@@ -1,63 +1,37 @@
 <?php
 
-require "../script/sessao.php";
-require "../script/conexao.php";
-require "../script/funcoes_estoque.php";
-require "../script/sidebar.php";
+declare(strict_types=1);
+
+require_once "../script/sessao.php";
+require_once "../script/conexao.php";
+require_once "../script/funcoes_estoque.php";
+require_once "../script/sidebar.php";
 
 verificarSessao();
 
+$filtroCategoria = (string) ($_GET['categoria'] ?? '');
+$filtroUnidade = (string) ($_GET['unidade'] ?? '');
+$filtroProduto = trim((string) ($_GET['produto'] ?? ''));
 
-$filtroCategoria =
-    $_GET['categoria'] ?? '';
-
-$filtroUnidade =
-    $_GET['unidade'] ?? '';
-
-$filtroProduto =
-    trim($_GET['produto'] ?? '');
-
-
-$resultadoCategorias =
-    buscarCategoriasEstoque($conn);
-
-
-$resultadoUnidades =
-    buscarUnidadesMedida($conn);
-
-
-$resultadoEstoque =
-    buscarEstoque(
-        $conn,
-        $filtroCategoria,
-        $filtroUnidade,
-        $filtroProduto
-    );
-
+$resultadoCategorias = buscarCategoriasEstoque($conn);
+$resultadoUnidades = buscarUnidadesMedida($conn);
+$resultadoEstoque = buscarEstoque(
+    $conn,
+    $filtroCategoria,
+    $filtroUnidade,
+    $filtroProduto
+);
 ?>
 
 <!DOCTYPE html>
-
 <html lang="pt-br">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <link
-        rel="stylesheet"
-        href="../css/style.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/style.css">
     <title>Estoque</title>
-
 </head>
-
 
 <body>
 
@@ -121,333 +95,120 @@ $resultadoEstoque =
 
 <main class="conteudo">
 
-
     <div class="cabecalho-pagina">
-
-        <h1 class="cabecalho-pagina__titulo">
-            Estoque
-        </h1>
-
-        <p class="cabecalho-pagina__descricao">
-            Consulte os produtos disponíveis no estoque.
-        </p>
-
+        <h1 class="cabecalho-pagina__titulo">Estoque</h1>
+        <p class="cabecalho-pagina__descricao">Consulte os produtos disponíveis no estoque.</p>
     </div>
-
 
     <section class="cartao cartao--produtos">
 
-
-        <form
-            method="GET"
-            class="filtros"
-        >
-
+        <form method="GET" class="filtros">
 
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-categoria"
-                >
-
-                    Categoria
-
-                </label>
-
-
-                <select
-                    class="campo__controle"
-                    id="filtro-categoria"
-                    name="categoria"
-                >
-
-                    <option value="">
-
-                        Todas as categorias
-
-                    </option>
-
-
-                    <?php while (
-                        $categoria =
-                        $resultadoCategorias->fetch_assoc()
-                    ): ?>
-
-                        <option
-                            value="<?= $categoria['id_categoria'] ?>"
-                            <?= $filtroCategoria ==
-                                $categoria['id_categoria']
-                                ? 'selected'
-                                : '' ?>
-                        >
-
-                            <?= htmlspecialchars(
-                                $categoria['nome']
-                            ) ?>
-
-                        </option>
-
-                    <?php endwhile; ?>
-
+                <label class="campo__rotulo" for="filtro-categoria">Categoria</label>
+                <select class="campo__controle" id="filtro-categoria" name="categoria">
+                    <option value="">Todas as categorias</option>
+                    <?php if ($resultadoCategorias): ?>
+                        <?php while ($categoria = $resultadoCategorias->fetch_assoc()): ?>
+                            <option
+                                value="<?= (int) $categoria['id_categoria'] ?>"
+                                <?= (string) $filtroCategoria === (string) $categoria['id_categoria'] ? 'selected' : '' ?>
+                            >
+                                <?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
                 </select>
-
             </div>
 
-
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-unidade"
-                >
-
-                    Unidade de medida
-
-                </label>
-
-
-                <select
-                    class="campo__controle"
-                    id="filtro-unidade"
-                    name="unidade"
-                >
-
-                    <option value="">
-
-                        Todas
-
-                    </option>
-
-
-                    <?php while (
-                        $unidade =
-                        $resultadoUnidades->fetch_assoc()
-                    ): ?>
-
-                        <option
-                            value="<?= htmlspecialchars(
-                                $unidade['unidade']
-                            ) ?>"
-                            <?= $filtroUnidade ===
-                                $unidade['unidade']
-                                ? 'selected'
-                                : '' ?>
-                        >
-
-                            <?= htmlspecialchars(
-                                $unidade['unidade']
-                            ) ?>
-
-                        </option>
-
-                    <?php endwhile; ?>
-
+                <label class="campo__rotulo" for="filtro-unidade">Unidade de medida</label>
+                <select class="campo__controle" id="filtro-unidade" name="unidade">
+                    <option value="">Todas</option>
+                    <?php if ($resultadoUnidades): ?>
+                        <?php while ($unidade = $resultadoUnidades->fetch_assoc()): ?>
+                            <option
+                                value="<?= htmlspecialchars((string) $unidade['unidade'], ENT_QUOTES, 'UTF-8') ?>"
+                                <?= $filtroUnidade === $unidade['unidade'] ? 'selected' : '' ?>
+                            >
+                                <?= htmlspecialchars((string) $unidade['unidade'], ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endwhile; ?>
+                    <?php endif; ?>
                 </select>
-
             </div>
 
-
             <div class="campo campo--filtro-categoria">
-
-                <label
-                    class="campo__rotulo"
-                    for="filtro-produto"
-                >
-
-                    Produto
-
-                </label>
-
-
+                <label class="campo__rotulo" for="filtro-produto">Produto</label>
                 <input
                     class="campo__controle"
                     type="text"
                     id="filtro-produto"
                     name="produto"
                     placeholder="Pesquisar produto..."
-                    value="<?= htmlspecialchars(
-                        $filtroProduto
-                    ) ?>"
+                    value="<?= htmlspecialchars($filtroProduto, ENT_QUOTES, 'UTF-8') ?>"
                 >
-
             </div>
 
-
-            <button
-                class="botao botao--primario"
-                type="submit"
-            >
-
-                Pesquisar
-
-            </button>
-
-
-            <a
-                class="botao botao--secundario"
-                href="estoque.php"
-            >
-
-                Limpar filtros
-
-            </a>
-
+            <button class="botao botao--primario" type="submit">Pesquisar</button>
+            <a class="botao botao--secundario" href="estoque.php">Limpar filtros</a>
 
         </form>
 
-
         <br>
 
-
         <div class="tabela-rolagem">
-
             <table class="tabela tabela--estoque">
-
                 <thead>
-
                     <tr>
-
                         <th>ID</th>
-
                         <th>Produto</th>
-
                         <th>Categoria</th>
-
                         <th>Estoque</th>
-
                         <th>Unidade</th>
-
                         <th>Estoque mínimo</th>
-
                         <th>Status</th>
-
                     </tr>
-
                 </thead>
 
-
                 <tbody>
-
-                    <?php if (
-                        $resultadoEstoque &&
-                        $resultadoEstoque->num_rows > 0
-                    ): ?>
-
-
-                        <?php while (
-                            $produto =
-                            $resultadoEstoque->fetch_assoc()
-                        ): ?>
-
+                    <?php if ($resultadoEstoque && $resultadoEstoque->num_rows > 0): ?>
+                        <?php while ($produto = $resultadoEstoque->fetch_assoc()): ?>
+                            <?php
+                            $qtdEstoque = (int) $produto['estoque'];
+                            $qtdMinimo = (int) $produto['estoque_minimo'];
+                            [$badgeClasse, $badgeTexto] = match (true) {
+                                $qtdEstoque === 0 => ['badge-status--zerado', 'Zerado'],
+                                $qtdEstoque < $qtdMinimo => ['badge-status--baixo', 'Estoque baixo'],
+                                default => ['badge-status--disponivel', 'Disponível']
+                            };
+                            ?>
                             <tr>
-
+                                <td><?= (int) $produto['id_produto'] ?></td>
+                                <td><?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars((string) $produto['categoria'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= $qtdEstoque ?></td>
+                                <td><?= htmlspecialchars((string) $produto['unidade'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= $qtdMinimo ?></td>
                                 <td>
-
-                                    <?= $produto[
-                                        'id_produto'
-                                    ] ?>
-
+                                    <span class="badge-status <?= $badgeClasse ?>"><?= $badgeTexto ?></span>
                                 </td>
-
-
-                                <td>
-
-                                    <?= htmlspecialchars(
-                                        $produto['nome']
-                                    ) ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?= htmlspecialchars(
-                                        $produto['categoria']
-                                    ) ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?= $produto[
-                                        'estoque'
-                                    ] ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?= htmlspecialchars(
-                                        $produto['unidade']
-                                    ) ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <?= $produto[
-                                        'estoque_minimo'
-                                    ] ?>
-
-                                </td>
-
-                                <td>
-                                    <?php if ((int) $produto['estoque'] === 0): ?>
-                                        <span class="badge-status badge-status--zerado">Zerado</span>
-                                    <?php elseif ((int) $produto['estoque'] < (int) $produto['estoque_minimo']): ?>
-                                        <span class="badge-status badge-status--baixo">Estoque baixo</span>
-                                    <?php else: ?>
-                                        <span class="badge-status badge-status--disponivel">Disponível</span>
-                                    <?php endif; ?>
-                                </td>
-
                             </tr>
-
                         <?php endwhile; ?>
-
-
                     <?php else: ?>
-
                         <tr>
-
-                            <td
-                                colspan="7"
-                                style="text-align: center;"
-                            >
-
-                                Nenhum produto encontrado
-                                no estoque.
-
-                            </td>
-
+                            <td colspan="7" style="text-align: center;">Nenhum produto encontrado no estoque.</td>
                         </tr>
-
                     <?php endif; ?>
-
                 </tbody>
-
             </table>
-
         </div>
-
 
     </section>
 
-
 </main>
 
-
-<footer class="rodape">
-
-    GestSaúde · Módulo de Controle de Estoque
-
-</footer>
-
+<footer class="rodape">GestSaúde · Módulo de Controle de Estoque</footer>
 
 </body>
-
 </html>

@@ -1,15 +1,20 @@
 <?php
 
-require_once 'sessao.php';
-require_once 'conexao.php';
-require_once 'funcoes_logs.php';
+declare(strict_types=1);
+
+require_once __DIR__ . '/sessao.php';
+require_once __DIR__ . '/conexao.php';
+require_once __DIR__ . '/funcoes_logs.php';
 
 if (isset($_SESSION['id_usuario'])) {
+    $idUsuario = (int) $_SESSION['id_usuario'];
+    $nomeUsuario = (string) ($_SESSION['nome'] ?? 'Desconhecido');
+
     registrarLog(
         $conn,
         'Logout',
-        'Usuário ' . ($_SESSION['nome'] ?? 'Desconhecido') . ' saiu do sistema.',
-        $_SESSION['id_usuario']
+        'Usuário ' . $nomeUsuario . ' saiu do sistema.',
+        $idUsuario
     );
 }
 

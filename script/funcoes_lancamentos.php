@@ -1,13 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/funcoes_logs.php';
 
-function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usuario_id)
-{
+function lancamentoEntrada(
+    mysqli $conn,
+    array $produtos,
+    int $unidadeDestino,
+    string $observacao,
+    int $usuario_id
+): array {
     $conn->begin_transaction();
 
     try {
-
         $sql = "INSERT INTO movimentacao
                 (tipo, unidade_destino_id, observacao, usuario_id)
                 VALUES ('Entrada', ?, ?, ?)";
@@ -29,10 +35,8 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             throw new Exception("Erro ao criar movimentação.");
         }
 
-        $movimentacao_id = $conn->insert_id;
-
+        $movimentacao_id = (int) $conn->insert_id;
         $stmt->close();
-
 
         $sqlItem = "INSERT INTO item_lancamento
                     (movimentacao_id, produto_id, quantidade)
@@ -43,7 +47,6 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
         if (!$stmtItem) {
             throw new Exception("Erro ao preparar item.");
         }
-
 
         $sqlEstoque = "UPDATE produto
                        SET estoque = estoque + ?
@@ -58,36 +61,35 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
         $logsParaRegistrar = [];
 
         foreach ($produtos as $produto) {
-
-            $produto_id = (int) $produto['produto_id'];
-            $quantidade = (int) $produto['quantidade'];
+            $produto_id = (int) ($produto['produto_id'] ?? 0);
+            $quantidade = (int) ($produto['quantidade'] ?? 0);
 
             if ($quantidade <= 0) {
-                throw new Exception(
-                    "A quantidade deve ser maior que zero."
-                );
+                throw new Exception("A quantidade deve ser maior que zero.");
             }
-
 
             $sqlProduto = "SELECT id_produto, nome, unidade
                            FROM produto
                            WHERE id_produto = ?";
 
             $stmtProduto = $conn->prepare($sqlProduto);
+
+            if (!$stmtProduto) {
+                throw new Exception("Erro ao consultar produto.");
+            }
+
             $stmtProduto->bind_param("i", $produto_id);
             $stmtProduto->execute();
 
             $resultado = $stmtProduto->get_result();
 
             if ($resultado->num_rows === 0) {
-                throw new Exception(
-                    "Produto ID $produto_id não encontrado."
-                );
+                $stmtProduto->close();
+                throw new Exception("Produto ID $produto_id não encontrado.");
             }
 
             $dadosProduto = $resultado->fetch_assoc();
             $stmtProduto->close();
-
 
             $stmtItem->bind_param(
                 "iii",
@@ -97,11 +99,8 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             );
 
             if (!$stmtItem->execute()) {
-                throw new Exception(
-                    "Erro ao inserir produto no lançamento."
-                );
+                throw new Exception("Erro ao inserir produto no lançamento.");
             }
-
 
             $stmtEstoque->bind_param(
                 "ii",
@@ -110,9 +109,7 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             );
 
             if (!$stmtEstoque->execute()) {
-                throw new Exception(
-                    "Erro ao atualizar estoque."
-                );
+                throw new Exception("Erro ao atualizar estoque.");
             }
 
             $logsParaRegistrar[] = [
@@ -135,8 +132,7 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
             'id' => $movimentacao_id
         ];
 
-    } catch (Exception $e) {
-
+    } catch (Throwable $e) {
         $conn->rollback();
 
         return [
@@ -146,22 +142,29 @@ function lancamentoEntrada($conn, $produtos, $unidadeDestino, $observacao, $usua
     }
 }
 
-function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuario_id)
-{
+function lancamentoSaida(
+    mysqli $conn,
+    array $produtos,
+    int $unidadeDestino,
+    string $observacao,
+    int $usuario_id
+): array {
     $conn->begin_transaction();
 
     try {
-
         $nomeUnidade = 'Unidade de Saúde';
         $sqlUnidade = "SELECT nome FROM unidade_saude WHERE id_unidade = ?";
         $stmtUni = $conn->prepare($sqlUnidade);
+
         if ($stmtUni) {
             $stmtUni->bind_param("i", $unidadeDestino);
             $stmtUni->execute();
             $resUni = $stmtUni->get_result();
+
             if ($linhaUni = $resUni->fetch_assoc()) {
-                $nomeUnidade = $linhaUni['nome'];
+                $nomeUnidade = (string) $linhaUni['nome'];
             }
+
             $stmtUni->close();
         }
 
@@ -186,10 +189,8 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             throw new Exception("Erro ao criar movimentação.");
         }
 
-        $movimentacao_id = $conn->insert_id;
-
+        $movimentacao_id = (int) $conn->insert_id;
         $stmt->close();
-
 
         $sqlItem = "INSERT INTO item_lancamento
                     (movimentacao_id, produto_id, quantidade)
@@ -200,7 +201,6 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
         if (!$stmtItem) {
             throw new Exception("Erro ao preparar item.");
         }
-
 
         $sqlEstoque = "UPDATE produto
                        SET estoque = estoque - ?
@@ -216,14 +216,11 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
         $logsParaRegistrar = [];
 
         foreach ($produtos as $produto) {
-
-            $produto_id = (int) $produto['produto_id'];
-            $quantidade = (int) $produto['quantidade'];
+            $produto_id = (int) ($produto['produto_id'] ?? 0);
+            $quantidade = (int) ($produto['quantidade'] ?? 0);
 
             if ($quantidade <= 0) {
-                throw new Exception(
-                    "A quantidade deve ser maior que zero."
-                );
+                throw new Exception("A quantidade deve ser maior que zero.");
             }
 
             $sqlProduto = "SELECT id_produto, nome, unidade, estoque
@@ -231,15 +228,19 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                            WHERE id_produto = ?";
 
             $stmtProduto = $conn->prepare($sqlProduto);
+
+            if (!$stmtProduto) {
+                throw new Exception("Erro ao consultar produto.");
+            }
+
             $stmtProduto->bind_param("i", $produto_id);
             $stmtProduto->execute();
 
             $resultado = $stmtProduto->get_result();
 
             if ($resultado->num_rows === 0) {
-                throw new Exception(
-                    "Produto ID $produto_id não encontrado."
-                );
+                $stmtProduto->close();
+                throw new Exception("Produto ID $produto_id não encontrado.");
             }
 
             $dadosProduto = $resultado->fetch_assoc();
@@ -251,7 +252,6 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                 );
             }
 
-
             $stmtItem->bind_param(
                 "iii",
                 $movimentacao_id,
@@ -260,11 +260,8 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             );
 
             if (!$stmtItem->execute()) {
-                throw new Exception(
-                    "Erro ao inserir produto no lançamento."
-                );
+                throw new Exception("Erro ao inserir produto no lançamento.");
             }
-
 
             $stmtEstoque->bind_param(
                 "iii",
@@ -274,16 +271,11 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             );
 
             if (!$stmtEstoque->execute()) {
-                throw new Exception(
-                    "Erro ao atualizar estoque."
-                );
+                throw new Exception("Erro ao atualizar estoque.");
             }
 
-
             if ($stmtEstoque->affected_rows === 0) {
-                throw new Exception(
-                    "Estoque insuficiente para o produto '{$dadosProduto['nome']}'."
-                );
+                throw new Exception("Estoque insuficiente para o produto '{$dadosProduto['nome']}'.");
             }
 
             $logsParaRegistrar[] = [
@@ -291,7 +283,6 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
                 'descricao' => "Saída de {$quantidade} {$dadosProduto['unidade']} de {$dadosProduto['nome']} para {$nomeUnidade}."
             ];
         }
-
 
         $stmtItem->close();
         $stmtEstoque->close();
@@ -307,8 +298,7 @@ function lancamentoSaida($conn, $produtos, $unidadeDestino, $observacao, $usuari
             'id' => $movimentacao_id
         ];
 
-    } catch (Exception $e) {
-
+    } catch (Throwable $e) {
         $conn->rollback();
 
         return [

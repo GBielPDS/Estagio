@@ -1,6 +1,8 @@
 <?php
 
-function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
+declare(strict_types=1);
+
+function cadastrarUsuario(mysqli $conn, string $nome, string $email, string $senha, string $tipo): array
 {
     $sql = 'SELECT id_usuario FROM usuario WHERE email = ?';
     $stmt = $conn->prepare($sql);
@@ -29,7 +31,7 @@ function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
 
     $stmt->bind_param('ssss', $nome, $email, $senhaHash, $tipo);
     $sucesso = $stmt->execute();
-    $novoId = $conn->insert_id;
+    $novoId = (int) $conn->insert_id;
     $stmt->close();
 
     return $sucesso
@@ -37,7 +39,7 @@ function cadastrarUsuario($conn, $nome, $email, $senha, $tipo)
         : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
 }
 
-function listarUsuarios($conn)
+function listarUsuarios(mysqli $conn): void
 {
     $sql = "SELECT id_usuario, nome, email, senha, tipo FROM usuario";
     $resultado = $conn->query($sql);
@@ -47,28 +49,36 @@ function listarUsuarios($conn)
     }
 
     while ($usuario = $resultado->fetch_assoc()) {
+        $idUser = (int) $usuario['id_usuario'];
+        $nomeUser = htmlspecialchars((string) $usuario['nome'], ENT_QUOTES, 'UTF-8');
+        $emailUser = htmlspecialchars((string) $usuario['email'], ENT_QUOTES, 'UTF-8');
+        $tipoUser = htmlspecialchars((string) $usuario['tipo'], ENT_QUOTES, 'UTF-8');
 
         echo "<tr>";
-        echo "<td>" . $usuario['id_usuario'] . "</td>";
-        echo "<td>" . htmlspecialchars($usuario['nome']) . "</td>";
-        echo "<td>" . htmlspecialchars($usuario['email']) . "</td>";
+        echo "<td>" . $idUser . "</td>";
+        echo "<td>" . $nomeUser . "</td>";
+        echo "<td>" . $emailUser . "</td>";
         echo "<td>••••••••</td>";
-        echo "<td>" . htmlspecialchars($usuario['tipo']) . "</td>";
+        echo "<td>" . $tipoUser . "</td>";
 
         echo "<td>
         <button type='button'
             class='botao botao--secundario botao--pequeno'
-            onclick=\"window.location.href='editar_usuario.php?id={$usuario['id_usuario']}'\">
+            onclick=\"window.location.href='editar_usuario.php?id={$idUser}'\">
             Editar
         </button>
-        
-        
-        <form method='POST' class='formulario-excluir' > <input type='hidden' name='excluir_id' value='{$usuario['id_usuario']}' > <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente excluir este usuário?')\" > Excluir </button> </form>
+        <form method='POST' class='formulario-excluir'>
+            <input type='hidden' name='excluir_id' value='{$idUser}'>
+            <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
+                Excluir
+            </button>
+        </form>
         </td>";
+        echo "</tr>";
     }
 }
 
-function buscarUsuarioPorId($conn, $id)
+function buscarUsuarioPorId(mysqli $conn, int $id): ?array
 {
     $sql = "SELECT id_usuario, nome, email, senha, tipo
             FROM usuario
@@ -84,23 +94,27 @@ function buscarUsuarioPorId($conn, $id)
     $stmt->execute();
 
     $resultado = $stmt->get_result();
+    $usuario = $resultado->fetch_assoc();
+    $stmt->close();
 
-    return $resultado->fetch_assoc();
+    return $usuario ?: null;
 }
 
-
-
-
-function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
-{
+function atualizarUsuario(
+    mysqli $conn,
+    int $id,
+    string $nome,
+    string $email,
+    string $senha,
+    string $tipo
+): bool {
     $usuarioAntigo = buscarUsuarioPorId($conn, $id);
 
     if (!$usuarioAntigo) {
         return false;
     }
 
-    if (!empty($senha)) {
-
+    if ($senha !== '') {
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
         $sql = "UPDATE usuario
@@ -121,9 +135,7 @@ function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
             $tipo,
             $id
         );
-
     } else {
-
         $sql = "UPDATE usuario
                 SET nome = ?, email = ?, tipo = ?
                 WHERE id_usuario = ?";
@@ -149,8 +161,13 @@ function atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)
     return $sucesso;
 }
 
-function atualizarPerfilUsuario($conn, $id, $nome, $email, $senha = '')
-{
+function atualizarPerfilUsuario(
+    mysqli $conn,
+    int $id,
+    string $nome,
+    string $email,
+    string $senha = ''
+): array {
     $nome = trim($nome);
     $email = trim($email);
 
@@ -207,10 +224,9 @@ function atualizarPerfilUsuario($conn, $id, $nome, $email, $senha = '')
         : ['sucesso' => false, 'mensagem' => 'Não foi possível atualizar o perfil.'];
 }
 
-function excluirUsuario($conn, $id)
+function excluirUsuario(mysqli $conn, int $id): bool
 {
     $sql = "DELETE FROM usuario WHERE id_usuario = ?";
-
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
@@ -218,10 +234,8 @@ function excluirUsuario($conn, $id)
     }
 
     $stmt->bind_param("i", $id);
+    $sucesso = $stmt->execute();
+    $stmt->close();
 
-    if ($stmt->execute()) {
-        return true;
-    }
-
-    return false;
+    return $sucesso;
 }

@@ -1,13 +1,15 @@
 <?php
 
-require "../script/sessao.php";
-require "../script/conexao.php";
-require "../script/funcoes_lancamentos.php";
-require "../script/sidebar.php";
+declare(strict_types=1);
+
+require_once "../script/sessao.php";
+require_once "../script/conexao.php";
+require_once "../script/funcoes_lancamentos.php";
+require_once "../script/sidebar.php";
 
 verificarSessao();
 
-$tipoSelecionado = $_GET['tipo'] ?? 'Entrada';
+$tipoSelecionado = (string) ($_GET['tipo'] ?? 'Entrada');
 
 if (!in_array($tipoSelecionado, ['Entrada', 'Saida'], true)) {
     $tipoSelecionado = 'Entrada';
@@ -17,11 +19,10 @@ $mensagem = "";
 $tipoMensagem = "";
 
 if (isset($_SESSION['mensagem_lancamento'])) {
-    $mensagem = $_SESSION['mensagem_lancamento']['texto'];
-    $tipoMensagem = $_SESSION['mensagem_lancamento']['tipo'];
+    $mensagem = (string) $_SESSION['mensagem_lancamento']['texto'];
+    $tipoMensagem = (string) $_SESSION['mensagem_lancamento']['tipo'];
     unset($_SESSION['mensagem_lancamento']);
 }
-
 
 $sqlSecretaria = "SELECT id_unidade
                   FROM unidade_saude
@@ -30,50 +31,29 @@ $sqlSecretaria = "SELECT id_unidade
 
 $resultadoSecretaria = $conn->query($sqlSecretaria);
 
-if ($resultadoSecretaria->num_rows > 0) {
-
+if ($resultadoSecretaria && $resultadoSecretaria->num_rows > 0) {
     $secretaria = $resultadoSecretaria->fetch_assoc();
-    $idSecretaria = $secretaria['id_unidade'];
-
+    $idSecretaria = (int) $secretaria['id_unidade'];
 } else {
-
     $idSecretaria = null;
 }
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $tipo = $_POST['tipo'] ?? '';
-
-    $observacao = trim(
-        $_POST['observacao'] ?? ''
-    );
-
-    $usuario_id = $_SESSION['id_usuario'];
-
-    $produtosRecebidos = $_POST['produtos'] ?? [];
-
+    $tipo = (string) ($_POST['tipo'] ?? '');
+    $observacao = trim((string) ($_POST['observacao'] ?? ''));
+    $usuario_id = (int) $_SESSION['id_usuario'];
+    $produtosRecebidos = (array) ($_POST['produtos'] ?? []);
     $produtos = [];
 
-
     foreach ($produtosRecebidos as $produto) {
-
-        if (
-            !isset($produto['produto_id']) ||
-            !isset($produto['quantidade'])
-        ) {
+        if (!is_array($produto) || !isset($produto['produto_id'], $produto['quantidade'])) {
             continue;
         }
 
         $produto_id = (int) $produto['produto_id'];
         $quantidade = (int) $produto['quantidade'];
 
-
-        if (
-            $produto_id > 0 &&
-            $quantidade > 0
-        ) {
-
+        if ($produto_id > 0 && $quantidade > 0) {
             $produtos[] = [
                 'produto_id' => $produto_id,
                 'quantidade' => $quantidade
@@ -81,23 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-
     if (empty($produtos)) {
-
         $mensagem = "Adicione pelo menos um produto.";
         $tipoMensagem = "erro";
-
     } else {
-
         if ($tipo === 'Entrada') {
-
             if ($idSecretaria === null) {
-
                 $mensagem = "A Secretaria de Saúde não está cadastrada.";
                 $tipoMensagem = "erro";
-
             } else {
-
                 $resultado = lancamentoEntrada(
                     $conn,
                     $produtos,
@@ -107,29 +79,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 if (!empty($resultado['sucesso'])) {
-
                     $mensagem = 'Entrada realizada com sucesso!';
                     $tipoMensagem = 'sucesso';
-
                 } else {
-
-                    $mensagem = $resultado['mensagem'] ?? "Erro ao realizar a entrada.";
+                    $mensagem = (string) ($resultado['mensagem'] ?? "Erro ao realizar a entrada.");
                     $tipoMensagem = "erro";
                 }
             }
-        }
-
-        elseif ($tipo === 'Saida') {
-
+        } elseif ($tipo === 'Saida') {
             $unidadeDestino = (int) ($_POST['unidade_destino'] ?? 0);
 
             if ($unidadeDestino <= 0) {
-
                 $mensagem = "Selecione uma unidade de saúde.";
                 $tipoMensagem = "erro";
-
             } else {
-
                 $resultado = lancamentoSaida(
                     $conn,
                     $produtos,
@@ -139,25 +102,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 if (!empty($resultado['sucesso'])) {
-
                     $mensagem = 'Saída realizada com sucesso!';
                     $tipoMensagem = 'sucesso';
-
                 } else {
-
-                    $mensagem = $resultado['mensagem'] ?? "Erro ao realizar a saída. Verifique o estoque dos produtos.";
+                    $mensagem = (string) ($resultado['mensagem'] ?? "Erro ao realizar a saída. Verifique o estoque dos produtos.");
                     $tipoMensagem = "erro";
                 }
             }
-
         } else {
-
             $mensagem = "Tipo de lançamento inválido.";
             $tipoMensagem = "erro";
         }
     }
 
-    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
         || isset($_POST['ajax']);
 
     if ($isAjax) {
@@ -165,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode([
             'sucesso' => $tipoMensagem === 'sucesso',
             'mensagem' => $mensagem
-        ]);
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -179,63 +137,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-
-$sqlProdutos = "SELECT
-                    id_produto,
-                    nome,
-                    unidade,
-                    estoque
-                FROM produto
-                ORDER BY nome";
-
+$sqlProdutos = "SELECT id_produto, nome, unidade, estoque FROM produto ORDER BY nome";
 $resultadoProdutos = $conn->query($sqlProdutos);
 
+$produtosCatalogo = [];
+if ($resultadoProdutos) {
+    while ($p = $resultadoProdutos->fetch_assoc()) {
+        $produtosCatalogo[] = $p;
+    }
+}
 
-$sqlUnidades = "SELECT
-                    id_unidade,
-                    nome
+$sqlUnidades = "SELECT id_unidade, nome
                 FROM unidade_saude
                 WHERE ativo = TRUE
                 AND id_unidade != ?
                 ORDER BY nome";
 
 $stmtUnidades = $conn->prepare($sqlUnidades);
-
-$stmtUnidades->bind_param(
-    "i",
-    $idSecretaria
-);
-
+$secretariaFiltroId = (int) ($idSecretaria ?? 0);
+$stmtUnidades->bind_param("i", $secretariaFiltroId);
 $stmtUnidades->execute();
+$resultadoUnidades = $stmtUnidades->get_result();
 
-$resultadoUnidades =
-    $stmtUnidades->get_result();
-
+$unidadesLista = [];
+if ($resultadoUnidades) {
+    while ($u = $resultadoUnidades->fetch_assoc()) {
+        $unidadesLista[] = $u;
+    }
+}
+$stmtUnidades->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <link
-        rel="stylesheet"
-        href="../css/style.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/style.css">
     <title>Lançamentos</title>
-
 </head>
 
 <body>
-
 
 <?php sidebar($tipoSelecionado === 'Saida' ? 'saida' : 'lancamentos'); ?>
 
@@ -319,7 +262,7 @@ $resultadoUnidades =
                     <?php endif; ?>
                 </div>
                 <h3 class="modal-titulo"><?= $tipoMensagem === 'sucesso' ? 'Sucesso!' : 'Atenção' ?></h3>
-                <p class="modal-texto"><?= htmlspecialchars($mensagem) ?></p>
+                <p class="modal-texto"><?= htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8') ?></p>
                 <button type="button" class="modal-botao" onclick="fecharMensagem(<?= $tipoMensagem === 'sucesso' ? 'true' : 'false' ?>)">
                     <?= $tipoMensagem === 'sucesso' ? 'OK, Concluir' : 'Entendido, Corrigir' ?>
                 </button>
@@ -327,28 +270,16 @@ $resultadoUnidades =
         </div>
     <?php endif; ?>
 
-
     <section class="dashboard">
 
         <h2>Novo lançamento</h2>
 
-
-        <form
-            method="POST"
-            id="form-lancamento"
-        >
-
+        <form method="POST" id="form-lancamento">
 
             <div class="campo">
-
-                <label>
-                    Tipo de lançamento:
-                </label>
-
+                <label>Tipo de lançamento:</label>
                 <br>
-
                 <label>
-
                     <input
                         type="radio"
                         name="tipo"
@@ -356,17 +287,10 @@ $resultadoUnidades =
                         <?= $tipoSelecionado === 'Entrada' ? 'checked' : '' ?>
                         onchange="alterarTipo()"
                     >
-
                     Entrada
-
                 </label>
-
-
                 &nbsp;&nbsp;
-
-
                 <label>
-
                     <input
                         type="radio"
                         name="tipo"
@@ -374,116 +298,44 @@ $resultadoUnidades =
                         <?= $tipoSelecionado === 'Saida' ? 'checked' : '' ?>
                         onchange="alterarTipo()"
                     >
-
                     Saída
-
                 </label>
-
             </div>
 
-
             <br>
-
 
             <div class="campo">
-
-                <label for="unidade_destino">
-
-                    Unidade de destino:
-
-                </label>
-
-
-                <select
-                    name="unidade_destino"
-                    id="unidade_destino"
-                    required
-                >
-
-
-                    <option
-                        value="<?= $idSecretaria ?>"
-                        data-secretaria="true"
-                    >
-
+                <label for="unidade_destino">Unidade de destino:</label>
+                <select name="unidade_destino" id="unidade_destino" required>
+                    <option value="<?= $idSecretaria ?? '' ?>" data-secretaria="true">
                         Secretaria de Saúde
-
                     </option>
-
-
-                    <?php while (
-                        $unidade =
-                        $resultadoUnidades->fetch_assoc()
-                    ): ?>
-
-                        <option
-                            value="<?= $unidade['id_unidade'] ?>"
-                            data-secretaria="false"
-                        >
-
-                            <?= htmlspecialchars(
-                                $unidade['nome']
-                            ) ?>
-
+                    <?php foreach ($unidadesLista as $unidade): ?>
+                        <option value="<?= (int) $unidade['id_unidade'] ?>" data-secretaria="false">
+                            <?= htmlspecialchars((string) $unidade['nome'], ENT_QUOTES, 'UTF-8') ?>
                         </option>
-
-                    <?php endwhile; ?>
-
+                    <?php endforeach; ?>
                 </select>
-
             </div>
 
-
             <br>
-
 
             <h3>Produtos</h3>
 
-
             <div id="produtos-container">
-
-
                 <div class="produto-item">
-
-
-                    <select
-                        name="produtos[0][produto_id]"
-                        class="select-produto"
-                        required
-                    >
-
-                        <option value="">
-                            Selecione um produto
-                        </option>
-
-
-                        <?php while (
-                            $produto =
-                            $resultadoProdutos->fetch_assoc()
-                        ): ?>
-
+                    <select name="produtos[0][produto_id]" class="select-produto" required>
+                        <option value="">Selecione um produto</option>
+                        <?php foreach ($produtosCatalogo as $produto): ?>
                             <option
-                                value="<?= $produto['id_produto'] ?>"
-                                data-estoque="<?= $produto['estoque'] ?>"
+                                value="<?= (int) $produto['id_produto'] ?>"
+                                data-estoque="<?= (int) $produto['estoque'] ?>"
                             >
-
-                                <?= htmlspecialchars(
-                                    $produto['nome']
-                                ) ?>
-
-                                — Estoque:
-                                <?= $produto['estoque'] ?>
-
-                                <?= htmlspecialchars(
-                                    $produto['unidade']
-                                ) ?>
-
+                                <?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?>
+                                — Estoque: <?= (int) $produto['estoque'] ?> <?= htmlspecialchars((string) $produto['unidade'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
-
-                        <?php endwhile; ?>
-
+                        <?php endforeach; ?>
                     </select>
-
 
                     <input
                         type="number"
@@ -493,51 +345,32 @@ $resultadoUnidades =
                         required
                     >
 
-
                     <button
                         type="button"
                         class="botao-remover"
                         onclick="removerProduto(this)"
                     >
-
                         Remover
-
                     </button>
 
                     <div class="produto-item__info"></div>
-
                 </div>
-
             </div>
 
-
             <br>
-
 
             <button
                 type="button"
                 class="botao botao--secundario"
                 onclick="adicionarProduto()"
             >
-
                 + Adicionar produto
-
             </button>
-
 
             <br><br>
 
-
-            <label for="observacao">
-
-                Observação:
-
-            </label>
-
-
+            <label for="observacao">Observação:</label>
             <br>
-
-
             <textarea
                 name="observacao"
                 id="observacao"
@@ -545,19 +378,14 @@ $resultadoUnidades =
                 placeholder="Observação sobre o lançamento..."
             ></textarea>
 
-
             <br><br>
-
 
             <button
                 type="submit"
                 class="botao botao--principal"
             >
-
                 Realizar lançamento
-
             </button>
-
 
         </form>
 
@@ -565,9 +393,7 @@ $resultadoUnidades =
 
 </main>
 
-
 <script>
-
 let contadorProdutos = 1;
 
 function fecharMensagem(recarregar = false)
@@ -601,7 +427,7 @@ function exibirMensagem(tipo, titulo, texto)
              <circle cx="12" cy="12" r="10"></circle>
              <line x1="12" y1="8" x2="12" y2="12"></line>
              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-           </svg>`;
+           </svg>`
 
     const textoBotao = isSucesso ? 'OK, Concluir' : 'Entendido, Corrigir';
 
@@ -645,7 +471,7 @@ function alterarTipo()
             opcao.hidden = false;
         });
 
-        selectUnidade.value = "<?= $idSecretaria ?>";
+        selectUnidade.value = "<?= $idSecretaria ?? '' ?>";
         selectUnidade.disabled = true;
     } else {
         selectUnidade.disabled = false;
@@ -747,7 +573,6 @@ function validarLinha(linhaDiv)
             }
         }
     } else {
-        // Entrada
         if (inputQtd) inputQtd.removeAttribute('max');
         const qtdVal = inputQtd.value !== '' ? parseInt(inputQtd.value, 10) : null;
         if (qtdVal !== null && qtdVal <= 0) {
@@ -806,7 +631,6 @@ function validarTodosProdutos()
         }
     });
 
-    // Validar soma cumulativa quando o mesmo produto for adicionado em múltiplas linhas
     if (tipo === 'Saida') {
         for (const prodId in somaPorProduto) {
             const item = somaPorProduto[prodId];
@@ -847,18 +671,15 @@ function adicionarProduto()
                 Selecione um produto
             </option>
 
-            <?php
-            $resultadoProdutos = $conn->query($sqlProdutos);
-            while ($produto = $resultadoProdutos->fetch_assoc()):
-            ?>
+            <?php foreach ($produtosCatalogo as $produto): ?>
                 <option
-                    value="<?= $produto['id_produto'] ?>"
-                    data-estoque="<?= $produto['estoque'] ?>"
+                    value="<?= (int) $produto['id_produto'] ?>"
+                    data-estoque="<?= (int) $produto['estoque'] ?>"
                 >
-                    <?= htmlspecialchars($produto['nome']) ?>
-                    — Estoque: <?= $produto['estoque'] ?> <?= htmlspecialchars($produto['unidade']) ?>
+                    <?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?>
+                    — Estoque: <?= (int) $produto['estoque'] ?> <?= htmlspecialchars((string) $produto['unidade'], ENT_QUOTES, 'UTF-8') ?>
                 </option>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </select>
 
         <input
@@ -900,14 +721,12 @@ function removerProduto(botao)
     validarTodosProdutos();
 }
 
-// Interceptação de scroll acidental em inputs numéricos
 document.addEventListener('wheel', function(evento) {
     if (evento.target.matches('input[type="number"]')) {
         evento.target.blur();
     }
 });
 
-// Eventos em tempo real para validação de produtos
 const produtosContainer = document.getElementById('produtos-container');
 if (produtosContainer) {
     produtosContainer.addEventListener('input', function(e) {
@@ -923,13 +742,11 @@ if (produtosContainer) {
     });
 }
 
-// Submissão assíncrona (AJAX/Fetch) para manter formulário 100% intacto em caso de erro
 const formLancamento = document.getElementById('form-lancamento');
 if (formLancamento) {
     formLancamento.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // 1. Validação local antes de enviar
         const validacao = validarTodosProdutos();
         if (!validacao.valido) {
             const mensagemErro = validacao.erros.length > 0
@@ -944,7 +761,6 @@ if (formLancamento) {
             return;
         }
 
-        // 2. Estado de envio
         const btnSubmit = formLancamento.querySelector('button[type="submit"]');
         const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Realizar lançamento';
         if (btnSubmit) {
@@ -952,7 +768,6 @@ if (formLancamento) {
             btnSubmit.textContent = 'Processando lançamento...';
         }
 
-        // 3. Montar FormData
         const formData = new FormData(formLancamento);
         const selectUnidade = document.getElementById('unidade_destino');
         if (selectUnidade && selectUnidade.value) {
@@ -1001,10 +816,8 @@ if (formLancamento) {
     });
 }
 
-// Inicializar estado na carga da página
 alterarTipo();
 </script>
-
 
 </body>
 </html>

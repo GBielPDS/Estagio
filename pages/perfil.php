@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_usuarios.php';
@@ -19,10 +21,10 @@ $mensagem = '';
 $tipoMensagem = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $confirmarSenha = $_POST['confirmar_senha'] ?? '';
+    $nome = trim((string) ($_POST['nome'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $senha = (string) ($_POST['senha'] ?? '');
+    $confirmarSenha = (string) ($_POST['confirmar_senha'] ?? '');
 
     if ($senha !== $confirmarSenha) {
         $mensagem = 'As senhas não coincidem.';
@@ -33,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($resultado['sucesso']) {
             $_SESSION['nome'] = $nome;
             $_SESSION['email'] = $email;
-            $mensagem = $resultado['mensagem'];
+            $mensagem = (string) $resultado['mensagem'];
             $tipoMensagem = 'sucesso';
             $usuario = buscarUsuarioPorId($conn, $idUsuario);
 
@@ -44,13 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $idUsuario
             );
         } else {
-            $mensagem = $resultado['mensagem'];
+            $mensagem = (string) $resultado['mensagem'];
             $tipoMensagem = 'erro';
         }
     }
 }
 
-$inicial = strtoupper(substr($usuario['nome'], 0, 1));
+$nomeAtual = (string) ($usuario['nome'] ?? '');
+$inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
 ?>
 
 <!DOCTYPE html>
@@ -80,11 +83,11 @@ $inicial = strtoupper(substr($usuario['nome'], 0, 1));
         <?php endif; ?>
 
         <section class="cartao perfil-resumo">
-            <div class="perfil-avatar"><?= htmlspecialchars($inicial) ?></div>
+            <div class="perfil-avatar"><?= htmlspecialchars($inicial, ENT_QUOTES, 'UTF-8') ?></div>
             <div>
-                <h2><?= htmlspecialchars($usuario['nome']) ?></h2>
-                <p><?= htmlspecialchars($usuario['email']) ?></p>
-                <span class="perfil-tipo"><?= htmlspecialchars($usuario['tipo']) ?></span>
+                <h2><?= htmlspecialchars((string) ($usuario['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></h2>
+                <p><?= htmlspecialchars((string) ($usuario['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
+                <span class="perfil-tipo"><?= htmlspecialchars((string) ($usuario['tipo'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
         </section>
 
@@ -95,12 +98,12 @@ $inicial = strtoupper(substr($usuario['nome'], 0, 1));
             <form method="POST" class="formulario">
                 <div class="campo">
                     <label class="campo__rotulo" for="nome">Nome <span class="obrigatorio">*</span></label>
-                    <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars($usuario['nome']) ?>" required>
+                    <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars((string) ($usuario['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
 
                 <div class="campo">
                     <label class="campo__rotulo" for="email">E-mail <span class="obrigatorio">*</span></label>
-                    <input class="campo__controle" type="email" id="email" name="email" value="<?= htmlspecialchars($usuario['email']) ?>" required>
+                    <input class="campo__controle" type="email" id="email" name="email" value="<?= htmlspecialchars((string) ($usuario['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
 
                 <div class="campo">
@@ -121,4 +124,4 @@ $inicial = strtoupper(substr($usuario['nome'], 0, 1));
     </main>
 
 </body>
-</html><?php
+</html>

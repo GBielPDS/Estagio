@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
-function buscarCategoriasEstoque($conn)
+function buscarCategoriasEstoque(mysqli $conn): mysqli_result|false
 {
     $sql = "SELECT
                 id_categoria,
@@ -9,13 +10,10 @@ function buscarCategoriasEstoque($conn)
             FROM categoria
             ORDER BY nome";
 
-    $resultado = $conn->query($sql);
-
-    return $resultado;
+    return $conn->query($sql);
 }
 
-
-function buscarUnidadesMedida($conn)
+function buscarUnidadesMedida(mysqli $conn): mysqli_result|false
 {
     $sql = "SELECT DISTINCT
                 unidade
@@ -23,98 +21,66 @@ function buscarUnidadesMedida($conn)
             WHERE estoque > 0
             ORDER BY unidade";
 
-    $resultado = $conn->query($sql);
-
-    return $resultado;
+    return $conn->query($sql);
 }
 
-
 function buscarEstoque(
-    $conn,
-    $categoria = '',
-    $unidade = '',
-    $produto = ''
-) {
-
+    mysqli $conn,
+    string $categoria = '',
+    string $unidade = '',
+    string $produto = ''
+): mysqli_result|false {
     $sql = "SELECT
                 p.id_produto,
                 p.nome,
                 p.unidade,
                 p.estoque,
                 p.estoque_minimo,
-
                 c.nome AS categoria
-
             FROM produto p
-
             INNER JOIN categoria c
                 ON c.id_categoria = p.categoria_id
-
             WHERE p.estoque > 0";
-
 
     $parametros = [];
     $tipos = "";
 
-
     if ($categoria !== '') {
-
         $sql .= " AND p.categoria_id = ?";
-
         $parametros[] = (int) $categoria;
-
         $tipos .= "i";
     }
 
-
     if ($unidade !== '') {
-
         $sql .= " AND p.unidade = ?";
-
         $parametros[] = $unidade;
-
         $tipos .= "s";
     }
-
 
     if ($produto !== '') {
-
         $sql .= " AND p.nome LIKE ?";
-
         $parametros[] = "%" . $produto . "%";
-
         $tipos .= "s";
     }
-
 
     $sql .= " ORDER BY p.nome";
 
-
     $stmt = $conn->prepare($sql);
 
-
     if (!$stmt) {
-
         return false;
     }
 
-
     if (!empty($parametros)) {
-
-        $stmt->bind_param(
-            $tipos,
-            ...$parametros
-        );
+        $stmt->bind_param($tipos, ...$parametros);
     }
 
-
     $stmt->execute();
-
 
     return $stmt->get_result();
 }
 
-function buscarAlertasEstoque($conn)
+function buscarAlertasEstoque(mysqli $conn): array
 {
     $sql = "SELECT
                 p.id_produto,
@@ -138,13 +104,14 @@ function buscarAlertasEstoque($conn)
     $alertas = [];
 
     while ($produto = $resultado->fetch_assoc()) {
-        $produto['situacao'] = (int) $produto['estoque'] === 0
-            ? 'vazio'
-            : 'abaixo-minimo';
-        $produto['quantidade_faltante'] = max(
-            0,
-            (int) $produto['estoque_minimo'] - (int) $produto['estoque']
-        );
+        $estoque = (int) $produto['estoque'];
+        $estoqueMinimo = (int) $produto['estoque_minimo'];
+
+        $produto['situacao'] = match (true) {
+            $estoque === 0 => 'vazio',
+            default => 'abaixo-minimo'
+        };
+        $produto['quantidade_faltante'] = max(0, $estoqueMinimo - $estoque);
         $alertas[] = $produto;
     }
 

@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 $host = "localhost";
 $usuario = "root";
 $senha = "";
-$banco = "almoxarifado"; 
+$banco = "almoxarifado";
 
-$conn = new mysqli($host, $usuario, $senha, $banco);
-
-if ($conn->connect_error) {
-    die("Erro de conexão: " . $conn->connect_error);
+try {
+    $conn = new mysqli($host, $usuario, $senha, $banco);
+    $conn->set_charset('utf8mb4');
+} catch (mysqli_sql_exception $e) {
+    die("Erro de conexão: " . $e->getMessage());
 }

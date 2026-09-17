@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../script/sessao.php';
 require_once '../script/conexao.php';
 require_once '../script/funcoes_produtos.php';
@@ -33,12 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn,
                 'Exclusão de produto',
                 'Produto ' . $produto['nome'] . ' (ID ' . $idProduto . ') excluído.',
-                $_SESSION['id_usuario']
+                (int) $_SESSION['id_usuario']
             );
         }
 
         $_SESSION['mensagem_produto'] = [
-            'texto' => $resultadoExclusao['mensagem'],
+            'texto' => (string) $resultadoExclusao['mensagem'],
             'tipo' => $resultadoExclusao['sucesso'] ? 'sucesso' : 'erro'
         ];
 
@@ -46,11 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $nome = trim($_POST['nome'] ?? '');
+    $nome = trim((string) ($_POST['nome'] ?? ''));
     $categoriaId = (int) ($_POST['categoria_id'] ?? 0);
-    $unidade = trim($_POST['unidade'] ?? '');
-    $estoque = trim($_POST['estoque'] ?? '0');
-    $estoqueMinimo = trim($_POST['estoque_minimo'] ?? '0');
+    $unidade = trim((string) ($_POST['unidade'] ?? ''));
+    $estoque = trim((string) ($_POST['estoque'] ?? '0'));
+    $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? '0'));
 
     $resultado = atualizarProduto($conn, $idProduto, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo);
 
@@ -59,14 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn,
             'Edição de produto',
             'Produto ' . $nome . ' (ID ' . $idProduto . ') atualizado.',
-            $_SESSION['id_usuario']
+            (int) $_SESSION['id_usuario']
         );
 
-        header('Location: produtos.php?mensagem=' . urlencode($resultado['mensagem']));
+        header('Location: produtos.php?mensagem=' . urlencode((string) $resultado['mensagem']));
         exit;
     }
 
-    $mensagem = $resultado['mensagem'];
+    $mensagem = (string) $resultado['mensagem'];
     $tipoMensagem = 'erro';
 }
 
@@ -154,7 +156,7 @@ $unidades = buscarUnidades($conn);
             <div class="mensagem-modal mensagem-erro">
                 <div class="mensagem-conteudo">
                     <strong>Atenção!</strong>
-                    <p><?= htmlspecialchars($mensagem) ?></p>
+                    <p><?= htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
             </div>
         <?php endif; ?>
@@ -163,7 +165,7 @@ $unidades = buscarUnidades($conn);
             <form method="POST" class="formulario">
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome do produto</label>
-                    <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars($produto['nome']) ?>" required>
+                    <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
 
                 <div class="campo">
@@ -172,7 +174,7 @@ $unidades = buscarUnidades($conn);
                         <?php foreach ($categorias as $categoria): ?>
                             <option value="<?= (int) $categoria['id_categoria'] ?>"
                                 <?= (int) $produto['categoria_id'] === (int) $categoria['id_categoria'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($categoria['nome']) ?>
+                                <?= htmlspecialchars((string) $categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -182,9 +184,9 @@ $unidades = buscarUnidades($conn);
                     <label class="campo__rotulo" for="unidade">Unidade</label>
                     <select class="campo__controle" id="unidade" name="unidade" required>
                         <?php foreach ($unidades as $itemUnidade): ?>
-                            <option value="<?= htmlspecialchars($itemUnidade['unidade']) ?>"
+                            <option value="<?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>"
                                 <?= $produto['unidade'] === $itemUnidade['unidade'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($itemUnidade['unidade']) ?>
+                                <?= htmlspecialchars((string) $itemUnidade['unidade'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
