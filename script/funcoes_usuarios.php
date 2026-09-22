@@ -78,15 +78,42 @@ function cadastrarUsuario(
         : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
 }
 
-function listarUsuarios(mysqli $conn, bool $apenasAtivos = true): void
+function contarUsuarios(mysqli $conn, string $status = 'ativos'): int
 {
-    $sql = $apenasAtivos
-        ? "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 1"
-        : "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario";
+    $where = ($status === 'inativos') ? 'WHERE ativo = 0' : (($status === 'todos') ? '' : 'WHERE ativo = 1');
+    $sql = "SELECT COUNT(*) AS total FROM usuario $where";
+    $res = $conn->query($sql);
+    if ($res) {
+        $row = $res->fetch_assoc();
+        return (int) ($row['total'] ?? 0);
+    }
+    return 0;
+}
+
+function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
+{
+    if (is_bool($status)) {
+        $status = $status ? 'ativos' : 'todos';
+    }
+
+    if ($status === 'inativos') {
+        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 0 ORDER BY nome";
+    } elseif ($status === 'todos') {
+        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario ORDER BY nome";
+    } else {
+        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 1 ORDER BY nome";
+    }
+
     $resultado = $conn->query($sql);
 
     if (!$resultado) {
         die("Erro na consulta: " . $conn->error);
+    }
+
+    if ($resultado->num_rows === 0) {
+        $msg = ($status === 'inativos') ? 'Nenhum usuário desativado encontrado.' : 'Nenhum usuário ativo cadastrado.';
+        echo "<tr><td colspan='6' style='text-align: center; color: var(--texto-suave); padding: 24px;'>" . $msg . "</td></tr>";
+        return;
     }
 
     while ($usuario = $resultado->fetch_assoc()) {
@@ -94,6 +121,7 @@ function listarUsuarios(mysqli $conn, bool $apenasAtivos = true): void
         $nomeUser = htmlspecialchars((string) $usuario['nome'], ENT_QUOTES, 'UTF-8');
         $emailUser = htmlspecialchars((string) $usuario['email'], ENT_QUOTES, 'UTF-8');
         $tipoUser = htmlspecialchars((string) $usuario['tipo'], ENT_QUOTES, 'UTF-8');
+        $estaAtivo = ((int) ($usuario['ativo'] ?? 1)) === 1;
 
         echo "<tr>";
         echo "<td>" . $idUser . "</td>";
@@ -103,17 +131,30 @@ function listarUsuarios(mysqli $conn, bool $apenasAtivos = true): void
         echo "<td>" . $tipoUser . "</td>";
 
         echo "<td>
-        <button type='button'
-            class='botao botao--secundario botao--pequeno'
-            onclick=\"window.location.href='editar_usuario.php?id={$idUser}'\">
-            Editar
-        </button>
-        <form method='POST' class='formulario-excluir'>
-            <input type='hidden' name='excluir_id' value='{$idUser}'>
-            <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente excluir este usuário?')\">
-                Excluir
-            </button>
-        </form>
+        <div class='tabela-acoes'>
+            <button type='button'
+                class='botao botao--secundario botao--pequeno'
+                onclick=\"window.location.href='editar_usuario.php?id={$idUser}'\">
+                Editar
+            </button>";
+
+        if ($estaAtivo) {
+            echo "<form method='POST'>
+                <input type='hidden' name='excluir_id' value='{$idUser}'>
+                <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente desativar este usuário?')\">
+                    Excluir
+                </button>
+            </form>";
+        } else {
+            echo "<form method='POST'>
+                <input type='hidden' name='reativar_id' value='{$idUser}'>
+                <button type='submit' class='botao botao--sucesso botao--pequeno' onclick=\"return confirm('Deseja realmente reativar este usuário?')\">
+                    Reativar
+                </button>
+            </form>";
+        }
+
+        echo "</div>
         </td>";
         echo "</tr>";
     }
@@ -147,7 +188,8 @@ function atualizarUsuario(
     string $nome,
     string $email,
     string $senha,
-    string $tipo
+    string $tipo,
+    ?int $ativo = null
 ): bool {
     $usuarioAntigo = buscarUsuarioPorId($conn, $id);
 
@@ -155,11 +197,13 @@ function atualizarUsuario(
         return false;
     }
 
+    $ativoFinal = ($ativo !== null) ? $ativo : (int) ($usuarioAntigo['ativo'] ?? 1);
+
     if ($senha !== '') {
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
         $sql = "UPDATE usuario
-                SET nome = ?, email = ?, senha = ?, tipo = ?
+                SET nome = ?, email = ?, senha = ?, tipo = ?, ativo = ?
                 WHERE id_usuario = ?";
 
         $stmt = $conn->prepare($sql);
@@ -169,16 +213,17 @@ function atualizarUsuario(
         }
 
         $stmt->bind_param(
-            "ssssi",
+            "ssssii",
             $nome,
             $email,
             $senhaHash,
             $tipo,
+            $ativoFinal,
             $id
         );
     } else {
         $sql = "UPDATE usuario
-                SET nome = ?, email = ?, tipo = ?
+                SET nome = ?, email = ?, tipo = ?, ativo = ?
                 WHERE id_usuario = ?";
 
         $stmt = $conn->prepare($sql);
@@ -188,10 +233,11 @@ function atualizarUsuario(
         }
 
         $stmt->bind_param(
-            "sssi",
+            "sssii",
             $nome,
             $email,
             $tipo,
+            $ativoFinal,
             $id
         );
     }

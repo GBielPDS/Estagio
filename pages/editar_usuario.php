@@ -22,14 +22,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim((string) ($_POST['email'] ?? ''));
     $senha = (string) ($_POST['senha'] ?? '');
     $tipo = (string) ($_POST['tipo'] ?? '');
+    $ativo = isset($_POST['ativo']) ? (int) $_POST['ativo'] : null;
 
-    if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo)) {
+    if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo, $ativo)) {
+        $acaoLog = ($ativo === 1 && (int)($usuario['ativo'] ?? 1) === 0) ? 'Reativação de usuário' : 'Atualização de usuário';
+        $descLog = 'Usuário ' . $nome . ' (ID ' . $id . ') atualizado pelo administrador.';
         registrarLog(
             $conn,
-            'Atualização de usuário',
-            'Usuário ' . $nome . ' (ID ' . $id . ') atualizado.',
+            $acaoLog,
+            $descLog,
             (int) $_SESSION['id_usuario']
         );
+
+        $_SESSION['mensagem_cadastro'] = [
+            'texto' => 'Usuário atualizado com sucesso.',
+            'tipo' => 'sucesso'
+        ];
 
         header("Location: usuarios.php");
         exit;
@@ -104,6 +112,14 @@ if (!$usuario) {
                         <option value="Administrador" <?= $usuario['tipo'] === 'Administrador' ? 'selected' : '' ?>>Administrador</option> 
                         <option value="Suporte" <?= $usuario['tipo'] === 'Suporte' ? 'selected' : '' ?>>Suporte</option> 
                         <option value="Usuario" <?= $usuario['tipo'] === 'Usuario' ? 'selected' : '' ?>>Usuário</option> 
+                    </select> 
+                </div>
+
+                <div class="campo campo--largo"> 
+                    <label class="campo__rotulo" for="ativo">Status da conta</label> 
+                    <select class="campo__controle" id="ativo" name="ativo"> 
+                        <option value="1" <?= (int)($usuario['ativo'] ?? 1) === 1 ? 'selected' : '' ?>>Ativo</option> 
+                        <option value="0" <?= (int)($usuario['ativo'] ?? 1) === 0 ? 'selected' : '' ?>>Inativo (Desativado)</option> 
                     </select> 
                 </div>
 

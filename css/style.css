@@ -488,6 +488,15 @@ textarea.campo__controle {
 .botao--perigo:hover { background: #b91c1c; }
 .botao--perigo:active { background: #991b1b; }
 
+.botao--sucesso {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.botao--sucesso:hover { background: #15803d; }
+.botao--sucesso:active { background: #166534; }
+
 .formulario--exclusao {
   display: flex;
   justify-content: flex-end;
@@ -933,6 +942,24 @@ textarea.campo__controle {
 .table--produtos th:nth-child(7),
 .table--produtos td:nth-child(7) { width: 12%; }
 
+.table--usuarios th:first-child,
+.table--usuarios td:first-child { width: 7%; }
+
+.table--usuarios th:nth-child(2),
+.table--usuarios td:nth-child(2) { width: 23%; }
+
+.table--usuarios th:nth-child(3),
+.table--usuarios td:nth-child(3) { width: 25%; }
+
+.table--usuarios th:nth-child(4),
+.table--usuarios td:nth-child(4) { width: 13%; }
+
+.table--usuarios th:nth-child(5),
+.table--usuarios td:nth-child(5) { width: 14%; }
+
+.table--usuarios th:nth-child(6),
+.table--usuarios td:nth-child(6) { width: 18%; min-width: 170px; }
+
 .table td {
   overflow-wrap: anywhere;
 }
@@ -942,6 +969,39 @@ textarea.campo__controle {
   width: 100%;
   padding: 9px 12px;
   font-size: 13px;
+}
+
+/* Ações em linha dentro de tabelas */
+.tabela-acoes {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+.tabela-acoes form {
+  display: inline-flex !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.table td .tabela-acoes .botao,
+.tabela-acoes .botao {
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 6px 12px !important;
+  font-size: 12.5px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.botao--pequeno {
+  min-width: 0 !important;
+  padding: 6px 12px !important;
+  font-size: 12.5px !important;
 }
 
 /* =========================================
