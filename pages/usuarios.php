@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     registrarLog(
                         $conn,
                         'Exclusão de usuário',
-                        'Usuário ' . (string) $usuarioExcluir['nome'] . ' (ID ' . $id . ') excluído.',
+                        'Usuário ' . (string) $usuarioExcluir['nome'] . ' (ID ' . $id . ') desativado (ativo = 0).',
                         $sessaoId
                     );
                     $mensagemCadastro = ['texto' => 'Usuário excluído com sucesso.', 'tipo' => 'sucesso'];

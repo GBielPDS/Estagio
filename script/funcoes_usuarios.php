@@ -39,9 +39,11 @@ function cadastrarUsuario(mysqli $conn, string $nome, string $email, string $sen
         : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
 }
 
-function listarUsuarios(mysqli $conn): void
+function listarUsuarios(mysqli $conn, bool $apenasAtivos = true): void
 {
-    $sql = "SELECT id_usuario, nome, email, senha, tipo FROM usuario";
+    $sql = $apenasAtivos
+        ? "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 1"
+        : "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario";
     $resultado = $conn->query($sql);
 
     if (!$resultado) {
@@ -80,7 +82,7 @@ function listarUsuarios(mysqli $conn): void
 
 function buscarUsuarioPorId(mysqli $conn, int $id): ?array
 {
-    $sql = "SELECT id_usuario, nome, email, senha, tipo
+    $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo
             FROM usuario
             WHERE id_usuario = ?";
 
@@ -226,11 +228,32 @@ function atualizarPerfilUsuario(
 
 function excluirUsuario(mysqli $conn, int $id): bool
 {
-    $sql = "DELETE FROM usuario WHERE id_usuario = ?";
+    $sql = "UPDATE usuario SET ativo = 0 WHERE id_usuario = ?";
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
-        die("Erro ao preparar exclusão: " . $conn->error);
+        die("Erro ao preparar desativação: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $id);
+    $sucesso = $stmt->execute();
+    $stmt->close();
+
+    return $sucesso;
+}
+
+function desativarUsuario(mysqli $conn, int $id): bool
+{
+    return excluirUsuario($conn, $id);
+}
+
+function reativarUsuario(mysqli $conn, int $id): bool
+{
+    $sql = "UPDATE usuario SET ativo = 1 WHERE id_usuario = ?";
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        die("Erro ao preparar reativação: " . $conn->error);
     }
 
     $stmt->bind_param("i", $id);

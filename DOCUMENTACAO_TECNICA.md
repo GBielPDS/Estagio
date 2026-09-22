@@ -66,6 +66,7 @@ O banco de dados se chama **`almoxarifado`** e adota o padrão relacional com su
 | `email` | `VARCHAR(100)` | Não | **UK** | Email institucional único para login no sistema. |
 | `senha` | `VARCHAR(255)` | Não | — | Hash criptográfico gerado via `password_hash()` (BCrypt). |
 | `tipo` | `ENUM(...)` | Não | — | Nível de acesso: `'Administrador'`, `'Suporte'` ou `'Usuario'`. |
+| `ativo` | `BOOLEAN` | Não | — | Flag de exclusão lógica/status (`DEFAULT TRUE`). Desativado (`0`) impede acesso e oculta da listagem ativa. |
 
 #### Tabela: `categoria` (Classificação de Insumos)
 | Campo | Tipo | Nulo | Chave | Descrição / Regra de Negócio |

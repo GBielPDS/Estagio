@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'Preencha todos os campos.';
         $tipo_mensagem = 'erro';
     } else {
-        $sql = 'SELECT id_usuario, nome, email, senha, tipo FROM usuario WHERE email = ?';
+        $sql = 'SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE email = ?';
 
         $stmt = $conn->prepare($sql);
 
@@ -35,7 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($resultado->num_rows > 0) {
                 $usuario = $resultado->fetch_assoc();
 
-                if (password_verify($senha, (string) $usuario['senha'])) {
+                if ((int) ($usuario['ativo'] ?? 1) === 0) {
+                    $mensagem = 'Este usuário foi desativado. Entre em contato com o administrador.';
+                    $tipo_mensagem = 'erro';
+                } elseif (password_verify($senha, (string) $usuario['senha'])) {
                     $_SESSION['id_usuario'] = (int) $usuario['id_usuario'];
                     $_SESSION['nome'] = (string) $usuario['nome'];
                     $_SESSION['email'] = (string) $usuario['email'];
