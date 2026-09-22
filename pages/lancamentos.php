@@ -9,7 +9,7 @@ require_once "../script/sidebar.php";
 
 verificarSessao();
 
-$tipoSelecionado = (string) ($_GET['tipo'] ?? 'Entrada');
+$tipoSelecionado = (string) ($_POST['tipo'] ?? $_GET['tipo'] ?? 'Entrada');
 
 if (!in_array($tipoSelecionado, ['Entrada', 'Saida'], true)) {
     $tipoSelecionado = 'Entrada';
@@ -395,6 +395,7 @@ $stmtUnidades->close();
 
 <script>
 let contadorProdutos = 1;
+let tipoLancamentoConcluido = <?= json_encode($tipoSelecionado, JSON_THROW_ON_ERROR) ?>;
 
 function fecharMensagem(recarregar = false)
 {
@@ -407,7 +408,7 @@ function fecharMensagem(recarregar = false)
         inlineMsg.remove();
     }
     if (recarregar) {
-        window.location.href = 'lancamentos.php';
+        window.location.href = 'lancamentos.php?tipo=' + encodeURIComponent(tipoLancamentoConcluido);
     }
 }
 
@@ -463,6 +464,20 @@ function exibirMensagem(tipo, titulo, texto)
 function alterarTipo()
 {
     const tipo = document.querySelector('input[name="tipo"]:checked').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tipo', tipo);
+    window.history.replaceState(null, '', url);
+
+    document.querySelectorAll('header:not(.topo--legado) .nav__item').forEach(function(link) {
+        const destino = new URL(link.href, window.location.href);
+        if (destino.pathname === url.pathname) {
+            if (destino.searchParams.get('tipo') === tipo) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
+        }
+    });
     const selectUnidade = document.getElementById('unidade_destino');
     const opcoesUnidade = selectUnidade.querySelectorAll('option');
 
@@ -794,6 +809,7 @@ if (formLancamento) {
             }
 
             if (dados.sucesso) {
+                tipoLancamentoConcluido = formData.get('tipo');
                 exibirMensagem('sucesso', 'Sucesso!', dados.mensagem || 'Lançamento realizado com sucesso!');
                 if (btnSubmit) {
                     btnSubmit.disabled = false;
