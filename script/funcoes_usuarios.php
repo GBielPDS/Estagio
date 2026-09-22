@@ -2,9 +2,18 @@
 
 declare(strict_types=1);
 
-function cadastrarUsuario(mysqli $conn, string $nome, string $email, string $senha, string $tipo): array
-{
-    $sql = 'SELECT id_usuario FROM usuario WHERE email = ?';
+function cadastrarUsuario(
+    mysqli $conn,
+    string $nome,
+    string $email,
+    string $senha,
+    string $tipo,
+    bool $reativarSeDesativado = true
+): array {
+    $email = trim($email);
+    $nome = trim($nome);
+
+    $sql = 'SELECT id_usuario, nome, tipo, ativo FROM usuario WHERE email = ?';
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
@@ -13,16 +22,46 @@ function cadastrarUsuario(mysqli $conn, string $nome, string $email, string $sen
 
     $stmt->bind_param('s', $email);
     $stmt->execute();
-
-    if ($stmt->get_result()->num_rows > 0) {
-        $stmt->close();
-        return ['sucesso' => false, 'mensagem' => 'Este email já está cadastrado.'];
-    }
-
+    $resultado = $stmt->get_result();
+    $usuarioExistente = $resultado->fetch_assoc();
     $stmt->close();
 
+    if ($usuarioExistente) {
+        $estaAtivo = ((int) $usuarioExistente['ativo']) === 1;
+
+        if ($estaAtivo) {
+            return [
+                'sucesso' => false,
+                'mensagem' => 'Este email já está cadastrado.',
+                'codigo' => 'JA_CADASTRADO'
+            ];
+        }
+
+        if ($reativarSeDesativado) {
+            $resReativacao = reativarUsuarioComNovaSenha($conn, $email, $senha, $nome, $tipo);
+            if ($resReativacao['sucesso']) {
+                return [
+                    'sucesso' => true,
+                    'id' => (int) $usuarioExistente['id_usuario'],
+                    'nome' => (string) ($resReativacao['nome'] ?? $nome),
+                    'reativado' => true,
+                    'mensagem' => 'Usuário já existia e foi reativado com sucesso com a nova senha de acesso.'
+                ];
+            }
+            return $resReativacao;
+        }
+
+        return [
+            'sucesso' => false,
+            'mensagem' => 'Este e-mail pertence a um usuário desativado.',
+            'desativado' => true,
+            'id' => (int) $usuarioExistente['id_usuario'],
+            'codigo' => 'USUARIO_DESATIVADO'
+        ];
+    }
+
     $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
-    $sql = 'INSERT INTO usuario (nome, email, senha, tipo) VALUES (?, ?, ?, ?)';
+    $sql = 'INSERT INTO usuario (nome, email, senha, tipo, ativo) VALUES (?, ?, ?, ?, 1)';
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
@@ -35,7 +74,7 @@ function cadastrarUsuario(mysqli $conn, string $nome, string $email, string $sen
     $stmt->close();
 
     return $sucesso
-        ? ['sucesso' => true, 'id' => $novoId]
+        ? ['sucesso' => true, 'id' => $novoId, 'nome' => $nome, 'reativado' => false]
         : ['sucesso' => false, 'mensagem' => 'Erro ao realizar o cadastro.'];
 }
 
@@ -261,4 +300,125 @@ function reativarUsuario(mysqli $conn, int $id): bool
     $stmt->close();
 
     return $sucesso;
+}
+
+function reativarUsuarioComNovaSenha(
+    mysqli $conn,
+    string $email,
+    string $senha,
+    ?string $nome = null,
+    ?string $tipo = null
+): array {
+    $email = trim($email);
+
+    if ($email === '' || $senha === '') {
+        return ['sucesso' => false, 'mensagem' => 'E-mail e nova senha são obrigatórios.'];
+    }
+
+    $sqlBusca = 'SELECT id_usuario, nome, tipo, ativo FROM usuario WHERE email = ?';
+    $stmtBusca = $conn->prepare($sqlBusca);
+
+    if (!$stmtBusca) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao consultar usuário.'];
+    }
+
+    $stmtBusca->bind_param('s', $email);
+    $stmtBusca->execute();
+    $resultado = $stmtBusca->get_result();
+    $usuario = $resultado->fetch_assoc();
+    $stmtBusca->close();
+
+    if (!$usuario) {
+        return ['sucesso' => false, 'mensagem' => 'Nenhum usuário encontrado com este e-mail.'];
+    }
+
+    $id = (int) $usuario['id_usuario'];
+    $nomeFinal = ($nome !== null && trim($nome) !== '') ? trim($nome) : (string) $usuario['nome'];
+    $tipoFinal = ($tipo !== null && in_array($tipo, ['Administrador', 'Suporte', 'Usuario'], true))
+        ? $tipo
+        : (string) $usuario['tipo'];
+    $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+
+    $sqlUpdate = 'UPDATE usuario SET nome = ?, senha = ?, tipo = ?, ativo = 1 WHERE id_usuario = ?';
+    $stmtUpdate = $conn->prepare($sqlUpdate);
+
+    if (!$stmtUpdate) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar a reativação do usuário.'];
+    }
+
+    $stmtUpdate->bind_param('sssi', $nomeFinal, $senhaHash, $tipoFinal, $id);
+    $sucesso = $stmtUpdate->execute();
+    $stmtUpdate->close();
+
+    return $sucesso
+        ? [
+            'sucesso' => true,
+            'id' => $id,
+            'nome' => $nomeFinal,
+            'tipo' => $tipoFinal,
+            'mensagem' => 'Usuário reativado com sucesso com a nova senha de acesso.'
+        ]
+        : ['sucesso' => false, 'mensagem' => 'Não foi possível reativar o usuário.'];
+}
+
+function recuperarSenhaUsuario(mysqli $conn, string $email, string $novaSenha): array
+{
+    $email = trim($email);
+
+    if ($email === '' || $novaSenha === '') {
+        return ['sucesso' => false, 'mensagem' => 'E-mail e nova senha são obrigatórios.'];
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['sucesso' => false, 'mensagem' => 'Digite um e-mail válido.'];
+    }
+
+    $sqlBusca = 'SELECT id_usuario, nome, tipo, ativo FROM usuario WHERE email = ?';
+    $stmtBusca = $conn->prepare($sqlBusca);
+
+    if (!$stmtBusca) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao verificar o e-mail.'];
+    }
+
+    $stmtBusca->bind_param('s', $email);
+    $stmtBusca->execute();
+    $resultado = $stmtBusca->get_result();
+    $usuario = $resultado->fetch_assoc();
+    $stmtBusca->close();
+
+    if (!$usuario) {
+        return ['sucesso' => false, 'mensagem' => 'Nenhuma conta cadastrada com este e-mail.'];
+    }
+
+    $id = (int) $usuario['id_usuario'];
+    $nome = (string) $usuario['nome'];
+    $estavaInativo = ((int) $usuario['ativo']) === 0;
+    $senhaHash = password_hash($novaSenha, PASSWORD_DEFAULT);
+
+    $sqlUpdate = 'UPDATE usuario SET senha = ?, ativo = 1 WHERE id_usuario = ?';
+    $stmtUpdate = $conn->prepare($sqlUpdate);
+
+    if (!$stmtUpdate) {
+        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar a atualização da senha.'];
+    }
+
+    $stmtUpdate->bind_param('si', $senhaHash, $id);
+    $sucesso = $stmtUpdate->execute();
+    $stmtUpdate->close();
+
+    if ($sucesso) {
+        $mensagemSucesso = $estavaInativo
+            ? 'Conta reativada e nova senha definida com sucesso!'
+            : 'Senha atualizada com sucesso!';
+
+        return [
+            'sucesso' => true,
+            'id' => $id,
+            'nome' => $nome,
+            'reativado' => $estavaInativo,
+            'mensagem' => $mensagemSucesso
+        ];
+    }
+
+    return ['sucesso' => false, 'mensagem' => 'Não foi possível redefinir a senha.'];
 }

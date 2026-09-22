@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $usuario = $resultado->fetch_assoc();
 
                 if ((int) ($usuario['ativo'] ?? 1) === 0) {
-                    $mensagem = 'Este usuário foi desativado. Entre em contato com o administrador.';
+                    $mensagem = 'Este usuário foi desativado. Você pode reativar sua conta ou recuperar o acesso pelo link abaixo.';
                     $tipo_mensagem = 'erro';
                 } elseif (password_verify($senha, (string) $usuario['senha'])) {
                     $_SESSION['id_usuario'] = (int) $usuario['id_usuario'];
@@ -116,6 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="footer-links">
                 <a href="cadastrar_usuario.php">Primeiro Acesso</a>
+                <span style="margin: 0 8px; color: var(--texto-suave);">|</span>
+                <a href="cadastrar_usuario.php?modo=recuperar">Recuperar senha / Reativar conta</a>
             </div>
 
         </form>
