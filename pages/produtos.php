@@ -10,7 +10,7 @@ require_once '../script/sidebar.php';
 verificarSessao();
 
 $tipoUsuario = (string) ($_SESSION['tipo'] ?? '');
-$mostrarEstoqueMinimo = $tipoUsuario === 'Administrador';
+$mostrarEstoqueMinimo = podeGerenciarCadastros($tipoUsuario);
 $mensagemProduto = $_SESSION['mensagem_produto'] ?? null;
 unset($_SESSION['mensagem_produto']);
 

@@ -9,7 +9,7 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 if (!isset($_GET['id'])) {
     die("Usuário não informado.");
@@ -19,6 +19,8 @@ $id = (int) $_GET['id'];
 
 $usuario = buscarUsuarioPorId($conn, $id);
 if (!$usuario) { http_response_code(404); exit('Usuário não encontrado.'); }
+if (!podeEditarConta($usuario)) respostaAcesso(403, 'Acesso negado.');
+$administrador = $_SESSION['tipo'] === 'Administrador';
 $mensagem = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim((string) ($_POST['nome'] ?? ''));
@@ -27,7 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tipo = (string) ($_POST['tipo'] ?? '');
     $status = $_POST['ativo'] ?? '';
     $ativo = in_array($status, ['0', '1'], true) ? (int) $status : -1;
-    $resultado = atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo, $ativo);
+    if (!$administrador && array_diff(array_keys($_POST), ['csrf', 'nome', 'email', 'senha'])) {
+        respostaAcesso(403, 'Suporte só pode editar nome, e-mail e senha.');
+    }
+    $resultado = $administrador
+        ? atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo, $ativo)
+        : atualizarCadastroUsuario($conn, $id, $nome, $email, $senha);
     if ($resultado['sucesso']) {
         $_SESSION['mensagem_cadastro'] = ['texto' => $resultado['mensagem'], 'tipo' => 'sucesso'];
         if ($id === (int) $_SESSION['id_usuario']) {
@@ -37,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: usuarios.php'); exit;
     }
     $mensagem = $resultado['mensagem'];
-    $usuario = array_merge($usuario, compact('nome', 'email', 'tipo'));
+    $usuario = array_merge($usuario, compact('nome', 'email'));
 }
 ?>
 
@@ -89,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     >
                 </div>
 
+                <p>Alterar o e-mail muda o identificador usado no próximo login.</p>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo">Nova senha:</label>
                     <input class="campo__controle"
@@ -98,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     >
                 </div>
 
+                <p>Uma nova senha encerra os acessos anteriores desta conta.</p>
+                <?php if ($administrador): ?>
                 <div class="campo campo--largo"> 
                     <label class="campo__rotulo" for="tipo">Tipo de usuário</label> 
                     <select class="campo__controle" id="tipo" name="tipo"> 
@@ -115,6 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </select> 
                 </div>
 
+                <?php else: ?>
+                    <p>Perfil: Usuário. Status: Ativo. Alterações de perfil e status são exclusivas do administrador.</p>
+                <?php endif; ?>
                 <div class="formulario__acoes">
                     <a href="usuarios.php" class="botao botao--secundario">Cancelar</a> 
                     <button type="submit" class="botao botao--primario">Salvar</button> 

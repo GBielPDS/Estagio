@@ -2,6 +2,10 @@
 
 > Atualização: a instalação vigente usa `bd/administrar.php` pelo terminal. O antigo setup web foi removido. Consulte [Atualização de segurança](ATUALIZACAO_SEGURANCA.md) para o procedimento atual; essa nota prevalece sobre descrições anteriores de instalação e contas.
 
+### Permissões vigentes
+
+O Suporte agora consulta usuários e logs, edita nome/e-mail e redefine senha de usuários comuns ativos, cadastra/edita UBS e edita dados e mínimo de produtos. Controle de acesso, status de unidades, edição da Secretaria e ajustes de saldo continuam administrativos. A tabela completa está em [Permissões do Suporte](ATUALIZACAO_SEGURANCA.md#permissões-do-suporte) e prevalece sobre descrições antigas abaixo. Não houve mudança de estrutura do banco.
+
 ### Instalação e atualização atuais
 
 - Banco novo: importar `bd/criar-bd.sql` e executar `php bd/administrar.php inicializar`. O responsável informa nome, e-mail válido e senha (ainda visível no terminal). Quando não há produtos, escolhe se deseja importar o catálogo com saldo zero.
@@ -404,3 +408,6 @@ Para o técnico de TI que precisar dar manutenção, esta seção documenta os p
 - **Atenção para o TI:** O banco **TEM que ser InnoDB**. Se o banco for exportado e restaurado em um servidor antigo com engine padrão **MyISAM**, transações **NÃO FUNCIONAM** (o MySQL não dá erro, mas o `rollback()` é simplesmente ignorado e não desfaz os dados).
 
 
+
+
+O Suporte também pode redefinir a senha de usuários comuns ativos. Campo vazio mantém a senha; senha nova segue o limite de 8 a 72 bytes, invalida as sessões anteriores e gera auditoria específica, sem senha ou hash na descrição. Administradores, outros suportes e contas inativas continuam fora dessa permissão. A própria senha é alterada em Meu Perfil.

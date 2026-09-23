@@ -64,3 +64,32 @@ O login conserva a logo, um único formulário, token CSRF, renovação do ident
 Baixar o código pelo Git não executa instalação nem migração. Em banco com usuários, não execute `inicializar`; aplique apenas migrações necessárias. No ambiente de produção, ajuste credenciais e endereço-base e mantenha ferramentas, SQL e testes fora do acesso público. Os testes atuais usam XAMPP local e bancos descartáveis, não o banco de uso.
 
 O importador aceita o formato atual do catálogo conhecido, sem executar seu comando USE nem aceitar caminhos fornecidos pelo usuário. Mudanças futuras no formato SQL exigem revisar o importador e seus testes; não é um executor genérico de SQL.
+
+
+## Permissões do Suporte
+
+A tabela abaixo descreve a regra vigente e prevalece sobre descrições anteriores de acesso exclusivo do administrador aos módulos inteiros.
+
+| Ação | Usuário | Suporte | Administrador |
+|---|---|---|---|
+| Operação existente: cadastro de produtos, entradas, saídas e consultas | Sim | Sim | Sim |
+| Editar dados cadastrais e mínimo de produto | Não | Sim | Sim |
+| Ajustar saldo pela edição ou excluir produto sem histórico | Não | Não | Sim |
+| Consultar e cadastrar UBS | Não | Sim | Sim |
+| Editar UBS | Não | Sim | Sim |
+| Desativar ou reativar unidade | Não | Não | Sim |
+| Editar endereço/telefone da Secretaria | Não | Não | Sim |
+| Renomear ou desativar Secretaria | Não | Não | Não |
+| Consultar logs | Não | Sim, somente leitura | Sim |
+| Consultar usuários ativos e inativos | Não | Sim | Sim |
+| Editar nome/e-mail de usuário comum ativo | Não | Sim | Sim |
+| Editar outras contas pela administração | Não | Não | Sim |
+| Criar contas ou alterar perfil/status | Não | Não | Sim, respeitando proteção do último administrador e autodesativação |
+| Editar próprios dados e senha em Meu Perfil | Sim | Sim | Sim |
+
+Suporte não administra outros suportes, administradores nem contas inativas. Alterar e-mail muda o login e gera auditoria; não há notificação automática. As páginas recusam campos administrativos enviados indevidamente. As operações revalidam o autor e o alvo no banco durante a transação. A edição de produtos pelo Suporte não escreve a coluna estoque: uma movimentação ocorrida após abrir a tela não é sobrescrita. Alterações de contas, produtos e unidades continuam vinculadas à auditoria na mesma transação.
+
+Esta atualização não precisa de migração. Os testes HTTP usam bancos temporários e cobrem a hierarquia, campos forjados, perfis alterados após abrir a página, CSRF, preservação do saldo e rollback por falha de auditoria.
+
+
+O Suporte também pode redefinir a senha de usuários comuns ativos. Campo vazio mantém a senha; senha nova segue o limite de 8 a 72 bytes, invalida as sessões anteriores e gera auditoria específica, sem senha ou hash na descrição. Administradores, outros suportes e contas inativas continuam fora dessa permissão. A própria senha é alterada em Meu Perfil.

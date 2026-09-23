@@ -73,7 +73,7 @@ function sidebar(string $paginaAtiva = ''): void
                     <a href="' . BASE_URL . 'pages/perfil.php">Meu Perfil</a>
                     <a class="dropdown-notificacao" href="' . BASE_URL . 'pages/alertas.php">Notificações <span class="notificacao-contador">' . $totalAlertas . '</span></a>';
 
-    if ($tipo === 'Administrador') {
+    if (podeGerenciarCadastros($tipo)) {
         echo '
                     <a href="' . BASE_URL . 'pages/unidades.php"' . $ativo('unidades') . '>Unidades de Saúde</a>
                     <a href="' . BASE_URL . 'pages/usuarios.php">Usuários</a>

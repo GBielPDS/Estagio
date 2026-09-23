@@ -9,14 +9,16 @@ require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 $id = filter_var($_GET['id'] ?? '', FILTER_VALIDATE_INT);
 if (!$id || $id < 1) respostaAcesso(400, 'Unidade de saúde inválida.');
 $unidade = buscarUnidadePorId($conn, $id);
 if (!$unidade) respostaAcesso(404, 'Unidade de saúde não encontrada.');
+if (!podeEditarUnidade($unidade)) respostaAcesso(403, 'Acesso negado.');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SESSION['tipo'] === 'Suporte' && array_diff(array_keys($_POST), ['csrf', 'nome', 'endereco', 'telefone'])) respostaAcesso(403, 'Campos não permitidos.');
     $nome = trim((string) ($_POST['nome'] ?? ''));
     $endereco = trim((string) ($_POST['endereco'] ?? ''));
     $telefone = trim((string) ($_POST['telefone'] ?? ''));

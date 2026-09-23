@@ -66,14 +66,14 @@ function listarUnidades($conn, string $status = 'ativos'): void
 
         if ($ativo === 1) {
 
-            echo '<a
+            if (podeEditarUnidade($unidade)) echo '<a
                     href="editar_unidade.php?id=' . (int) $unidade['id_unidade'] . '"
                     class="botao botao--secundario botao--pequeno"
                   >
                     Editar
                   </a>';
 
-            if (!unidadeCentral($unidade)) echo '<form
+            if (($_SESSION['tipo'] ?? '') === 'Administrador' && !unidadeCentral($unidade)) echo '<form
                     method="POST"
                     class="formulario-excluir"
                   >
@@ -96,7 +96,7 @@ function listarUnidades($conn, string $status = 'ativos'): void
 
                   </form>';
 
-        } else {
+        } elseif (($_SESSION['tipo'] ?? '') === 'Administrador') {
 
             echo '<form
                     method="POST"
@@ -184,12 +184,15 @@ function salvarUnidade(mysqli $conn, ?int $id, array $dados): array
         $stmt->execute();
         $usuario = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        if (!$usuario || $usuario['tipo'] !== 'Administrador' || (int) $usuario['ativo'] !== 1
+        if (!$usuario || !in_array($usuario['tipo'], ['Administrador', 'Suporte'], true) || (int) $usuario['ativo'] !== 1
             || (int) $usuario['versao_sessao'] !== (int) ($_SESSION['versao_sessao'] ?? -1)) {
             throw new DomainException('Seu acesso não permite administrar unidades de saúde.');
         }
         $antiga = $id === null ? null : buscarUnidadePorId($conn, $id, true);
         if ($id !== null && !$antiga) throw new DomainException('Unidade de saúde não encontrada.');
+        if ($usuario['tipo'] === 'Suporte' && (isset($dados['ativo']) || ($antiga && unidadeCentral($antiga)))) {
+            throw new DomainException('Acesso negado: status e Secretaria são exclusivos do administrador.');
+        }
         if (isset($dados['ativo'])) {
             $ativo = $dados['ativo'];
             if (!in_array($ativo, [0, 1], true)) throw new DomainException('Status inválido.');

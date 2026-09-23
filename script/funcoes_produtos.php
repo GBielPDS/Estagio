@@ -185,22 +185,30 @@ function buscarProdutoPorId(mysqli $conn, int $id): ?array
 
 function atualizarProduto(
     mysqli $conn, int $id, string $nome, int $categoriaId, string $unidade,
-    int|string $estoque, int|string $estoqueMinimo, string $justificativa = '', ?int $estoqueOriginal = null
+    int|string|null $estoque, int|string $estoqueMinimo, string $justificativa = '', ?int $estoqueOriginal = null
 ): array {
     try {
-        if (($_SESSION['tipo'] ?? '') !== 'Administrador') throw new DomainException('Acesso negado.');
+        $conn->begin_transaction();
+        $autor = (int) ($_SESSION['id_usuario'] ?? 0);
+        $stmt = $conn->prepare('SELECT tipo, ativo, versao_sessao FROM usuario WHERE id_usuario=? FOR UPDATE');
+        $stmt->bind_param('i', $autor); $stmt->execute();
+        $usuario = $stmt->get_result()->fetch_assoc(); $stmt->close();
+        if (!$usuario || !in_array($usuario['tipo'], ['Administrador', 'Suporte'], true) || (int) $usuario['ativo'] !== 1
+            || (int) $usuario['versao_sessao'] !== (int) ($_SESSION['versao_sessao'] ?? -1)) throw new DomainException('Acesso negado.');
+        $suporte = $usuario['tipo'] === 'Suporte';
+        if ($suporte && ($estoque !== null || $estoqueOriginal !== null || $justificativa !== '')) throw new DomainException('Suporte não pode ajustar o saldo.');
         $nome = trim($nome); $unidade = trim($unidade); $justificativa = trim($justificativa);
         if ($nome === '' || $unidade === '' || preg_match_all('/./us', $nome) > 100 || preg_match_all('/./us', $unidade) > 20)
             throw new DomainException('Informe nome e unidade dentro dos limites permitidos.');
-        if (filter_var($estoque, FILTER_VALIDATE_INT) === false || filter_var($estoqueMinimo, FILTER_VALIDATE_INT) === false || (int) $estoque < 0 || (int) $estoqueMinimo < 0)
+        if ((!$suporte && (filter_var($estoque, FILTER_VALIDATE_INT) === false || (int) $estoque < 0)) || filter_var($estoqueMinimo, FILTER_VALIDATE_INT) === false || (int) $estoqueMinimo < 0)
             throw new DomainException('Estoque e mínimo devem ser inteiros não negativos.');
         $estoque = (int) $estoque; $estoqueMinimo = (int) $estoqueMinimo;
-        $conn->begin_transaction();
         $stmt = $conn->prepare('SELECT estoque FROM produto WHERE id_produto=? FOR UPDATE');
         $stmt->bind_param('i', $id); $stmt->execute();
         $anterior = $stmt->get_result()->fetch_assoc(); $stmt->close();
         if (!$anterior) throw new DomainException('Produto não encontrado.');
-        if ($estoqueOriginal === null || (int) $anterior['estoque'] !== $estoqueOriginal)
+        if ($suporte) $estoque = (int) $anterior['estoque'];
+        if (!$suporte && ($estoqueOriginal === null || (int) $anterior['estoque'] !== $estoqueOriginal))
             throw new DomainException('O estoque mudou desde a abertura da tela. Atualize a página antes de salvar.');
         $diferenca = $estoque - (int) $anterior['estoque'];
         if ($diferenca !== 0 && $justificativa === '') throw new DomainException('Informe a justificativa para o ajuste de estoque.');
@@ -208,8 +216,14 @@ function atualizarProduto(
         $stmt->bind_param('i', $categoriaId); $stmt->execute();
         if (!$stmt->get_result()->fetch_assoc()) throw new DomainException('Categoria inválida.');
         $stmt->close();
-        $stmt = $conn->prepare('UPDATE produto SET nome=?,unidade=?,estoque=?,estoque_minimo=?,categoria_id=? WHERE id_produto=?');
-        $stmt->bind_param('ssiiii', $nome, $unidade, $estoque, $estoqueMinimo, $categoriaId, $id); $stmt->execute(); $stmt->close();
+        if ($suporte) {
+            $stmt = $conn->prepare('UPDATE produto SET nome=?,unidade=?,estoque_minimo=?,categoria_id=? WHERE id_produto=?');
+            $stmt->bind_param('ssiii', $nome, $unidade, $estoqueMinimo, $categoriaId, $id);
+        } else {
+            $stmt = $conn->prepare('UPDATE produto SET nome=?,unidade=?,estoque=?,estoque_minimo=?,categoria_id=? WHERE id_produto=?');
+            $stmt->bind_param('ssiiii', $nome, $unidade, $estoque, $estoqueMinimo, $categoriaId, $id);
+        }
+        $stmt->execute(); $stmt->close();
         $autor = (int) $_SESSION['id_usuario'];
         if ($diferenca !== 0) {
             $tipo = $diferenca > 0 ? 'Entrada' : 'Saida';
@@ -235,6 +249,7 @@ function atualizarProduto(
 
 function excluirProduto(mysqli $conn, int $id): array
 {
+    if (($_SESSION['tipo'] ?? '') !== 'Administrador') return ['sucesso' => false, 'mensagem' => 'Acesso negado.'];
     $sql = 'SELECT id_produto FROM produto WHERE id_produto = ?';
     $stmt = $conn->prepare($sql);
 

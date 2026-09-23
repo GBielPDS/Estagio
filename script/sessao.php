@@ -56,3 +56,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!is_string($token) || !isset($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $token))
         respostaAcesso(403, 'Formulário expirado ou inválido. Atualize a página e tente novamente.');
 }
+
+// Regras compartilhadas pela apresentação e pelas operações de gravação.
+function podeGerenciarCadastros(?string $tipo = null): bool
+{
+    return in_array($tipo ?? ($_SESSION['tipo'] ?? ''), ['Administrador', 'Suporte'], true);
+}
+
+function podeEditarConta(array $conta, ?string $tipo = null): bool
+{
+    $tipo ??= $_SESSION['tipo'] ?? '';
+    return $tipo === 'Administrador' || ($tipo === 'Suporte' && $conta['tipo'] === 'Usuario'
+        && (int) $conta['ativo'] === 1 && (int) $conta['id_usuario'] !== (int) ($_SESSION['id_usuario'] ?? 0));
+}
+
+function podeEditarUnidade(array $unidade, ?string $tipo = null): bool
+{
+    $tipo ??= $_SESSION['tipo'] ?? '';
+    return $tipo === 'Administrador' || ($tipo === 'Suporte' && (int) ($unidade['central'] ?? 0) === 0);
+}

@@ -9,7 +9,7 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 $mensagemCadastro = $_SESSION['mensagem_cadastro'] ?? null;
 unset($_SESSION['mensagem_cadastro']);
@@ -17,6 +17,7 @@ unset($_SESSION['mensagem_cadastro']);
 $filtroStatus = ($_GET['status'] ?? 'ativos') === 'inativos' ? 'inativos' : 'ativos';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarTipo(['Administrador']);
     $resultado = ['sucesso' => false, 'mensagem' => 'Operação inválida.'];
     if (isset($_POST['excluir_id'])) $resultado = excluirUsuario($conn, (int) $_POST['excluir_id']);
     elseif (isset($_POST['reativar_id'])) $resultado = reativarUsuario($conn, (int) $_POST['reativar_id']);
@@ -48,9 +49,11 @@ $totalInativos = contarUsuarios($conn, 'inativos');
                 <h1 class="cabecalho-pagina__titulo">Usuários</h1>
                 <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
             </div>
+            <?php if ($_SESSION['tipo'] === 'Administrador'): ?>
             <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php" class="botao botao--primario">
                 Cadastrar usuário
             </a>
+            <?php endif; ?>
         </div>
 
         <?php if ($mensagemCadastro !== null): ?>

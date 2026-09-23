@@ -8,7 +8,7 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 $dataInicio = (string) ($_GET['data_inicio'] ?? '');
 $dataFim = (string) ($_GET['data_fim'] ?? '');

@@ -9,12 +9,13 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 $mensagem = '';
 $tipoMensagem = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SESSION['tipo'] === 'Suporte' && array_diff(array_keys($_POST), ['csrf', 'nome', 'endereco', 'telefone'])) respostaAcesso(403, 'Campos não permitidos.');
 
     $nome = trim((string) ($_POST['nome'] ?? ''));
     $endereco = trim((string) ($_POST['endereco'] ?? ''));

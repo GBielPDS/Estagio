@@ -9,7 +9,7 @@ require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
 $mensagemCadastro = $_SESSION['mensagem_cadastro'] ?? null;
 unset($_SESSION['mensagem_cadastro']);
@@ -20,6 +20,7 @@ $filtroStatus = ($_GET['status'] ?? 'ativos') === 'inativos'
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarTipo(['Administrador']);
 
     $resultado = [
         'sucesso' => false,

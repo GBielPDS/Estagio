@@ -9,8 +9,9 @@ require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
 verificarSessao();
-verificarTipo(['Administrador']);
+verificarTipo(['Administrador', 'Suporte']);
 
+$administrador = $_SESSION['tipo'] === 'Administrador';
 $mensagem = '';
 $tipoMensagem = '';
 
@@ -27,6 +28,7 @@ if (!$produto) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!$administrador && array_diff(array_keys($_POST), ['csrf', 'nome', 'categoria_id', 'unidade', 'estoque_minimo'])) respostaAcesso(403, 'Suporte só pode editar os dados cadastrais e o estoque mínimo.');
     if (isset($_POST['excluir_produto'])) {
         $resultadoExclusao = excluirProduto($conn, $idProduto);
 
@@ -51,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim((string) ($_POST['nome'] ?? ''));
     $categoriaId = (int) ($_POST['categoria_id'] ?? 0);
     $unidade = trim((string) ($_POST['unidade'] ?? ''));
-    $estoque = trim((string) ($_POST['estoque'] ?? '0'));
+    $estoque = $administrador ? trim((string) ($_POST['estoque'] ?? '0')) : null;
     $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? '0'));
 
     $justificativa = trim((string) ($_POST['justificativa'] ?? ''));
@@ -159,7 +161,7 @@ $unidades = buscarUnidades($conn);
 
         <section class="cartao">
             <form method="POST" class="formulario">
-                <input type="hidden" name="estoque_original" value="<?= (int) $produto['estoque'] ?>">
+                <?php if ($administrador): ?><input type="hidden" name="estoque_original" value="<?= (int) $produto['estoque'] ?>"><?php endif; ?>
                 <?= campoCsrf() ?>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome do produto</label>
@@ -192,7 +194,7 @@ $unidades = buscarUnidades($conn);
 
                 <div class="campo">
                     <label class="campo__rotulo" for="estoque">Estoque atual</label>
-                    <input class="campo__controle" type="number" id="estoque" name="estoque" min="0" step="1" value="<?= (int) $produto['estoque'] ?>" required>
+                    <input class="campo__controle" type="number" id="estoque" <?= $administrador ? 'name="estoque"' : 'disabled' ?> min="0" step="1" value="<?= (int) $produto['estoque'] ?>" required>
                 </div>
 
                 <div class="campo">
@@ -200,23 +202,27 @@ $unidades = buscarUnidades($conn);
                     <input class="campo__controle" type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1" value="<?= (int) $produto['estoque_minimo'] ?>" required>
                 </div>
 
+                <?php if ($administrador): ?>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="justificativa">Justificativa do ajuste de estoque</label>
                     <textarea class="campo__controle" id="justificativa" name="justificativa" placeholder="Obrigatória quando alterar o saldo."></textarea>
                 </div>
+                <?php endif; ?>
                 <div class="campo campo--largo" style="display:flex; gap:12px; margin-top:12px;">
                     <button class="botao botao--primario" type="submit">Salvar alterações</button>
                     <a class="botao botao--secundario" href="produtos.php">Cancelar</a>
                 </div>
             </form>
 
-            <form method="POST" class="formulario formulario--exclusao"
+            <?php if ($administrador): ?>
+<form method="POST" class="formulario formulario--exclusao"
                 onsubmit="return confirm('Deseja realmente excluir este produto?');">
                 <?= campoCsrf() ?>
                 <button class="botao botao--perigo" type="submit" name="excluir_produto" value="1">
                     Excluir produto
                 </button>
             </form>
+                <?php endif; ?>
         </section>
     </main>
 

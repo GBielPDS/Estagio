@@ -110,8 +110,8 @@ function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
         echo "<td>••••••••</td>";
         echo "<td>" . $tipoUser . "</td>";
 
-        echo "<td>
-        <div class='tabela-acoes'>
+        echo "<td><div class='tabela-acoes'>";
+        if (podeEditarConta($usuario)) echo "
             <button type='button'
                 class='botao botao--secundario botao--pequeno'
                 onclick=\"window.location.href='editar_usuario.php?id={$idUser}'\">
@@ -119,14 +119,14 @@ function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
             </button>";
 
         $csrf = campoCsrf();
-        if ($estaAtivo) {
+        if (($_SESSION['tipo'] ?? '') === 'Administrador' && $estaAtivo) {
             echo "<form method='POST'>{$csrf}
                 <input type='hidden' name='excluir_id' value='{$idUser}'>
                 <button type='submit' class='botao botao--perigo botao--pequeno' onclick=\"return confirm('Deseja realmente desativar este usuário?')\">
                     Desativar
                 </button>
             </form>";
-        } else {
+        } elseif (($_SESSION['tipo'] ?? '') === 'Administrador') {
             echo "<form method='POST'>{$csrf}
                 <input type='hidden' name='reativar_id' value='{$idUser}'>
                 <button type='submit' class='botao botao--sucesso botao--pequeno' onclick=\"return confirm('Deseja realmente reativar este usuário?')\">
@@ -168,10 +168,16 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
     try {
         $conn->begin_transaction();
         $usuarios = bloquearUsuarios($conn);
-        $autor = autorUsuario($usuarios, !$perfil);
+        $autor = autorUsuario($usuarios, false);
         if ($perfil && $id !== (int) $autor['id_usuario']) throw new DomainException('Acesso negado.');
         $antigo = $usuarios[$id] ?? null;
         if (!$antigo) throw new DomainException('Usuário não encontrado.');
+        if (!$perfil && $autor['tipo'] !== 'Administrador') {
+            if ($autor['tipo'] !== 'Suporte' || $antigo['tipo'] !== 'Usuario' || (int) $antigo['ativo'] !== 1
+                || $id === (int) $autor['id_usuario'] || array_diff(array_keys($dados), ['nome', 'email', 'senha'])) {
+                throw new DomainException('Acesso negado: suporte só pode editar nome, e-mail e senha de usuários comuns ativos.');
+            }
+        }
         $nome = trim($dados['nome'] ?? $antigo['nome']);
         $email = trim($dados['email'] ?? $antigo['email']);
         $tipo = $perfil ? $antigo['tipo'] : ($dados['tipo'] ?? $antigo['tipo']);
@@ -190,7 +196,7 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         $eventos = [];
         if ($ativo !== (int) $antigo['ativo']) $eventos[] = $ativo === 1 ? 'Reativação de usuário' : 'Desativação de usuário';
         if ($tipo !== $antigo['tipo']) $eventos[] = 'Alteração de perfil: ' . $antigo['tipo'] . ' para ' . $tipo;
-        if ($senha !== '') $eventos[] = $perfil ? 'Troca da própria senha' : 'Redefinição de senha pelo administrador';
+        if ($senha !== '') $eventos[] = $perfil ? 'Troca da própria senha' : ($autor['tipo'] === 'Suporte' ? 'Redefinição de senha pelo suporte' : 'Redefinição de senha pelo administrador');
         if ($nome !== $antigo['nome'] || $email !== $antigo['email']) $eventos[] = 'Atualização cadastral';
         foreach ($eventos as $evento) {
             if (!registrarLog($conn, $evento, "Conta afetada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
@@ -218,3 +224,8 @@ function atualizarPerfilUsuario(mysqli $conn, int $id, string $nome, string $ema
 function excluirUsuario(mysqli $conn, int $id): array { return alterarConta($conn, $id, ['ativo' => 0]); }
 function desativarUsuario(mysqli $conn, int $id): array { return excluirUsuario($conn, $id); }
 function reativarUsuario(mysqli $conn, int $id): array { return alterarConta($conn, $id, ['ativo' => 1]); }
+
+function atualizarCadastroUsuario(mysqli $conn, int $id, string $nome, string $email, string $senha = ''): array
+{
+    return alterarConta($conn, $id, compact('nome', 'email', 'senha'));
+}

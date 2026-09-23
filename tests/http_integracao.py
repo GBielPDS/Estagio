@@ -149,7 +149,7 @@ try:
                 assert 'até 255' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, endereco='a'*256))[1]
                 assert 'até 20' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, telefone='1'*21))[1]
                 assert 'obrigatório' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, nome=' '))[1]
-                for role in ['Usuario', 'Suporte']:
+                for role in ['Usuario']:
                     sql(f"UPDATE usuario SET tipo='{role}' WHERE id_usuario=3", DB)
                     assert 'pages/unidades.php' not in user.request('index.php')[1]
                     for path in ['unidades.php', 'cadastrar_unidade.php', f'editar_unidade.php?id={uid}']:
@@ -198,6 +198,86 @@ try:
                 assert sql(f'SELECT endereco FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == 'Rua Nova'
                 assert sql(f'SELECT ativo FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == '0'
                 sql('DROP TRIGGER falha_unidade_log;', DB)
+                # Suporte: permissões intermediárias sem mudança de acesso ou saldo.
+                sql("INSERT INTO usuario(nome,email,senha,tipo) SELECT 'Apoio','apoio@teste.local',senha,'Suporte' FROM usuario WHERE id_usuario=1", DB)
+                support = Browser()
+                assert support.login('apoio@teste.local')[2].endswith('index.php')
+                sid = int(sql("SELECT id_usuario FROM usuario WHERE email='apoio@teste.local'", DB).strip())
+                st = support.token('pages/perfil.php')
+                for path in ['usuarios.php', 'logs.php', 'unidades.php', 'cadastrar_unidade.php', f'editar_produto.php?id={pid}']:
+                    assert support.request('pages/'+path)[0] == 200, path
+                listing = support.request('pages/usuarios.php')[1]
+                assert 'pages/cadastrar_usuario.php' not in listing and 'name="excluir_id"' not in listing
+                for target in [1, 2, sid]:
+                    assert support.request(f'pages/editar_usuario.php?id={target}')[0] == 403
+                data = {'csrf':st, 'nome':'Operador Corrigido', 'email':'operador@teste.local'}
+                edit_path = 'pages/editar_usuario.php?id=3'
+                html = support.request(edit_path)[1]
+                for field in ['tipo','ativo']:
+                    assert f'name="{field}"' not in html
+                    assert support.request(edit_path, dict(data, **{field:'1'}))[0] == 403
+                assert support.request(edit_path, data)[2].endswith('usuarios.php')
+                assert sql('SELECT nome FROM usuario WHERE id_usuario=3', DB).strip() == 'Operador Corrigido'
+                assert 'name="senha"' in html
+                version = sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3', DB).strip()
+                assert '8 e 72' in support.request(edit_path, dict(data, senha='1234'))[1]
+                assert sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3', DB).strip() == version
+                for target in [1, 2, sid]:
+                    assert support.request(f'pages/editar_usuario.php?id={target}', dict(data, senha='ResetTeste123!'))[0] == 403
+                assert support.request(edit_path, dict(data, senha='ResetTeste123!'))[2].endswith('usuarios.php')
+                assert user.request('index.php')[2].endswith('login.php')
+                assert other.request('index.php')[2].endswith('login.php')
+                assert support.request('pages/usuarios.php')[0] == 200
+                assert 'incorretos' in user.login('operador@teste.local')[1]
+                assert user.login('operador@teste.local', 'ResetTeste123!')[2].endswith('index.php')
+                assert sql("SELECT COUNT(*) FROM log WHERE acao='Redefinição de senha pelo suporte' AND usuario_id="+str(sid), DB).strip() == '1'
+                assert sql("SELECT COUNT(*) FROM log WHERE descricao LIKE '%ResetTeste123!%'", DB).strip() == '0'
+                # Restaurar a credencial da fixture pelo fluxo real para os cenários seguintes.
+                support.request(edit_path, dict(data, senha='Inicial123!'))
+                user.login('operador@teste.local')
+                other.login('operador@teste.local')
+
+                for action in ['excluir_id','reativar_id']:
+                    assert support.request('pages/usuarios.php', {'csrf':st,action:3})[0] == 403
+                assert support.request('pages/cadastrar_usuario.php', dict(data, senha='Inicial123!',tipo='Usuario'))[0] == 403
+                for change, restore in [("ativo=0","ativo=1"),("tipo='Suporte'","tipo='Usuario'"),("tipo='Administrador'","tipo='Usuario'")]:
+                    sql(f'UPDATE usuario SET {change} WHERE id_usuario=3', DB)
+                    assert support.request(edit_path, dict(data, senha='Proibida123!'))[0] == 403
+                    sql(f'UPDATE usuario SET {restore} WHERE id_usuario=3', DB)
+                unit_payload = {'csrf':st,'nome':'UBS Suporte','endereco':'Rua','telefone':'123'}
+                assert support.request('pages/cadastrar_unidade.php', unit_payload)[2].endswith('unidades.php')
+                suid = int(sql("SELECT id_unidade FROM unidade_saude WHERE nome='UBS Suporte'", DB).strip())
+                assert support.request(f'pages/editar_unidade.php?id={suid}', dict(unit_payload,endereco='Outra Rua'))[2].endswith('unidades.php')
+                assert support.request(f'pages/editar_unidade.php?id={central}')[0] == 403
+                assert support.request('pages/unidades.php', {'csrf':st,'desativar_id':suid})[0] == 403
+                assert support.request(f'pages/editar_unidade.php?id={suid}', dict(unit_payload,ativo='0'))[0] == 403
+                category = int(sql('SELECT MIN(id_categoria) FROM categoria', DB).strip())
+                product_data = {'csrf':st,'nome':'Produto Corrigido','categoria_id':category,'unidade':'Unidade','estoque_minimo':2}
+                product_path = f'pages/editar_produto.php?id={pid}'
+                html = support.request(product_path)[1]
+                for field in ['estoque','estoque_original','justificativa','excluir_produto']:
+                    assert f'name="{field}"' not in html
+                    assert support.request(product_path,dict(product_data,**{field:'1'}))[0] == 403
+                # Saldo atualizado por outra operação depois da abertura da edição.
+                sql(f'UPDATE produto SET estoque=3 WHERE id_produto={pid}', DB)
+                assert support.request(product_path,product_data)[2].endswith('produtos.php')
+                assert sql(f'SELECT estoque FROM produto WHERE id_produto={pid}', DB).strip() == '3'
+                assert sql(f'SELECT estoque_minimo FROM produto WHERE id_produto={pid}', DB).strip() == '2'
+                assert support.request(product_path,dict(product_data,csrf='invalido'))[0] == 403
+                sql("CREATE TRIGGER falha_suporte_log BEFORE INSERT ON log FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada';", DB)
+                assert 'Nenhuma alteração' in support.request(edit_path,dict(data,nome='Nao salvar',senha='NaoSalvar123!'))[1]
+                assert 'Nenhuma alteração' in support.request(product_path,dict(product_data,nome='Nao salvar'))[1]
+                assert 'Nenhuma alteração' in support.request(f'pages/editar_unidade.php?id={suid}',dict(unit_payload,endereco='Nao salvar'))[1]
+                assert sql('SELECT nome FROM usuario WHERE id_usuario=3', DB).strip() == 'Operador Corrigido'
+                assert sql(f'SELECT nome FROM produto WHERE id_produto={pid}', DB).strip() == 'Produto Corrigido'
+                assert sql(f'SELECT endereco FROM unidade_saude WHERE id_unidade={suid}', DB).strip() == 'Outra Rua'
+                sql('DROP TRIGGER falha_suporte_log;', DB)
+                assert user.login('operador@teste.local')[2].endswith('index.php')
+                assert support.request('pages/perfil.php', {'csrf':st,'nome':'Apoio','email':'apoio@teste.local','senha':'OutraSenha123!','confirmar_senha':'OutraSenha123!'})[0] == 200
+                assert support.request('pages/usuarios.php')[0] == 200
+                sql(f"UPDATE usuario SET tipo='Usuario' WHERE id_usuario={sid}", DB)
+                assert support.request('pages/usuarios.php')[0] == 403
+                print('Suporte: hierarquia, campos proibidos, UBS, produtos, saldo preservado e auditoria aprovados.')
                 print('UBS: formulários, permissões, validação, Secretaria, histórico e rollback aprovados.')
                 assert user.request('pages/cadastrar_usuario.php')[0] == 403
                 assert admin.request('pages/usuarios.php', {'excluir_id':3})[0] == 403
