@@ -1,4 +1,15 @@
 # Documentação Técnica do Código — GestSaúde
+
+> Atualização: a instalação vigente usa `bd/administrar.php` pelo terminal. O antigo setup web foi removido. Consulte [Atualização de segurança](ATUALIZACAO_SEGURANCA.md) para o procedimento atual; essa nota prevalece sobre descrições anteriores de instalação e contas.
+
+### Instalação e atualização atuais
+
+- Banco novo: importar `bd/criar-bd.sql` e executar `php bd/administrar.php inicializar`. O responsável informa nome, e-mail válido e senha (ainda visível no terminal). Quando não há produtos, escolhe se deseja importar o catálogo com saldo zero.
+- Banco existente: preservar dados e executar `php bd/administrar.php migrar` quando necessário. A primeira inicialização é bloqueada se houver qualquer usuário, inclusive inativo.
+- A instalação completa dependências por nome e grava administrador, catálogo opcional e auditoria na mesma transação. Produtos existentes são preservados e impedem a importação automática do catálogo.
+- Login: usa CSRF e versão de sessão; informa desativação somente após senha correta. Não aceita a exceção de e-mail `admin`.
+- Testes locais: `php tests/usuarios_integracao.php` e `python tests/http_integracao.py`; usam bancos temporários e não devem ser direcionados à produção.
+
 ## Controle de Estoque e Almoxarifado
 
 ---

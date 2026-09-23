@@ -49,14 +49,47 @@ try:
     sql(schema.replace('CREATE DATABASE almoxarifado;', '').replace('USE almoxarifado;', ''), DB)
     env = dict(os.environ, GESTSAUDE_DB=DB)
     def administer(command, data=''):
-        return subprocess.check_output([PHP, str(ROOT/'bd/administrar.php'), command], env=env, input=data.encode()).decode()
+        result = subprocess.run([PHP, str(ROOT/'bd/administrar.php'), command], env=env, input=data.encode(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=25)
+        return result.stdout.decode()
+    sql('ALTER TABLE usuario DROP COLUMN versao_sessao;', DB)
     assert 'Banco atualizado' in administer('migrar')
     assert 'Banco atualizado' in administer('migrar')
-    assert 'Instalação inicializada' in administer('inicializar', 'Primeiro Admin\nprimeiro@teste.local\nInicial123!\n')
+    assert 'Instalação inicializada' in administer('inicializar', 'Primeiro Admin\nprimeiro@teste.local\nInicial123!\nn\n')
     assert 'bloqueada' in administer('inicializar')
     assert sql("SELECT COUNT(*) FROM usuario WHERE tipo='Administrador' AND ativo=1", DB).strip() == '1'
     assert sql('SELECT COUNT(*) FROM categoria', DB).strip() == '6'
     assert sql('SELECT COUNT(*) FROM unidade_saude', DB).strip() == '1'
+    sql('DELETE FROM log; DELETE FROM usuario; ALTER TABLE usuario AUTO_INCREMENT=1;', DB)
+    # Dependências parciais e catálogo: responder inválido não equivale a aceitar.
+    sql("DELETE FROM categoria WHERE nome <> 'Limpeza';", DB)
+    assert 'Instalação inicializada' in administer('inicializar', 'Admin\nnovo@teste.local\nInicial123!\nx\ns\n')
+    total_catalogo = int(sql('SELECT COUNT(*) FROM produto', DB).strip())
+    assert total_catalogo > 100
+    assert sql('SELECT COUNT(*) FROM produto WHERE estoque <> 0', DB).strip() == '0'
+    assert sql('SELECT COUNT(*) FROM categoria', DB).strip() == '6'
+    sql('UPDATE usuario SET ativo=0;', DB)
+    assert 'bloqueada' in administer('inicializar')
+    sql('DELETE FROM log; DELETE FROM usuario; ALTER TABLE usuario AUTO_INCREMENT=1;', DB)
+    assert 'Instalação inicializada' in administer('inicializar', 'Admin\nnovo@teste.local\nInicial123!\n')
+    assert int(sql('SELECT COUNT(*) FROM produto', DB).strip()) == total_catalogo
+    sql('DELETE FROM log; DELETE FROM usuario; DELETE FROM produto; ALTER TABLE usuario AUTO_INCREMENT=1;', DB)
+    assert 'e-mail válido' in administer('inicializar', 'Admin\nadmin\nInicial123!\n')
+    assert sql('SELECT COUNT(*) FROM usuario', DB).strip() == '0'
+    # Falha na importação deve desfazer também o administrador e dependências novas.
+    sql("DELETE FROM categoria; DELETE FROM unidade_saude; CREATE TRIGGER falha_catalogo BEFORE INSERT ON produto FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada';", DB)
+    assert 'desfeitas' in administer('inicializar', 'Admin\nnovo@teste.local\nInicial123!\ns\n')
+    assert sql('SELECT COUNT(*) FROM usuario', DB).strip() == '0'
+    assert sql('SELECT COUNT(*) FROM categoria', DB).strip() == '0'
+    sql('DROP TRIGGER falha_catalogo;', DB)
+    sql("CREATE TRIGGER falha_auditoria BEFORE INSERT ON log FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada';", DB)
+    assert 'desfeitas' in administer('inicializar', 'Admin\nnovo@teste.local\nInicial123!\ns\n')
+    assert sql('SELECT COUNT(*) FROM usuario', DB).strip() == '0'
+    assert sql('SELECT COUNT(*) FROM produto', DB).strip() == '0'
+    sql('DROP TRIGGER falha_auditoria;', DB)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: administer('inicializar', 'Admin\nnovo@teste.local\nInicial123!\nn\n'), range(2)))
+    assert sum('Instalação inicializada' in result for result in results) == 1, results
+    assert sql('SELECT COUNT(*) FROM usuario', DB).strip() == '1'
     sql('DELETE FROM log; DELETE FROM usuario; ALTER TABLE usuario AUTO_INCREMENT=1;', DB)
     password_hash = subprocess.check_output([PHP, '-r', 'echo password_hash("Inicial123!", PASSWORD_DEFAULT);']).decode()
     sql("INSERT INTO usuario(nome,email,senha,tipo) VALUES " + ','.join(
@@ -83,6 +116,15 @@ try:
                     except OSError:
                         time.sleep(.1)
                 admin, second, user, other = Browser(), Browser(), Browser(), Browser()
+                assert admin.request('bd/administrar.php')[0] == 404
+                assert admin.request('setup.php')[0] == 404
+                login_html = admin.request('pages/login.php')[1]
+                assert login_html.count('id="formLogin"') == 1
+                assert admin.request('pages/login.php', {'email':'admin@teste.local','senha':'Inicial123!'})[0] == 403
+                sql("UPDATE usuario SET ativo=0 WHERE id_usuario=3", DB)
+                assert 'desativado' not in user.login('operador@teste.local', 'errada')[1]
+                assert 'desativado' in user.login('operador@teste.local')[1]
+                sql("UPDATE usuario SET ativo=1 WHERE id_usuario=3", DB)
                 assert admin.login('admin@teste.local')[2].endswith('index.php')
                 for page in ['usuarios', 'cadastrar_usuario', 'cadastrar_produto', 'produtos', 'perfil', 'estoque', 'alertas', 'historico', 'graficos', 'logs', 'lancamentos']:
                     status, html, _ = admin.request('pages/' + page + '.php')
