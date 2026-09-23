@@ -32,15 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $resultado = desativarUnidade($conn, $id);
 
-        if ($resultado['sucesso']) {
-
-            registrarLog(
-                $conn,
-                'Desativação de unidade',
-                'Unidade de saúde (ID ' . $id . ') desativada.',
-                (int) $_SESSION['id_usuario']
-            );
-        }
 
     } elseif (isset($_POST['reativar_id'])) {
 
@@ -48,15 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $resultado = reativarUnidade($conn, $id);
 
-        if ($resultado['sucesso']) {
-
-            registrarLog(
-                $conn,
-                'Reativação de unidade',
-                'Unidade de saúde (ID ' . $id . ') reativada.',
-                (int) $_SESSION['id_usuario']
-            );
-        }
     }
 
     $_SESSION['mensagem_cadastro'] = [

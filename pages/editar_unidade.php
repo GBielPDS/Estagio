@@ -11,141 +11,25 @@ require_once '../script/sidebar.php';
 verificarSessao();
 verificarTipo(['Administrador']);
 
-if (!isset($_GET['id'])) {
-    die('Unidade de saúde não informada.');
-}
+$id = filter_var($_GET['id'] ?? '', FILTER_VALIDATE_INT);
+if (!$id || $id < 1) respostaAcesso(400, 'Unidade de saúde inválida.');
+$unidade = buscarUnidadePorId($conn, $id);
+if (!$unidade) respostaAcesso(404, 'Unidade de saúde não encontrada.');
 
-$id = (int) $_GET['id'];
-
-if ($id <= 0) {
-    die('Unidade de saúde inválida.');
-}
-
-/*
- * Busca a unidade antes de processar o formulário.
- */
-$sql = "SELECT id_unidade, nome, endereco, telefone, ativo
-        FROM unidade_saude
-        WHERE id_unidade = ?";
-
-$stmt = $conn->prepare($sql);
-
-if (!$stmt) {
-    die('Erro ao consultar unidade de saúde.');
-}
-
-$stmt->bind_param('i', $id);
-$stmt->execute();
-
-$resultado = $stmt->get_result();
-$unidade = $resultado->fetch_assoc();
-
-$stmt->close();
-
-if (!$unidade) {
-    die('Unidade de saúde não encontrada.');
-}
-
-
-/*
- * Atualização da unidade.
- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     $nome = trim((string) ($_POST['nome'] ?? ''));
     $endereco = trim((string) ($_POST['endereco'] ?? ''));
     $telefone = trim((string) ($_POST['telefone'] ?? ''));
-
-    if ($nome === '') {
-        $mensagem = 'O nome da unidade é obrigatório.';
-        $tipoMensagem = 'erro';
-
-    } else {
-
-        /*
-         * Verifica se já existe outra unidade
-         * com o mesmo nome.
-         */
-        $sql = "SELECT id_unidade
-                FROM unidade_saude
-                WHERE nome = ?
-                AND id_unidade <> ?";
-
-        $stmt = $conn->prepare($sql);
-
-        if (!$stmt) {
-            $mensagem = 'Não foi possível verificar o nome da unidade.';
-            $tipoMensagem = 'erro';
-
-        } else {
-
-            $stmt->bind_param('si', $nome, $id);
-            $stmt->execute();
-
-            $resultado = $stmt->get_result();
-
-            if ($resultado->num_rows > 0) {
-
-                $mensagem = 'Já existe outra unidade de saúde com esse nome.';
-                $tipoMensagem = 'erro';
-
-                $stmt->close();
-
-            } else {
-
-                $stmt->close();
-
-                $sql = "UPDATE unidade_saude
-                        SET nome = ?, endereco = ?, telefone = ?
-                        WHERE id_unidade = ?";
-
-                $stmt = $conn->prepare($sql);
-
-                if (!$stmt) {
-
-                    $mensagem = 'Não foi possível preparar a atualização.';
-                    $tipoMensagem = 'erro';
-
-                } else {
-
-                    $stmt->bind_param(
-                        'sssi',
-                        $nome,
-                        $endereco,
-                        $telefone,
-                        $id
-                    );
-
-                    if ($stmt->execute()) {
-
-                        registrarLog(
-                            $conn,
-                            'Atualização de unidade',
-                            'Unidade de saúde "' . $nome . '" (ID ' . $id . ') atualizada.',
-                            (int) $_SESSION['id_usuario']
-                        );
-
-                        $stmt->close();
-
-                        $_SESSION['mensagem_cadastro'] = [
-                            'texto' => 'Unidade de saúde atualizada com sucesso.',
-                            'tipo' => 'sucesso'
-                        ];
-
-                        header('Location: unidades.php');
-                        exit;
-
-                    } else {
-
-                        $mensagem = 'Não foi possível atualizar a unidade.';
-                        $tipoMensagem = 'erro';
-
-                        $stmt->close();
-                    }
-                }
-            }
-        }
+    $resultado = atualizarUnidade($conn, $id, $nome, $endereco, $telefone);
+    if ($resultado['sucesso']) {
+        $_SESSION['mensagem_cadastro'] = ['texto' => $resultado['mensagem'], 'tipo' => 'sucesso'];
+        header('Location: unidades.php');
+        exit;
     }
+    $mensagem = $resultado['mensagem'];
+    $tipoMensagem = 'erro';
+    if (unidadeCentral($unidade)) $nome = $unidade['nome'];
+    $unidade = array_merge($unidade, compact('nome', 'endereco', 'telefone'));
 }
 
 ?>
@@ -190,6 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <section class="cartao">
 
+            <?php if (unidadeCentral($unidade)): ?>
+                <p>A Secretaria de Saúde é a unidade central. Seu nome e sua desativação são protegidos; endereço e telefone podem ser atualizados.</p>
+            <?php endif; ?>
             <form method="POST" class="formulario">
 
                 <?= campoCsrf() ?>
@@ -205,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         type="text"
                         id="nome"
                         name="nome"
+                        <?= unidadeCentral($unidade) ? 'readonly' : '' ?>
                         value="<?= htmlspecialchars((string) $unidade['nome'], ENT_QUOTES, 'UTF-8') ?>"
                         maxlength="100"
                         required

@@ -137,6 +137,68 @@ try:
                 assert second.login('segundo@teste.local')[2].endswith('index.php')
                 assert user.login('operador@teste.local')[2].endswith('index.php')
                 assert other.login('operador@teste.local')[2].endswith('index.php')
+                # Administração de unidades: testar os formulários realmente renderizados.
+                central = int(sql("SELECT id_unidade FROM unidade_saude WHERE nome='Secretaria de Saúde'", DB).strip())
+                unit_token = admin.token('pages/cadastrar_unidade.php')
+                unit_data = {'csrf':unit_token, 'nome':'UBS Teste', 'endereco':'Rua Inicial', 'telefone':'(00) 1234-5678'}
+                assert admin.request('pages/cadastrar_unidade.php', dict(unit_data, csrf='invalido'))[0] == 403
+                assert admin.request('pages/cadastrar_unidade.php', unit_data)[2].endswith('unidades.php')
+                uid = int(sql("SELECT id_unidade FROM unidade_saude WHERE nome='UBS Teste'", DB).strip())
+                assert 'Já existe' in admin.request('pages/cadastrar_unidade.php', unit_data)[1]
+                assert 'até 100' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, nome='Á'*101))[1]
+                assert 'até 255' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, endereco='a'*256))[1]
+                assert 'até 20' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, telefone='1'*21))[1]
+                assert 'obrigatório' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, nome=' '))[1]
+                for role in ['Usuario', 'Suporte']:
+                    sql(f"UPDATE usuario SET tipo='{role}' WHERE id_usuario=3", DB)
+                    assert 'pages/unidades.php' not in user.request('index.php')[1]
+                    for path in ['unidades.php', 'cadastrar_unidade.php', f'editar_unidade.php?id={uid}']:
+                        assert user.request('pages/'+path)[0] == 403
+                        assert user.request('pages/'+path, dict(unit_data, csrf=user.token('pages/perfil.php')))[0] == 403
+                sql("UPDATE usuario SET tipo='Usuario' WHERE id_usuario=3", DB)
+                assert 'pages/unidades.php' in admin.request('index.php')[1]
+                assert admin.request(f'pages/editar_unidade.php?id={uid}', dict(unit_data, endereco='Rua Nova'))[2].endswith('unidades.php')
+                assert sql(f'SELECT endereco FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == 'Rua Nova'
+                html = admin.request(f'pages/editar_unidade.php?id={uid}', dict(unit_data, nome='', endereco='Preservar preenchimento'))[1]
+                assert 'Preservar preenchimento' in html
+                assert admin.request('pages/editar_unidade.php?id=999999')[0] == 404
+                html = admin.request(f'pages/editar_unidade.php?id={central}', unit_data)[1]
+                assert 'não pode ser alterado' in html
+                central_data = dict(unit_data, nome='Secretaria de Saúde', endereco='Endereço central')
+                assert admin.request(f'pages/editar_unidade.php?id={central}', central_data)[2].endswith('unidades.php')
+                assert 'não pode ser desativada' in admin.request('pages/unidades.php', {'csrf':unit_token,'desativar_id':central})[1]
+                assert 'não encontrada' in admin.request('pages/unidades.php', {'csrf':unit_token,'desativar_id':999999})[1]
+                listing = admin.request('pages/unidades.php')[1]
+                assert '<?=' not in listing
+                forms = re.findall(r'<form\b[^>]*>(.*?)</form>', listing, re.S)
+                form = next(f for f in forms if re.search(r'name="desativar_id"\s+value="'+str(uid)+'"', f))
+                actual_token = re.search(r'name="csrf" value="([a-f0-9]+)"', form)[1]
+                assert admin.request('pages/unidades.php', {'desativar_id':uid})[0] == 403
+                admin.request('pages/unidades.php', {'csrf':actual_token,'desativar_id':uid})
+                assert sql(f'SELECT ativo FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == '0'
+                assert 'UBS Teste' not in admin.request('pages/lancamentos.php?tipo=Saida')[1]
+                # Uma saída forjada para unidade inativa é recusada pelo servidor.
+                sql("INSERT INTO produto(nome,unidade,estoque,estoque_minimo,categoria_id) SELECT 'Produto UBS','Unidade',5,0,MIN(id_categoria) FROM categoria", DB)
+                pid = int(sql("SELECT id_produto FROM produto WHERE nome='Produto UBS'", DB).strip())
+                movement = {'csrf':unit_token,'ajax':'1','tipo':'Saida','unidade_destino':uid,'produtos[0][produto_id]':pid,'produtos[0][quantidade]':1}
+                assert '"sucesso":false' in admin.request('pages/lancamentos.php', movement)[1]
+                inactive = admin.request('pages/unidades.php?status=inativos')[1]
+                form = next(f for f in re.findall(r'<form\b[^>]*>(.*?)</form>', inactive, re.S) if 'reativar_id' in f)
+                assert re.search(r'name="csrf" value="([a-f0-9]+)"', form)
+                admin.request('pages/unidades.php', {'csrf':unit_token,'reativar_id':uid})
+                assert '"sucesso":true' in admin.request('pages/lancamentos.php', movement)[1]
+                count = sql(f'SELECT COUNT(*) FROM movimentacao WHERE unidade_destino_id={uid}', DB).strip()
+                admin.request('pages/unidades.php', {'csrf':unit_token,'desativar_id':uid})
+                assert sql(f'SELECT COUNT(*) FROM movimentacao WHERE unidade_destino_id={uid}', DB).strip() == count
+                sql("CREATE TRIGGER falha_unidade_log BEFORE INSERT ON log FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada';", DB)
+                assert 'Nenhuma alteração' in admin.request('pages/cadastrar_unidade.php', dict(unit_data, nome='Nao gravar'))[1]
+                assert 'Nenhuma alteração' in admin.request(f'pages/editar_unidade.php?id={uid}', dict(unit_data, endereco='Nao gravar'))[1]
+                assert 'Nenhuma alteração' in admin.request('pages/unidades.php', {'csrf':unit_token,'reativar_id':uid})[1]
+                assert sql("SELECT COUNT(*) FROM unidade_saude WHERE nome='Nao gravar'", DB).strip() == '0'
+                assert sql(f'SELECT endereco FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == 'Rua Nova'
+                assert sql(f'SELECT ativo FROM unidade_saude WHERE id_unidade={uid}', DB).strip() == '0'
+                sql('DROP TRIGGER falha_unidade_log;', DB)
+                print('UBS: formulários, permissões, validação, Secretaria, histórico e rollback aprovados.')
                 assert user.request('pages/cadastrar_usuario.php')[0] == 403
                 assert admin.request('pages/usuarios.php', {'excluir_id':3})[0] == 403
                 token = admin.token('pages/usuarios.php')

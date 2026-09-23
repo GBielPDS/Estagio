@@ -29,12 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($resultado['sucesso']) {
 
-        registrarLog(
-            $conn,
-            'Cadastro de unidade',
-            'Unidade de saúde "' . $nome . '" cadastrada.',
-            (int) $_SESSION['id_usuario']
-        );
 
         $_SESSION['mensagem_cadastro'] = [
             'texto' => $resultado['mensagem'],

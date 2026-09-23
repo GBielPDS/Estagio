@@ -75,6 +75,7 @@ function sidebar(string $paginaAtiva = ''): void
 
     if ($tipo === 'Administrador') {
         echo '
+                    <a href="' . BASE_URL . 'pages/unidades.php"' . $ativo('unidades') . '>Unidades de Saúde</a>
                     <a href="' . BASE_URL . 'pages/usuarios.php">Usuários</a>
                     <a href="' . BASE_URL . 'pages/logs.php">Logs</a>';
     }
