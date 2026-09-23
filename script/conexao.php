@@ -5,7 +5,7 @@ declare(strict_types=1);
 $host = "localhost";
 $usuario = "root";
 $senha = "";
-$banco = getenv("GESTSAUDE_DB") ?: "almoxarifado";
+$banco = getenv("GESTSAUDE_DB") ?: "al";
 
 try {
     $conn = new mysqli($host, $usuario, $senha, $banco);
