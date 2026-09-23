@@ -17,48 +17,12 @@ unset($_SESSION['mensagem_cadastro']);
 $filtroStatus = ($_GET['status'] ?? 'ativos') === 'inativos' ? 'inativos' : 'ativos';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['excluir_id'])) {
-        $id = (int) $_POST['excluir_id'];
-        $sessaoId = (int) ($_SESSION['id_usuario'] ?? 0);
-
-        if ($id === $sessaoId) {
-            $mensagemCadastro = ['texto' => 'Você não pode desativar o seu próprio usuário.', 'tipo' => 'erro'];
-        } else {
-            $usuarioExcluir = buscarUsuarioPorId($conn, $id);
-
-            if ($usuarioExcluir) {
-                if (excluirUsuario($conn, $id)) {
-                    registrarLog(
-                        $conn,
-                        'Exclusão de usuário',
-                        'Usuário ' . (string) $usuarioExcluir['nome'] . ' (ID ' . $id . ') desativado (ativo = 0).',
-                        $sessaoId
-                    );
-                    $mensagemCadastro = ['texto' => 'Usuário desativado com sucesso.', 'tipo' => 'sucesso'];
-                } else {
-                    $mensagemCadastro = ['texto' => 'Não foi possível desativar o usuário.', 'tipo' => 'erro'];
-                }
-            }
-        }
-    } elseif (isset($_POST['reativar_id'])) {
-        $id = (int) $_POST['reativar_id'];
-        $sessaoId = (int) ($_SESSION['id_usuario'] ?? 0);
-        $usuarioReativar = buscarUsuarioPorId($conn, $id);
-
-        if ($usuarioReativar) {
-            if (reativarUsuario($conn, $id)) {
-                registrarLog(
-                    $conn,
-                    'Reativação de usuário',
-                    'Usuário ' . (string) $usuarioReativar['nome'] . ' (ID ' . $id . ') reativado pelo administrador.',
-                    $sessaoId
-                );
-                $mensagemCadastro = ['texto' => 'Usuário reativado com sucesso.', 'tipo' => 'sucesso'];
-            } else {
-                $mensagemCadastro = ['texto' => 'Não foi possível reativar o usuário.', 'tipo' => 'erro'];
-            }
-        }
-    }
+    $resultado = ['sucesso' => false, 'mensagem' => 'Operação inválida.'];
+    if (isset($_POST['excluir_id'])) $resultado = excluirUsuario($conn, (int) $_POST['excluir_id']);
+    elseif (isset($_POST['reativar_id'])) $resultado = reativarUsuario($conn, (int) $_POST['reativar_id']);
+    $_SESSION['mensagem_cadastro'] = ['texto' => $resultado['mensagem'], 'tipo' => $resultado['sucesso'] ? 'sucesso' : 'erro'];
+    header('Location: usuarios.php?status=' . $filtroStatus);
+    exit;
 }
 
 $totalAtivos = contarUsuarios($conn, 'ativos');

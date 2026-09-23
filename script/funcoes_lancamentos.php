@@ -14,6 +14,7 @@ function lancamentoEntrada(
     $conn->begin_transaction();
 
     try {
+        if (!$produtos) throw new DomainException('Adicione pelo menos um produto.');
         $sql = "INSERT INTO movimentacao
                 (tipo, unidade_destino_id, observacao, usuario_id)
                 VALUES ('Entrada', ?, ?, ?)";
@@ -121,11 +122,12 @@ function lancamentoEntrada(
         $stmtItem->close();
         $stmtEstoque->close();
 
-        $conn->commit();
-
         foreach ($logsParaRegistrar as $logItem) {
-            registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
+            if (!registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id)) {
+                throw new RuntimeException('Falha ao registrar auditoria.');
+            }
         }
+        $conn->commit();
 
         return [
             'sucesso' => true,
@@ -137,7 +139,7 @@ function lancamentoEntrada(
 
         return [
             'sucesso' => false,
-            'mensagem' => $e->getMessage()
+            'mensagem' => $e instanceof mysqli_sql_exception ? 'Não foi possível concluir o lançamento. Nenhuma alteração foi salva.' : $e->getMessage()
         ];
     }
 }
@@ -152,8 +154,9 @@ function lancamentoSaida(
     $conn->begin_transaction();
 
     try {
+        if (!$produtos) throw new DomainException('Adicione pelo menos um produto.');
         $nomeUnidade = 'Unidade de Saúde';
-        $sqlUnidade = "SELECT nome FROM unidade_saude WHERE id_unidade = ?";
+        $sqlUnidade = "SELECT nome FROM unidade_saude WHERE id_unidade = ? AND ativo = 1 AND nome <> 'Secretaria de Saúde'";
         $stmtUni = $conn->prepare($sqlUnidade);
 
         if ($stmtUni) {
@@ -163,6 +166,8 @@ function lancamentoSaida(
 
             if ($linhaUni = $resUni->fetch_assoc()) {
                 $nomeUnidade = (string) $linhaUni['nome'];
+            } else {
+                throw new DomainException('Selecione uma unidade de saúde ativa de destino.');
             }
 
             $stmtUni->close();
@@ -287,11 +292,12 @@ function lancamentoSaida(
         $stmtItem->close();
         $stmtEstoque->close();
 
-        $conn->commit();
-
         foreach ($logsParaRegistrar as $logItem) {
-            registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id);
+            if (!registrarLog($conn, $logItem['acao'], $logItem['descricao'], $usuario_id)) {
+                throw new RuntimeException('Falha ao registrar auditoria.');
+            }
         }
+        $conn->commit();
 
         return [
             'sucesso' => true,
@@ -303,7 +309,7 @@ function lancamentoSaida(
 
         return [
             'sucesso' => false,
-            'mensagem' => $e->getMessage()
+            'mensagem' => $e instanceof mysqli_sql_exception ? 'Não foi possível concluir o lançamento. Nenhuma alteração foi salva.' : $e->getMessage()
         ];
     }
 }

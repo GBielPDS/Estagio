@@ -33,36 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'Tipo de usuário inválido.';
         $tipo_mensagem = 'erro';
     } else {
-        $resultado = cadastrarUsuario($conn, $nome, $email, $senha, $tipo, true);
-
+        $resultado = cadastrarUsuario($conn, $nome, $email, $senha, $tipo);
         if ($resultado['sucesso']) {
-            $foiReativado = !empty($resultado['reativado']);
-            $adminId = (int) ($_SESSION['id_usuario'] ?? 0);
-
-            if ($foiReativado) {
-                registrarLog(
-                    $conn,
-                    'Reativação de usuário',
-                    'Usuário ' . $nome . ' (' . $tipo . ') foi reativado com nova senha pelo administrador.',
-                    $adminId
-                );
-                $_SESSION['mensagem_cadastro'] = [
-                    'texto' => 'Usuário reativado com sucesso com a nova senha de acesso.',
-                    'tipo' => 'sucesso'
-                ];
-            } else {
-                registrarLog(
-                    $conn,
-                    'Cadastro de usuário',
-                    'Usuário ' . $nome . ' (' . $tipo . ') cadastrado pelo administrador.',
-                    $adminId
-                );
-                $_SESSION['mensagem_cadastro'] = [
-                    'texto' => 'Usuário cadastrado com sucesso.',
-                    'tipo' => 'sucesso'
-                ];
-            }
-
+            $_SESSION['mensagem_cadastro'] = ['texto' => $resultado['mensagem'], 'tipo' => 'sucesso'];
             header('Location: ' . BASE_URL . 'pages/usuarios.php');
             exit;
         }
@@ -91,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="cabecalho-pagina">
             <h1 class="cabecalho-pagina__titulo">Cadastrar usuário</h1>
-            <p class="cabecalho-pagina__descricao">Cadastre um novo usuário ou reative um usuário inativo atribuindo uma nova senha.</p>
+            <p class="cabecalho-pagina__descricao">Cadastre uma nova conta. Para reativar, use a lista de usuários desativados.</p>
         </div>
 
         <?php if ($mensagem !== ''): ?>
@@ -103,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <section class="cartao">
 
             <form method="POST" action="<?= htmlspecialchars((string) $_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>" class="formulario">
+                <?= campoCsrf() ?>
 
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome:</label>

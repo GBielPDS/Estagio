@@ -81,7 +81,7 @@ function sidebar(string $paginaAtiva = ''): void
 
     echo '
                     <hr>
-                    <a class="sair-link" href="' . BASE_URL . 'script/logout.php">Sair</a>
+                    <form method="POST" action="' . BASE_URL . 'script/logout.php">' . campoCsrf() . '<button class="sair-link botao" type="submit">Sair</button></form>
                 </div>
             </div>
         </div>

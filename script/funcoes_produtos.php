@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . "/funcoes_logs.php";
+
 function buscarCategorias(mysqli $conn): array
 {
     $sql = 'SELECT id_categoria, nome FROM categoria ORDER BY nome';
@@ -145,7 +147,16 @@ function cadastrarProduto(
         return ['sucesso' => false, 'mensagem' => 'Não foi possível cadastrar o produto.'];
     }
 
+    $produtoId = (int) $conn->insert_id;
     $stmt->close();
+    if ($estoqueInt > 0) {
+        $autor = (int) $_SESSION['id_usuario'];
+        $stmt = $conn->prepare("INSERT INTO movimentacao(tipo,observacao,usuario_id) VALUES ('Entrada','Saldo inicial no cadastro do produto',?)");
+        $stmt->bind_param('i', $autor); $stmt->execute();
+        $movimento = (int) $conn->insert_id; $stmt->close();
+        $stmt = $conn->prepare('INSERT INTO item_lancamento(movimentacao_id,produto_id,quantidade) VALUES (?,?,?)');
+        $stmt->bind_param('iii', $movimento, $produtoId, $estoqueInt); $stmt->execute(); $stmt->close();
+    }
     return ['sucesso' => true];
 }
 
@@ -173,68 +184,53 @@ function buscarProdutoPorId(mysqli $conn, int $id): ?array
 }
 
 function atualizarProduto(
-    mysqli $conn,
-    int $id,
-    string $nome,
-    int $categoriaId,
-    string $unidade,
-    int|string $estoque,
-    int|string $estoqueMinimo
+    mysqli $conn, int $id, string $nome, int $categoriaId, string $unidade,
+    int|string $estoque, int|string $estoqueMinimo, string $justificativa = '', ?int $estoqueOriginal = null
 ): array {
-    $nome = trim($nome);
-    $unidade = trim($unidade);
-
-    if ($nome === '' || $unidade === '') {
-        return ['sucesso' => false, 'mensagem' => 'Nome e unidade do produto são obrigatórios.'];
-    }
-
-    if ((string) $estoque !== '' && (string) (int) $estoque !== (string) $estoque) {
-        return ['sucesso' => false, 'mensagem' => 'O estoque deve ser um número inteiro maior ou igual a zero.'];
-    }
-
-    if ((int) $estoque < 0) {
-        return ['sucesso' => false, 'mensagem' => 'O estoque deve ser um número inteiro maior ou igual a zero.'];
-    }
-
-    if ((string) $estoqueMinimo !== '' && (string) (int) $estoqueMinimo !== (string) $estoqueMinimo) {
-        return ['sucesso' => false, 'mensagem' => 'O estoque mínimo deve ser um número inteiro maior ou igual a zero.'];
-    }
-
-    if ((int) $estoqueMinimo < 0) {
-        return ['sucesso' => false, 'mensagem' => 'O estoque mínimo deve ser um número inteiro maior ou igual a zero.'];
-    }
-
-    $estoqueInt = (int) $estoque;
-    $estoqueMinimoInt = (int) $estoqueMinimo;
-
-    $sql = 'UPDATE produto
-            SET nome = ?, unidade = ?, estoque = ?, estoque_minimo = ?, categoria_id = ?
-            WHERE id_produto = ?';
-
-    $stmt = $conn->prepare($sql);
-
-    if (!$stmt) {
-        return ['sucesso' => false, 'mensagem' => 'Erro ao preparar a atualização do produto.'];
-    }
-
-    $stmt->bind_param(
-        'ssiiii',
-        $nome,
-        $unidade,
-        $estoqueInt,
-        $estoqueMinimoInt,
-        $categoriaId,
-        $id
-    );
-
-    if (!$stmt->execute()) {
+    try {
+        if (($_SESSION['tipo'] ?? '') !== 'Administrador') throw new DomainException('Acesso negado.');
+        $nome = trim($nome); $unidade = trim($unidade); $justificativa = trim($justificativa);
+        if ($nome === '' || $unidade === '' || preg_match_all('/./us', $nome) > 100 || preg_match_all('/./us', $unidade) > 20)
+            throw new DomainException('Informe nome e unidade dentro dos limites permitidos.');
+        if (filter_var($estoque, FILTER_VALIDATE_INT) === false || filter_var($estoqueMinimo, FILTER_VALIDATE_INT) === false || (int) $estoque < 0 || (int) $estoqueMinimo < 0)
+            throw new DomainException('Estoque e mínimo devem ser inteiros não negativos.');
+        $estoque = (int) $estoque; $estoqueMinimo = (int) $estoqueMinimo;
+        $conn->begin_transaction();
+        $stmt = $conn->prepare('SELECT estoque FROM produto WHERE id_produto=? FOR UPDATE');
+        $stmt->bind_param('i', $id); $stmt->execute();
+        $anterior = $stmt->get_result()->fetch_assoc(); $stmt->close();
+        if (!$anterior) throw new DomainException('Produto não encontrado.');
+        if ($estoqueOriginal === null || (int) $anterior['estoque'] !== $estoqueOriginal)
+            throw new DomainException('O estoque mudou desde a abertura da tela. Atualize a página antes de salvar.');
+        $diferenca = $estoque - (int) $anterior['estoque'];
+        if ($diferenca !== 0 && $justificativa === '') throw new DomainException('Informe a justificativa para o ajuste de estoque.');
+        $stmt = $conn->prepare('SELECT id_categoria FROM categoria WHERE id_categoria=?');
+        $stmt->bind_param('i', $categoriaId); $stmt->execute();
+        if (!$stmt->get_result()->fetch_assoc()) throw new DomainException('Categoria inválida.');
         $stmt->close();
-        return ['sucesso' => false, 'mensagem' => 'Não foi possível atualizar o produto.'];
+        $stmt = $conn->prepare('UPDATE produto SET nome=?,unidade=?,estoque=?,estoque_minimo=?,categoria_id=? WHERE id_produto=?');
+        $stmt->bind_param('ssiiii', $nome, $unidade, $estoque, $estoqueMinimo, $categoriaId, $id); $stmt->execute(); $stmt->close();
+        $autor = (int) $_SESSION['id_usuario'];
+        if ($diferenca !== 0) {
+            $tipo = $diferenca > 0 ? 'Entrada' : 'Saida';
+            $observacao = 'Ajuste de inventário: ' . $justificativa;
+            $stmt = $conn->prepare('INSERT INTO movimentacao(tipo,observacao,usuario_id) VALUES (?,?,?)');
+            $stmt->bind_param('ssi', $tipo, $observacao, $autor); $stmt->execute();
+            $movimento = (int) $conn->insert_id; $stmt->close();
+            $qtd = abs($diferenca);
+            $stmt = $conn->prepare('INSERT INTO item_lancamento(movimentacao_id,produto_id,quantidade) VALUES (?,?,?)');
+            $stmt->bind_param('iii', $movimento, $id, $qtd); $stmt->execute(); $stmt->close();
+        }
+        $descricao = "Produto ID $id atualizado. Saldo: {$anterior['estoque']} para $estoque.";
+        if ($diferenca !== 0) $descricao .= ' Justificativa: ' . $justificativa;
+        if (!registrarLog($conn, $diferenca !== 0 ? 'Ajuste de estoque' : 'Edição de produto', $descricao, $autor)) throw new RuntimeException('Falha de auditoria.');
+        $conn->commit();
+        return ['sucesso'=>true, 'mensagem'=>'Produto atualizado com sucesso.'];
+    } catch (Throwable $e) {
+        $conn->rollback();
+        if (!$e instanceof DomainException) error_log((string) $e);
+        return ['sucesso'=>false, 'mensagem'=>$e instanceof DomainException ? $e->getMessage() : 'Não foi possível salvar o produto. Nenhuma alteração foi salva.'];
     }
-
-    $stmt->close();
-
-    return ['sucesso' => true, 'mensagem' => 'Produto atualizado com sucesso.'];
 }
 
 function excluirProduto(mysqli $conn, int $id): array

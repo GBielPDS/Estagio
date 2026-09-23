@@ -7,13 +7,14 @@ CREATE TABLE usuario (
     email VARCHAR(100) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
     tipo ENUM('Administrador', 'Suporte', 'Usuario') NOT NULL,
-    ativo BOOLEAN NOT NULL DEFAULT TRUE
-);
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    versao_sessao INT UNSIGNED NOT NULL DEFAULT 1
+) ENGINE=InnoDB;
 
 CREATE TABLE categoria (
     id_categoria INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE
-);
+) ENGINE=InnoDB;
 
 CREATE TABLE produto (
     id_produto INT AUTO_INCREMENT PRIMARY KEY,
@@ -34,7 +35,7 @@ CREATE TABLE produto (
         REFERENCES categoria(id_categoria)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
-);
+) ENGINE=InnoDB;
 
 CREATE TABLE unidade_saude (
     id_unidade INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,7 +43,7 @@ CREATE TABLE unidade_saude (
     endereco VARCHAR(255),
     telefone VARCHAR(20),
     ativo BOOLEAN NOT NULL DEFAULT TRUE
-);
+) ENGINE=InnoDB;
 
 CREATE TABLE movimentacao (
     id_movimentacao INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +64,7 @@ CREATE TABLE movimentacao (
         REFERENCES unidade_saude(id_unidade)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
-);
+) ENGINE=InnoDB;
 
 CREATE TABLE item_lancamento (
     id_item INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,7 +86,7 @@ CREATE TABLE item_lancamento (
         REFERENCES produto(id_produto)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
-);
+) ENGINE=InnoDB;
 
 CREATE TABLE log (
     id_log INT AUTO_INCREMENT PRIMARY KEY,
@@ -99,4 +100,4 @@ CREATE TABLE log (
         REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
-);
+) ENGINE=InnoDB;

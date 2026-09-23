@@ -54,17 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $estoque = trim((string) ($_POST['estoque'] ?? '0'));
     $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? '0'));
 
-    $resultado = atualizarProduto($conn, $idProduto, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo);
+    $justificativa = trim((string) ($_POST['justificativa'] ?? ''));
+    $original = filter_var($_POST['estoque_original'] ?? null, FILTER_VALIDATE_INT);
+    $resultado = atualizarProduto($conn, $idProduto, $nome, $categoriaId, $unidade, $estoque, $estoqueMinimo, $justificativa, $original === false ? null : $original);
 
     if ($resultado['sucesso']) {
-        registrarLog(
-            $conn,
-            'Edição de produto',
-            'Produto ' . $nome . ' (ID ' . $idProduto . ') atualizado.',
-            (int) $_SESSION['id_usuario']
-        );
-
-        header('Location: produtos.php?mensagem=' . urlencode((string) $resultado['mensagem']));
+        $_SESSION['mensagem_produto'] = ['texto' => (string) $resultado['mensagem'], 'tipo' => 'sucesso'];
+        header('Location: produtos.php');
         exit;
     }
 
@@ -163,6 +159,8 @@ $unidades = buscarUnidades($conn);
 
         <section class="cartao">
             <form method="POST" class="formulario">
+                <input type="hidden" name="estoque_original" value="<?= (int) $produto['estoque'] ?>">
+                <?= campoCsrf() ?>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome do produto</label>
                     <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?>" required>
@@ -202,6 +200,10 @@ $unidades = buscarUnidades($conn);
                     <input class="campo__controle" type="number" id="estoque_minimo" name="estoque_minimo" min="0" step="1" value="<?= (int) $produto['estoque_minimo'] ?>" required>
                 </div>
 
+                <div class="campo campo--largo">
+                    <label class="campo__rotulo" for="justificativa">Justificativa do ajuste de estoque</label>
+                    <textarea class="campo__controle" id="justificativa" name="justificativa" placeholder="Obrigatória quando alterar o saldo."></textarea>
+                </div>
                 <div class="campo campo--largo" style="display:flex; gap:12px; margin-top:12px;">
                     <button class="botao botao--primario" type="submit">Salvar alterações</button>
                     <a class="botao botao--secundario" href="produtos.php">Cancelar</a>
@@ -210,6 +212,7 @@ $unidades = buscarUnidades($conn);
 
             <form method="POST" class="formulario formulario--exclusao"
                 onsubmit="return confirm('Deseja realmente excluir este produto?');">
+                <?= campoCsrf() ?>
                 <button class="botao botao--perigo" type="submit" name="excluir_produto" value="1">
                     Excluir produto
                 </button>

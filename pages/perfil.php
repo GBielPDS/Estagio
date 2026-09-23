@@ -39,12 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tipoMensagem = 'sucesso';
             $usuario = buscarUsuarioPorId($conn, $idUsuario);
 
-            registrarLog(
-                $conn,
-                'Atualização de perfil',
-                'Perfil atualizado pelo próprio usuário.',
-                $idUsuario
-            );
+
         } else {
             $mensagem = (string) $resultado['mensagem'];
             $tipoMensagem = 'erro';
@@ -96,6 +91,7 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
             <p class="cartao__legenda">Preencha os campos de senha somente se quiser alterá-la.</p>
 
             <form method="POST" class="formulario">
+                <?= campoCsrf() ?>
                 <div class="campo">
                     <label class="campo__rotulo" for="nome">Nome <span class="obrigatorio">*</span></label>
                     <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars((string) ($usuario['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>

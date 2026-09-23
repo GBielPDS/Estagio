@@ -17,39 +17,27 @@ if (!isset($_GET['id'])) {
 
 $id = (int) $_GET['id'];
 
+$usuario = buscarUsuarioPorId($conn, $id);
+if (!$usuario) { http_response_code(404); exit('Usuário não encontrado.'); }
+$mensagem = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim((string) ($_POST['nome'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     $senha = (string) ($_POST['senha'] ?? '');
     $tipo = (string) ($_POST['tipo'] ?? '');
-    $ativo = isset($_POST['ativo']) ? (int) $_POST['ativo'] : null;
-
-    if (atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo, $ativo)) {
-        $acaoLog = ($ativo === 1 && (int)($usuario['ativo'] ?? 1) === 0) ? 'Reativação de usuário' : 'Atualização de usuário';
-        $descLog = 'Usuário ' . $nome . ' (ID ' . $id . ') atualizado pelo administrador.';
-        registrarLog(
-            $conn,
-            $acaoLog,
-            $descLog,
-            (int) $_SESSION['id_usuario']
-        );
-
-        $_SESSION['mensagem_cadastro'] = [
-            'texto' => 'Usuário atualizado com sucesso.',
-            'tipo' => 'sucesso'
-        ];
-
-        header("Location: usuarios.php");
-        exit;
+    $status = $_POST['ativo'] ?? '';
+    $ativo = in_array($status, ['0', '1'], true) ? (int) $status : -1;
+    $resultado = atualizarUsuario($conn, $id, $nome, $email, $senha, $tipo, $ativo);
+    if ($resultado['sucesso']) {
+        $_SESSION['mensagem_cadastro'] = ['texto' => $resultado['mensagem'], 'tipo' => 'sucesso'];
+        if ($id === (int) $_SESSION['id_usuario']) {
+            verificarSessao();
+            if ($_SESSION['tipo'] !== 'Administrador') { header('Location: ' . BASE_URL . 'index.php'); exit; }
+        }
+        header('Location: usuarios.php'); exit;
     }
-
-    echo "Erro ao atualizar usuário.";
-}
-
-$usuario = buscarUsuarioPorId($conn, $id);
-
-if (!$usuario) {
-    die("Usuário não encontrado.");
+    $mensagem = $resultado['mensagem'];
+    $usuario = array_merge($usuario, compact('nome', 'email', 'tipo'));
 }
 ?>
 
@@ -74,9 +62,13 @@ if (!$usuario) {
             <p class="cabecalho-pagina__descricao">Atualize os dados do usuário.</p>
         </div>
 
+        <?php if ($mensagem !== ''): ?>
+            <p class="mensagem-formulario mensagem-erro"><?= htmlspecialchars($mensagem, ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
         <section class="cartao">
 
             <form method="POST" class="formulario">
+                <?= campoCsrf() ?>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo">Nome:</label>
                     <input class="campo__controle"                

@@ -22,99 +22,102 @@ $novaCategoria = '';
 $novaUnidade = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = trim((string) ($_POST['nome'] ?? ''));
-    $categoriaSelecionada = (string) ($_POST['categoria_id'] ?? '');
-    $novaCategoria = trim((string) ($_POST['nova_categoria'] ?? ''));
-    $unidadeSelecionada = trim((string) ($_POST['unidade'] ?? ''));
-    $novaUnidade = trim((string) ($_POST['nova_unidade'] ?? ''));
-    $estoque = trim((string) ($_POST['estoque'] ?? ''));
-    $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? ''));
+    try {
+        $nome = trim((string) ($_POST['nome'] ?? ''));
+        $categoriaSelecionada = (string) ($_POST['categoria_id'] ?? '');
+        $novaCategoria = trim((string) ($_POST['nova_categoria'] ?? ''));
+        $unidadeSelecionada = trim((string) ($_POST['unidade'] ?? ''));
+        $novaUnidade = trim((string) ($_POST['nova_unidade'] ?? ''));
+        $estoque = trim((string) ($_POST['estoque'] ?? ''));
+        $estoqueMinimo = trim((string) ($_POST['estoque_minimo'] ?? ''));
 
-    if ($categoriaSelecionada === '__nova__') {
-        $categoriaSelecionada = '';
-    }
+        if ($categoriaSelecionada === '__nova__') {
+            $categoriaSelecionada = '';
+        }
 
-    if ($unidadeSelecionada === '__nova__') {
-        $unidadeSelecionada = '';
-    }
+        if ($unidadeSelecionada === '__nova__') {
+            $unidadeSelecionada = '';
+        }
 
-    if ($nome === '') {
-        $mensagem = 'Informe o nome do produto.';
-    } elseif ($categoriaSelecionada !== '' && $novaCategoria !== '') {
-        $mensagem = 'Escolha uma categoria existente ou informe uma nova categoria, não as duas.';
-    } elseif ($categoriaSelecionada === '' && $novaCategoria === '') {
-        $mensagem = 'Escolha uma categoria ou informe uma nova categoria.';
-    } elseif ($unidadeSelecionada !== '' && $novaUnidade !== '') {
-        $mensagem = 'Escolha uma unidade existente ou informe uma nova unidade, não as duas.';
-    } elseif ($unidadeSelecionada === '' && $novaUnidade === '') {
-        $mensagem = 'Escolha uma unidade ou informe uma nova unidade.';
-    } elseif ($novaUnidade !== '' && unidadeJaExiste($conn, $novaUnidade)) {
-        $mensagem = 'Esta unidade já está cadastrada. Selecione-a na lista.';
-    } elseif (($estoque !== '' && filter_var($estoque, FILTER_VALIDATE_INT) === false)
-        || ($estoqueMinimo !== '' && filter_var($estoqueMinimo, FILTER_VALIDATE_INT) === false)) {
-        $mensagem = 'Estoque e estoque mínimo devem ser números inteiros.';
-    } elseif ((int) $estoque < 0 || (int) $estoqueMinimo < 0) {
-        $mensagem = 'Estoque e estoque mínimo não podem ser negativos.';
-    } else {
-        $estoqueVal = $estoque === '' ? 0 : (int) $estoque;
-        $estoqueMinimoVal = $estoqueMinimo === '' ? 0 : (int) $estoqueMinimo;
-        $transacaoIniciada = false;
-
-        if ($novaCategoria !== '') {
+        if ($nome === '') {
+            $mensagem = 'Informe o nome do produto.';
+        } elseif ($categoriaSelecionada !== '' && $novaCategoria !== '') {
+            $mensagem = 'Escolha uma categoria existente ou informe uma nova categoria, não as duas.';
+        } elseif ($categoriaSelecionada === '' && $novaCategoria === '') {
+            $mensagem = 'Escolha uma categoria ou informe uma nova categoria.';
+        } elseif ($unidadeSelecionada !== '' && $novaUnidade !== '') {
+            $mensagem = 'Escolha uma unidade existente ou informe uma nova unidade, não as duas.';
+        } elseif ($unidadeSelecionada === '' && $novaUnidade === '') {
+            $mensagem = 'Escolha uma unidade ou informe uma nova unidade.';
+        } elseif ($novaUnidade !== '' && unidadeJaExiste($conn, $novaUnidade)) {
+            $mensagem = 'Esta unidade já está cadastrada. Selecione-a na lista.';
+        } elseif (($estoque !== '' && filter_var($estoque, FILTER_VALIDATE_INT) === false)
+            || ($estoqueMinimo !== '' && filter_var($estoqueMinimo, FILTER_VALIDATE_INT) === false)) {
+            $mensagem = 'Estoque e estoque mínimo devem ser números inteiros.';
+        } elseif ((int) $estoque < 0 || (int) $estoqueMinimo < 0) {
+            $mensagem = 'Estoque e estoque mínimo não podem ser negativos.';
+        } else {
+            $estoqueVal = $estoque === '' ? 0 : (int) $estoque;
+            $estoqueMinimoVal = $estoqueMinimo === '' ? 0 : (int) $estoqueMinimo;
             $conn->begin_transaction();
             $transacaoIniciada = true;
 
-            $resultadoCategoria = criarCategoria($conn, $novaCategoria);
+            if ($novaCategoria !== '') {
 
-            if (!$resultadoCategoria['sucesso']) {
-                $conn->rollback();
-                $mensagem = (string) $resultadoCategoria['mensagem'];
-            } else {
-                $categoriaId = (int) $resultadoCategoria['id'];
-            }
-        } else {
-            $categoriaId = (int) $categoriaSelecionada;
-        }
+                $resultadoCategoria = criarCategoria($conn, $novaCategoria);
 
-        if ($mensagem === '') {
-            $unidade = $novaUnidade !== '' ? $novaUnidade : $unidadeSelecionada;
-            $resultadoProduto = cadastrarProduto(
-                $conn,
-                $nome,
-                $categoriaId,
-                $unidade,
-                $estoqueVal,
-                $estoqueMinimoVal
-            );
-
-            if (!$resultadoProduto['sucesso']) {
-                if ($transacaoIniciada) {
+                if (!$resultadoCategoria['sucesso']) {
                     $conn->rollback();
+                    $mensagem = (string) $resultadoCategoria['mensagem'];
+                } else {
+                    $categoriaId = (int) $resultadoCategoria['id'];
                 }
-                $mensagem = (string) $resultadoProduto['mensagem'];
             } else {
-                if ($transacaoIniciada) {
-                    $conn->commit();
-                }
+                $categoriaId = (int) $categoriaSelecionada;
+            }
 
-                registrarLog(
+            if ($mensagem === '') {
+                $unidade = $novaUnidade !== '' ? $novaUnidade : $unidadeSelecionada;
+                $resultadoProduto = cadastrarProduto(
                     $conn,
-                    'Cadastro de produto',
-                    'Produto ' . $nome . ' cadastrado com estoque inicial de ' . $estoqueVal . '.',
-                    (int) $_SESSION['id_usuario']
+                    $nome,
+                    $categoriaId,
+                    $unidade,
+                    $estoqueVal,
+                    $estoqueMinimoVal
                 );
 
-                $mensagem = 'Produto cadastrado com sucesso.';
-                $tipoMensagem = 'sucesso';
-                $nome = '';
-                $categoriaSelecionada = '';
-                $unidadeSelecionada = '';
-                $novaCategoria = '';
-                $novaUnidade = '';
-                $estoque = '';
-                $estoqueMinimo = '';
+                if (!$resultadoProduto['sucesso']) {
+                    if ($transacaoIniciada) {
+                        $conn->rollback();
+                    }
+                    $mensagem = (string) $resultadoProduto['mensagem'];
+                } else {
+                    if (!registrarLog(
+                        $conn,
+                        'Cadastro de produto',
+                        'Produto ' . $nome . ' cadastrado com estoque inicial de ' . $estoqueVal . '.',
+                        (int) $_SESSION['id_usuario']
+                    )) throw new RuntimeException('Falha na auditoria.');
+                    $conn->commit();
+
+                    $mensagem = 'Produto cadastrado com sucesso.';
+                    $tipoMensagem = 'sucesso';
+                    $nome = '';
+                    $categoriaSelecionada = '';
+                    $unidadeSelecionada = '';
+                    $novaCategoria = '';
+                    $novaUnidade = '';
+                    $estoque = '';
+                    $estoqueMinimo = '';
+                }
             }
         }
+    } catch (Throwable $e) {
+        $conn->rollback();
+        error_log((string) $e);
+        $mensagem = 'Não foi possível cadastrar o produto. Nenhuma alteração foi salva.';
+        $tipoMensagem = 'erro';
     }
 }
 
@@ -214,6 +217,7 @@ $unidades = buscarUnidades($conn);
             <p class="cartao__legenda">Preencha os dados do item para adicioná-lo ao catálogo.</p>
 
             <form method="POST" class="formulario">
+                <?= campoCsrf() ?>
                 <div class="campo campo--largo">
                     <label class="campo__rotulo" for="nome">Nome do produto</label>
                     <input class="campo__controle" type="text" id="nome" name="nome" maxlength="100"

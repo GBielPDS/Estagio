@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'Preencha todos os campos.';
         $tipo_mensagem = 'erro';
     } else {
-        $sql = 'SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE email = ?';
+        $sql = 'SELECT id_usuario, nome, email, senha, tipo, ativo, versao_sessao FROM usuario WHERE email = ?';
 
         $stmt = $conn->prepare($sql);
 
@@ -39,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mensagem = 'Este usuário foi desativado. Entre em contato com o administrador do sistema.';
                     $tipo_mensagem = 'erro';
                 } elseif (password_verify($senha, (string) $usuario['senha'])) {
+                    session_regenerate_id(true);
+                    $_SESSION['versao_sessao'] = (int) $usuario['versao_sessao'];
                     $_SESSION['id_usuario'] = (int) $usuario['id_usuario'];
                     $_SESSION['nome'] = (string) $usuario['nome'];
                     $_SESSION['email'] = (string) $usuario['email'];
@@ -55,8 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
 
-                $mensagem = 'Email ou senha incorretos.';
-                $tipo_mensagem = 'erro';
+                if ($mensagem === '') {
+                    $mensagem = 'Email ou senha incorretos.';
+                    $tipo_mensagem = 'erro';
+                }
             } else {
                 $mensagem = 'Email ou senha incorretos.';
                 $tipo_mensagem = 'erro';
@@ -101,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="<?= htmlspecialchars((string) $_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8') ?>" id="formLogin">
+                <?= campoCsrf() ?>
 
             <div class="grupamento">
                 <label for="emailInput">E-mail</label>

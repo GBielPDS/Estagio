@@ -44,24 +44,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario_id = (int) $_SESSION['id_usuario'];
     $produtosRecebidos = (array) ($_POST['produtos'] ?? []);
     $produtos = [];
+    $itensInvalidos = false;
 
     foreach ($produtosRecebidos as $produto) {
         if (!is_array($produto) || !isset($produto['produto_id'], $produto['quantidade'])) {
+            $itensInvalidos = true;
             continue;
         }
 
-        $produto_id = (int) $produto['produto_id'];
-        $quantidade = (int) $produto['quantidade'];
+        $produto_id = filter_var($produto['produto_id'], FILTER_VALIDATE_INT);
+        $quantidade = filter_var($produto['quantidade'], FILTER_VALIDATE_INT);
 
         if ($produto_id > 0 && $quantidade > 0) {
             $produtos[] = [
                 'produto_id' => $produto_id,
                 'quantidade' => $quantidade
             ];
+        } else {
+            $itensInvalidos = true;
         }
     }
 
-    if (empty($produtos)) {
+    if ($itensInvalidos) {
+        $mensagem = 'Revise todos os itens: produto e quantidade devem ser inteiros positivos. Nenhum item foi salvo.';
+        $tipoMensagem = 'erro';
+    } elseif (empty($produtos)) {
         $mensagem = "Adicione pelo menos um produto.";
         $tipoMensagem = "erro";
     } else {
@@ -275,6 +282,7 @@ $stmtUnidades->close();
         <h2>Novo lançamento</h2>
 
         <form method="POST" id="form-lancamento">
+                <?= campoCsrf() ?>
 
             <div class="campo">
                 <label>Tipo de lançamento:</label>
@@ -439,13 +447,16 @@ function exibirMensagem(tipo, titulo, texto)
             <div class="modal-icone">
                 ${iconeHtml}
             </div>
-            <h3 class="modal-titulo">${titulo}</h3>
-            <p class="modal-texto">${texto}</p>
+            <h3 class="modal-titulo"></h3>
+            <p class="modal-texto"></p>
             <button type="button" class="modal-botao" onclick="${acaoClique}">
                 ${textoBotao}
             </button>
         </div>
     `;
+
+    overlay.querySelector('.modal-titulo').textContent = titulo;
+    overlay.querySelector('.modal-texto').textContent = texto;
 
     overlay.addEventListener('click', function(e) {
         if (e.target === overlay && !isSucesso) {
@@ -686,15 +697,7 @@ function adicionarProduto()
                 Selecione um produto
             </option>
 
-            <?php foreach ($produtosCatalogo as $produto): ?>
-                <option
-                    value="<?= (int) $produto['id_produto'] ?>"
-                    data-estoque="<?= (int) $produto['estoque'] ?>"
-                >
-                    <?= htmlspecialchars((string) $produto['nome'], ENT_QUOTES, 'UTF-8') ?>
-                    — Estoque: <?= (int) $produto['estoque'] ?> <?= htmlspecialchars((string) $produto['unidade'], ENT_QUOTES, 'UTF-8') ?>
-                </option>
-            <?php endforeach; ?>
+
         </select>
 
         <input
@@ -716,6 +719,7 @@ function adicionarProduto()
         <div class="produto-item__info"></div>
     `;
 
+    div.querySelector('.select-produto').innerHTML = document.querySelector('.select-produto').innerHTML;
     container.appendChild(div);
     contadorProdutos++;
 
