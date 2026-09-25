@@ -45,7 +45,66 @@ function buscarLogs(
             FROM log l
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-            WHERE 1 = 1";
+            WHERE l.acao <> 'Login'";
+
+    $parametros = [];
+    $tipos = "";
+
+    if ($dataInicio !== '') {
+        $sql .= " AND l.data_hora >= ?";
+        $parametros[] = $dataInicio . " 00:00:00";
+        $tipos .= "s";
+    }
+
+    if ($dataFim !== '') {
+        $sql .= " AND l.data_hora <= ?";
+        $parametros[] = $dataFim . " 23:59:59";
+        $tipos .= "s";
+    }
+
+    if ($usuario !== '') {
+        $sql .= " AND l.usuario_id = ?";
+        $parametros[] = (int) $usuario;
+        $tipos .= "i";
+    }
+
+    $sql .= " ORDER BY
+                l.data_hora DESC,
+                l.id_log DESC
+              LIMIT 300";
+
+    $stmt = $conn->prepare($sql);
+
+    if (!$stmt) {
+        return false;
+    }
+
+    if (!empty($parametros)) {
+        $stmt->bind_param($tipos, ...$parametros);
+    }
+
+    $stmt->execute();
+
+    return $stmt->get_result();
+}
+
+function buscarHistoricoLogin(
+    mysqli $conn,
+    string $dataInicio = '',
+    string $dataFim = '',
+    string $usuario = ''
+): mysqli_result|false {
+
+    $sql = "SELECT
+                l.id_log,
+                l.data_hora,
+                l.descricao,
+                l.usuario_id,
+                u.nome AS usuario
+            FROM log l
+            INNER JOIN usuario u
+                ON u.id_usuario = l.usuario_id
+            WHERE l.acao = 'Login'";
 
     $parametros = [];
     $tipos = "";
