@@ -26,6 +26,9 @@ try {
     $stmt = $conn->prepare("INSERT INTO usuario(nome,email,senha,tipo) VALUES ('Admin','admin@teste.local',?,'Administrador')");
     $stmt->bind_param('s', $hash); $stmt->execute();
     $_SESSION = ['id_usuario' => 1, 'versao_sessao' => 1];
+    conferir(!alterarConta($conn, 1, ['email'=>'novo@teste.local'], true)['sucesso'], 'perfil não altera e-mail pelo serviço');
+    conferir(!atualizarUsuario($conn, 1, 'Admin', 'novo@teste.local', '', 'Administrador', 1)['sucesso'], 'edição administrativa comum não contorna correção protegida');
+    conferir(buscarUsuarioPorId($conn, 1)['email'] === 'admin@teste.local', 'identificador preservado nas tentativas diretas');
     conferir(!excluirUsuario($conn, 1)['sucesso'], 'autodesativação bloqueada');
     conferir(!atualizarUsuario($conn, 1, 'Admin', 'admin@teste.local', '', 'Usuario', 1)['sucesso'], 'último administrador preservado');
     conferir(!cadastrarUsuario($conn, 'X', 'invalido', 'Senha123!', 'Usuario')['sucesso'], 'e-mail inválido rejeitado');

@@ -15,7 +15,7 @@ function erroUsuario(Throwable $e): array
 {
     if ($e instanceof DomainException) return ['sucesso' => false, 'mensagem' => $e->getMessage()];
     if ($e instanceof mysqli_sql_exception && $e->getCode() === 1062) return ['sucesso' => false, 'mensagem' => 'Este e-mail já está cadastrado, inclusive entre as contas desativadas.'];
-    error_log((string) $e);
+    error_log('Falha em operação de usuário. Código: ' . $e->getCode());
     return ['sucesso' => false, 'mensagem' => 'Não foi possível concluir a operação. Nenhuma alteração foi salva.'];
 }
 
@@ -77,11 +77,11 @@ function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
     }
 
     if ($status === 'inativos') {
-        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 0 ORDER BY nome";
+        $sql = "SELECT id_usuario, nome, email, tipo, ativo FROM usuario WHERE ativo = 0 ORDER BY nome";
     } elseif ($status === 'todos') {
-        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario ORDER BY nome";
+        $sql = "SELECT id_usuario, nome, email, tipo, ativo FROM usuario ORDER BY nome";
     } else {
-        $sql = "SELECT id_usuario, nome, email, senha, tipo, ativo FROM usuario WHERE ativo = 1 ORDER BY nome";
+        $sql = "SELECT id_usuario, nome, email, tipo, ativo FROM usuario WHERE ativo = 1 ORDER BY nome";
     }
 
     $resultado = $conn->query($sql);
@@ -99,14 +99,16 @@ function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
     while ($usuario = $resultado->fetch_assoc()) {
         $idUser = (int) $usuario['id_usuario'];
         $nomeUser = htmlspecialchars((string) $usuario['nome'], ENT_QUOTES, 'UTF-8');
-        $emailUser = htmlspecialchars((string) $usuario['email'], ENT_QUOTES, 'UTF-8');
+        $emailUser = htmlspecialchars(mascararEmail((string) $usuario['email']), ENT_QUOTES, 'UTF-8');
         $tipoUser = htmlspecialchars((string) $usuario['tipo'], ENT_QUOTES, 'UTF-8');
         $estaAtivo = ((int) ($usuario['ativo'] ?? 1)) === 1;
 
         echo "<tr>";
         echo "<td>" . $idUser . "</td>";
         echo "<td>" . $nomeUser . "</td>";
-        echo "<td>" . $emailUser . "</td>";
+        echo "<td>" . $emailUser;
+        if (($_SESSION['tipo'] ?? '') === 'Administrador') echo " <a href='editar_usuario.php?id={$idUser}#email-protegido'>Visualizar e-mail</a>";
+        echo "</td>";
         echo "<td>••••••••</td>";
         echo "<td>" . $tipoUser . "</td>";
 
@@ -175,11 +177,14 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         if (!$perfil && $autor['tipo'] !== 'Administrador') {
             if ($autor['tipo'] !== 'Suporte' || $antigo['tipo'] !== 'Usuario' || (int) $antigo['ativo'] !== 1
                 || $id === (int) $autor['id_usuario'] || array_diff(array_keys($dados), ['nome', 'email', 'senha'])) {
-                throw new DomainException('Acesso negado: suporte só pode editar nome, e-mail e senha de usuários comuns ativos.');
+                throw new DomainException('Acesso negado: suporte só pode editar nome e senha de usuários comuns ativos.');
             }
         }
         $nome = trim($dados['nome'] ?? $antigo['nome']);
-        $email = trim($dados['email'] ?? $antigo['email']);
+        $email = $antigo['email'];
+        if (isset($dados['email']) && trim($dados['email']) !== $email) {
+            throw new DomainException('Use a correção protegida de e-mail, exclusiva do administrador.');
+        }
         $tipo = $perfil ? $antigo['tipo'] : ($dados['tipo'] ?? $antigo['tipo']);
         $ativo = $perfil ? (int) $antigo['ativo'] : ($dados['ativo'] ?? (int) $antigo['ativo']);
         $senha = $dados['senha'] ?? '';
@@ -191,8 +196,8 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         $versao = (int) $antigo['versao_sessao'];
         if ($senha !== '' || $ativo !== (int) $antigo['ativo']) $versao++;
         $hash = $senha !== '' ? password_hash($senha, PASSWORD_DEFAULT) : $antigo['senha'];
-        $stmt = $conn->prepare('UPDATE usuario SET nome=?, email=?, senha=?, tipo=?, ativo=?, versao_sessao=? WHERE id_usuario=?');
-        $stmt->bind_param('ssssiii', $nome, $email, $hash, $tipo, $ativo, $versao, $id); $stmt->execute(); $stmt->close();
+        $stmt = $conn->prepare('UPDATE usuario SET nome=?, senha=?, tipo=?, ativo=?, versao_sessao=? WHERE id_usuario=?');
+        $stmt->bind_param('sssiii', $nome, $hash, $tipo, $ativo, $versao, $id); $stmt->execute(); $stmt->close();
         $eventos = [];
         if ($ativo !== (int) $antigo['ativo']) $eventos[] = $ativo === 1 ? 'Reativação de usuário' : 'Desativação de usuário';
         if ($tipo !== $antigo['tipo']) $eventos[] = 'Alteração de perfil: ' . $antigo['tipo'] . ' para ' . $tipo;
@@ -201,7 +206,18 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         foreach ($eventos as $evento) {
             if (!registrarLog($conn, $evento, "Conta afetada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
         }
+        if ($senha !== '' || $tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo']) {
+            // Compatibilidade durante a implantação: operações comuns continuam sem a migração 002.
+            $tabela = $conn->query("SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='confirmacao_identidade'");
+            if ($tabela->num_rows > 0) {
+                $stmt = $conn->prepare('UPDATE confirmacao_identidade SET revisao=revisao+1 WHERE usuario_id=?');
+                $stmt->bind_param('i', $id); $stmt->execute(); $stmt->close();
+            }
+        }
         $conn->commit();
+        if ($id === (int) $autor['id_usuario'] && ($senha !== '' || $tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo'])) {
+            unset($_SESSION['confirmacoes_identidade'], $_SESSION['historico_login_autorizado'], $_SESSION['historico_login_autorizado_em']);
+        }
         if ($perfil) {
             $_SESSION['versao_sessao'] = $versao;
             $_SESSION['nome'] = $nome; $_SESSION['email'] = $email;
@@ -228,4 +244,65 @@ function reativarUsuario(mysqli $conn, int $id): array { return alterarConta($co
 function atualizarCadastroUsuario(mysqli $conn, int $id, string $nome, string $email, string $senha = ''): array
 {
     return alterarConta($conn, $id, compact('nome', 'email', 'senha'));
+}
+
+// A máscara é produzida no servidor; o endereço completo não vai para o HTML comum.
+function mascararEmail(string $email): string
+{
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return '***@***';
+    [$local, $dominio] = explode('@', $email, 2);
+    $partes = explode('.', $dominio);
+    $sufixo = count($partes) > 1 ? '.' . end($partes) : '';
+    return substr($local, 0, 1) . '***@' . substr($dominio, 0, 1) . '***' . $sufixo;
+}
+
+function consultarEmailUsuario(mysqli $conn, int $id): array
+{
+    try {
+        $conn->begin_transaction();
+        $usuarios = bloquearUsuarios($conn);
+        $autor = autorUsuario($usuarios, true);
+        if (!identidadeConfirmada($conn, 'consultar_email')) throw new DomainException('Confirme sua senha para visualizar o e-mail.');
+        $alvo = $usuarios[$id] ?? null;
+        if (!$alvo) throw new DomainException('Usuário não encontrado.');
+        if (!registrarLog($conn, 'Consulta de e-mail', "Conta consultada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
+        $conn->commit();
+        return ['sucesso'=>true, 'email'=>$alvo['email'], 'mensagem'=>'E-mail consultado.'];
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return erroUsuario($e);
+    }
+}
+
+function corrigirEmailUsuario(mysqli $conn, int $id, string $email, string $senhaAutor): array
+{
+    // Confirmação nova em toda operação: nunca reaproveita a autorização de consulta.
+    $confirmacao = confirmarIdentidade($conn, 'corrigir_email', $senhaAutor);
+    if (!$confirmacao['sucesso']) return $confirmacao;
+    try {
+        $conn->begin_transaction();
+        $usuarios = bloquearUsuarios($conn);
+        $autor = autorUsuario($usuarios, true);
+        if (!identidadeConfirmada($conn, 'corrigir_email')) throw new DomainException('Confirme sua identidade novamente.');
+        $alvo = $usuarios[$id] ?? null;
+        if (!$alvo) throw new DomainException('Usuário não encontrado.');
+        $email = trim($email);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) throw new DomainException('Informe um e-mail válido com até 100 caracteres.');
+        if ($email === $alvo['email']) throw new DomainException('O e-mail informado já é o atual.');
+        $stmt = $conn->prepare('SELECT id_usuario FROM usuario WHERE email=? AND id_usuario<>?');
+        $stmt->bind_param('si', $email, $id); $stmt->execute();
+        $duplicado = $stmt->get_result()->num_rows > 0; $stmt->close();
+        if ($duplicado) throw new DomainException('Este e-mail já está cadastrado, inclusive entre as contas desativadas.');
+        $stmt = $conn->prepare('UPDATE usuario SET email=? WHERE id_usuario=?');
+        $stmt->bind_param('si', $email, $id); $stmt->execute(); $stmt->close();
+        if (!registrarLog($conn, 'Correção de e-mail', "Conta afetada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
+        $conn->commit();
+        if ($id === (int) $autor['id_usuario']) $_SESSION['email'] = $email;
+        return ['sucesso'=>true, 'mensagem'=>'E-mail corrigido. O novo endereço deve ser usado no próximo login.'];
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return erroUsuario($e);
+    } finally {
+        unset($_SESSION['confirmacoes_identidade']['corrigir_email']);
+    }
 }

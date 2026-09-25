@@ -7,6 +7,8 @@ require_once "../script/conexao.php";
 require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
+header('Cache-Control: no-store, private, max-age=0');
+header('Pragma: no-cache');
 verificarSessao();
 verificarTipo(['Administrador', 'Suporte']);
 
@@ -17,7 +19,7 @@ $visualizacao = ($_GET['visualizacao'] ?? 'logs') === 'login'
 
 
 if ($visualizacao === 'login' && ($_SESSION['tipo'] ?? '') !== 'Administrador') {
-    $visualizacao = 'logs';
+    respostaAcesso(403, 'Acesso negado.');
 }
 
 $dataInicio = (string) ($_GET['data_inicio'] ?? '');
@@ -25,85 +27,23 @@ $dataFim = (string) ($_GET['data_fim'] ?? '');
 $filtroUsuario = (string) ($_GET['usuario'] ?? '');
 
 
-$historicoAutorizado = false;
-
-if (
-    ($_SESSION['historico_login_autorizado'] ?? false) === true &&
-    isset($_SESSION['historico_login_autorizado_em']) &&
-    (time() - (int) $_SESSION['historico_login_autorizado_em']) <= 300
-) {
-    $historicoAutorizado = true;
-}
-
 $mensagem = '';
 $tipoMensagem = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    if (isset($_POST['confirmar_historico_login'])) {
-
-        $senha = (string) ($_POST['senha_confirmacao'] ?? '');
-
-        $idAdministrador = (int) $_SESSION['id_usuario'];
-
-        $sql = "SELECT senha
-                FROM usuario
-                WHERE id_usuario = ?
-                AND tipo = 'Administrador'
-                AND ativo = TRUE";
-
-        $stmt = $conn->prepare($sql);
-
-        if (!$stmt) {
-
-            $mensagem = 'Não foi possível verificar sua senha.';
-            $tipoMensagem = 'erro';
-
-        } else {
-
-            $stmt->bind_param('i', $idAdministrador);
-            $stmt->execute();
-
-            $resultado = $stmt->get_result();
-            $administrador = $resultado->fetch_assoc();
-
-            $stmt->close();
-
-            if (
-                $administrador &&
-                password_verify(
-                    $senha,
-                    (string) $administrador['senha']
-                )
-            ) {
-
-                $_SESSION['historico_login_autorizado'] = true;
-                $_SESSION['historico_login_autorizado_em'] = time();
-
-                registrarLog(
-                    $conn,
-                    'Acesso ao histórico de login',
-                    'Administrador ' .
-                    (string) $_SESSION['nome'] .
-                    ' acessou o histórico de login.',
-                    $idAdministrador
-                );
-
-                header(
-                    'Location: logs.php?visualizacao=login'
-                );
-
-                exit;
-
-            } else {
-
-                $mensagem = 'Senha incorreta.';
-                $tipoMensagem = 'erro';
-            }
-        }
+    verificarTipo(['Administrador']);
+    if (!isset($_POST['confirmar_historico_login'])) respostaAcesso(400, 'Operação inválida.');
+    $visualizacao = 'login';
+    $resultado = confirmarIdentidade($conn, 'historico_autenticacao', (string) ($_POST['senha_confirmacao'] ?? ''));
+    if ($resultado['sucesso']) {
+        header('Location: logs.php?visualizacao=login');
+        exit;
     }
+    http_response_code($resultado['status']);
+    if (!empty($resultado['espera'])) header('Retry-After: ' . (int) $resultado['espera']);
+    $mensagem = $resultado['mensagem'];
+    $tipoMensagem = 'erro';
 }
-
+$historicoAutorizado = $visualizacao === 'login' && identidadeConfirmada($conn, 'historico_autenticacao');
 
 $resultadoUsuarios = buscarUsuariosLogs($conn);
 
@@ -201,7 +141,7 @@ if ($visualizacao === 'logs') {
                 <h2 class="cartao__titulo">
 
                     <?= $visualizacao === 'login'
-                        ? 'Histórico de login'
+                        ? 'Histórico de autenticação'
                         : 'Logs do sistema'
                     ?>
 
@@ -244,7 +184,7 @@ if ($visualizacao === 'logs') {
                             ? 'botao--primario'
                             : 'botao--secundario' ?>"
                     >
-                        Histórico de login
+                        Histórico de autenticação
                     </a>
 
                 <?php endif; ?>
@@ -270,7 +210,7 @@ if ($visualizacao === 'logs') {
                         </h2>
 
                         <p class="cartao__descricao">
-                            Para acessar o histórico de login,
+                            Para acessar o histórico de autenticação,
                             confirme sua senha de administrador.
                         </p>
 
@@ -572,6 +512,7 @@ if ($visualizacao === 'logs') {
 
                                 <th>DATA</th>
                                 <th>USUÁRIO</th>
+                                <th>EVENTO</th>
                                 <th>DESCRIÇÃO</th>
 
                             </tr>
@@ -588,11 +529,11 @@ if ($visualizacao === 'logs') {
                                 <tr>
 
                                     <td
-                                        colspan="3"
+                                        colspan="4"
                                         class="tabela__vazio"
                                         style="text-align: center;"
                                     >
-                                        Nenhum login encontrado.
+                                        Nenhum evento de autenticação encontrado.
                                     </td>
 
                                 </tr>
@@ -622,6 +563,7 @@ if ($visualizacao === 'logs') {
                                             ) ?>
                                         </td>
 
+                                        <td><?= htmlspecialchars((string) $login['acao'], ENT_QUOTES, 'UTF-8') ?></td>
                                         <td>
                                             <?= htmlspecialchars(
                                                 (string) (

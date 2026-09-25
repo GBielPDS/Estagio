@@ -93,3 +93,43 @@ Esta atualização não precisa de migração. Os testes HTTP usam bancos tempor
 
 
 O Suporte também pode redefinir a senha de usuários comuns ativos. Campo vazio mantém a senha; senha nova segue o limite de 8 a 72 bytes, invalida as sessões anteriores e gera auditoria específica, sem senha ou hash na descrição. Administradores, outros suportes e contas inativas continuam fora dessa permissão. A própria senha é alterada em Meu Perfil.
+
+
+## Confirmação de identidade — etapa 1
+
+O histórico de autenticação é exclusivo de administrador e exige a própria senha. A confirmação dura cinco minutos e está vinculada ao usuário, à versão de sessão, ao perfil, à finalidade e à revisão de autorização no banco. Autorizar esse histórico não libera outras finalidades. A auditoria de liberação precisa ser gravada antes da concessão; ela registra uma janela de consulta, não cada filtro consultado.
+
+Login, Logout, acesso ao histórico e falhas/bloqueios de confirmação ficam no histórico protegido, fora dos logs operacionais do Suporte. Dados já exibidos não são apagados pela expiração. As respostas de logs usam `Cache-Control: no-store`; isso não impede cópias ou capturas de tela por pessoas autorizadas.
+
+Após cinco senhas incorretas em uma janela móvel de quinze minutos, novas confirmações ficam bloqueadas por quinze minutos a partir do quinto erro, inclusive em outros navegadores. Conta, finalidade operacional e login normal não são desativados pelo bloqueio. Sucesso zera as falhas anteriores. O contador é associado à conta e protegido por transação/bloqueio de linha. Durante bloqueio, pedidos adicionais não criam logs nem prolongam o prazo. Até cinco erros são auditados por ciclo; se o log falhar, o contador persiste e o acesso continua negado. Auditoria de sucesso indisponível impede qualquer liberação.
+
+Novo login e logout removem autorizações daquela sessão. Alterações de senha, perfil ou status revogam liberações anteriores nas demais sessões pela revisão persistente. A proteção não revoga uma resposta que já foi entregue.
+
+### Migração 002 (a aplicar separadamente no banco de uso)
+
+Arquivo: `bd/migracoes/002-confirmacao-identidade.sql`. Cria somente a tabela InnoDB `confirmacao_identidade`, com uma linha por conta que tenta confirmar: ID do usuário, horários das últimas falhas, término do bloqueio e revisão da autorização. Não contém senhas, hashes, e-mails ou cópia do histórico. O SQL é repetível (`IF NOT EXISTS`) e não altera contas ou logs. Instalações novas já recebem a tabela em `bd/criar-bd.sql`.
+
+O comando `php bd/administrar.php migrar` aplica também essa migração, além da coluna de versão de sessão se estiver faltando. Escolha um caminho: comando ou execução do SQL no banco correto. Preserve um backup conforme o procedimento de implantação.
+
+Antes de aplicar a migração, o login e as funções comuns continuam disponíveis; confirmar o histórico apresenta indisponibilidade e não libera dados. As antigas liberações do histórico não são aproveitadas. A criação dessa tabela no banco real não é executada automaticamente ao abrir o site.
+
+Testes existentes foram ampliados com bancos temporários: migração repetida, ausência de estrutura, autorização no servidor, expiração simulada, escopo, novo login, troca de senha, mudança de perfil, limite entre sessões e concorrência, falha de auditoria e regressões dos módulos. E-mails e suas permissões ainda não foram alterados nesta etapa; criptografia também não foi implementada. Estas medidas não constituem declaração de adequação integral à LGPD.
+
+
+## Proteção de e-mails — etapa 2
+
+Esta seção substitui descrições anteriores que permitiam editar e-mail em Meu Perfil ou pelo Suporte. A edição comum mantém nome e senha; perfil/status continuam exclusivos do administrador. Cadastro de uma nova conta continua recebendo o e-mail inicial.
+
+- O próprio e-mail permanece visível em Meu Perfil para todos os perfis, sem campo para alterá-lo. Administrador tem link para corrigir o próprio endereço no fluxo protegido.
+- Listagem e edição comum mostram apenas máscara produzida no servidor. Não enviam o endereço completo em atributos, campos ocultos ou scripts. A máscara não é anonimização: continua sendo dado pessoal parcialmente oculto.
+- Em `pages/editar_usuario.php`, somente administrador pode consultar e corrigir endereços, inclusive de contas inativas. Suporte mantém edição de nome e redefinição de senha somente de usuários comuns ativos.
+- Consultar exige a própria senha do administrador, com autorização de cinco minutos na finalidade `consultar_email`. Cada clique de consulta passa por POST com CSRF, verifica o acesso atual e registra o ID da conta consultada antes de devolver o endereço. Abrir a página por GET mantém a máscara mesmo durante a autorização.
+- Corrigir exige a própria senha em toda operação (`corrigir_email`), sem aproveitar autorizações anteriores. A autorização transitória é consumida mesmo em caso de falha. Formato/tamanho e duplicidade incluindo contas inativas são validados; alteração e auditoria ficam na mesma transação. Não há envio de e-mail nem comprovação de titularidade do endereço nesta etapa.
+- O novo endereço passa a valer no próximo login. A correção não encerra sessões existentes; Meu Perfil lê o endereço atualizado. Senhas, perfis e status mantêm as regras de invalidação anteriores.
+- Confirmação do histórico, consulta de e-mail e correção de e-mail são finalidades diferentes. Compartilham o limite persistente de cinco erros em quinze minutos; bloqueio de quinze minutos afeta confirmações sensíveis, não o login normal.
+- Eventos de confirmação, consulta e correção ficam no histórico protegido de autenticação, fora do histórico operacional do Suporte. Descrições registram finalidade/ID, nunca os endereços antigo e novo, senhas ou hashes. Erros do serviço de usuários registram somente código, sem argumentos de chamadas.
+- Páginas de usuários, edição e perfil enviam `Cache-Control: no-store`. Expirar a autorização não apaga informações já exibidas ou copiadas.
+
+Não há migração nova nesta etapa: reutiliza `confirmacao_identidade`, criada pela migração 002. Cada instalação existente precisa dessa migração; receber arquivos pelo Git não altera o banco automaticamente. E-mails permanecem armazenados como antes, sem criptografia de campo. Esta etapa não representa adequação completa à LGPD.
+
+Testes automatizados usam exclusivamente bancos temporários: verificam ausência de e-mail completo nas respostas comuns, hierarquia, POST forjado, CSRF, escopos e expiração, senha em cada correção, endereço duplicado/inativo, atualização do login, correção do próprio administrador e rollback por falha de auditoria.

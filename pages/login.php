@@ -58,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tipo_mensagem = 'erro';
 
                 } else {
+                    limparConfirmacoesIdentidade();
                     session_regenerate_id(true);
                     $_SESSION['versao_sessao'] = (int) $usuario['versao_sessao'];
 

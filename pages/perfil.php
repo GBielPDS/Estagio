@@ -8,6 +8,8 @@ require_once '../script/funcoes_usuarios.php';
 require_once '../script/funcoes_logs.php';
 require_once '../script/sidebar.php';
 
+header('Cache-Control: no-store, private, max-age=0');
+header('Pragma: no-cache');
 verificarSessao();
 
 $idUsuario = (int) $_SESSION['id_usuario'];
@@ -22,7 +24,7 @@ $tipoMensagem = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = trim((string) ($_POST['nome'] ?? ''));
-    $email = trim((string) ($_POST['email'] ?? ''));
+    if (array_key_exists('email', $_POST)) respostaAcesso(403, 'A correção do e-mail deve ser feita pelo administrador no fluxo protegido.');
     $senha = (string) ($_POST['senha'] ?? '');
     $confirmarSenha = (string) ($_POST['confirmar_senha'] ?? '');
 
@@ -30,11 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem = 'As senhas não coincidem.';
         $tipoMensagem = 'erro';
     } else {
-        $resultado = atualizarPerfilUsuario($conn, $idUsuario, $nome, $email, $senha);
+        $resultado = alterarConta($conn, $idUsuario, compact('nome', 'senha'), true);
 
         if ($resultado['sucesso']) {
             $_SESSION['nome'] = $nome;
-            $_SESSION['email'] = $email;
             $mensagem = (string) $resultado['mensagem'];
             $tipoMensagem = 'sucesso';
             $usuario = buscarUsuarioPorId($conn, $idUsuario);
@@ -97,10 +98,9 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
                     <input class="campo__controle" type="text" id="nome" name="nome" value="<?= htmlspecialchars((string) ($usuario['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
                 </div>
 
-                <div class="campo">
-                    <label class="campo__rotulo" for="email">E-mail <span class="obrigatorio">*</span></label>
-                    <input class="campo__controle" type="email" id="email" name="email" value="<?= htmlspecialchars((string) ($usuario['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required>
-                </div>
+                <p>Para corrigir seu e-mail, solicite ao administrador.
+                    <?php if ($_SESSION['tipo'] === 'Administrador'): ?><a href="editar_usuario.php?id=<?= $idUsuario ?>#email-protegido">Abrir correção protegida</a><?php endif; ?>
+                </p>
 
                 <div class="campo">
                     <label class="campo__rotulo" for="senha">Nova senha</label>

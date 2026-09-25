@@ -2,6 +2,10 @@
 
 > Atualização: a instalação vigente usa `bd/administrar.php` pelo terminal. O antigo setup web foi removido. Consulte [Atualização de segurança](ATUALIZACAO_SEGURANCA.md) para o procedimento atual; essa nota prevalece sobre descrições anteriores de instalação e contas.
 
+### Histórico de autenticação e confirmação de identidade
+
+O Suporte consulta logs operacionais. Eventos Login/Logout e eventos de confirmação ficam no histórico de autenticação exclusivo do administrador, com confirmação da própria senha válida por cinco minutos. Há limite persistente de cinco erros em quinze minutos e bloqueio de quinze minutos a partir do quinto erro. A migração `002-confirmacao-identidade.sql` é necessária; sem ela, a confirmação fica indisponível, sem bloquear operações comuns. Veja [procedimentos e limites](ATUALIZACAO_SEGURANCA.md#confirmação-de-identidade--etapa-1). A tabela de permissões abaixo deve ser interpretada com essa distinção entre logs operacionais e autenticação.
+
 ### Permissões vigentes
 
 O Suporte agora consulta usuários e logs, edita nome/e-mail e redefine senha de usuários comuns ativos, cadastra/edita UBS e edita dados e mínimo de produtos. Controle de acesso, status de unidades, edição da Secretaria e ajustes de saldo continuam administrativos. A tabela completa está em [Permissões do Suporte](ATUALIZACAO_SEGURANCA.md#permissões-do-suporte) e prevalece sobre descrições antigas abaixo. Não houve mudança de estrutura do banco.
@@ -411,3 +415,22 @@ Para o técnico de TI que precisar dar manutenção, esta seção documenta os p
 
 
 O Suporte também pode redefinir a senha de usuários comuns ativos. Campo vazio mantém a senha; senha nova segue o limite de 8 a 72 bytes, invalida as sessões anteriores e gera auditoria específica, sem senha ou hash na descrição. Administradores, outros suportes e contas inativas continuam fora dessa permissão. A própria senha é alterada em Meu Perfil.
+
+
+## Proteção de e-mails — etapa 2
+
+Esta seção substitui descrições anteriores que permitiam editar e-mail em Meu Perfil ou pelo Suporte. A edição comum mantém nome e senha; perfil/status continuam exclusivos do administrador. Cadastro de uma nova conta continua recebendo o e-mail inicial.
+
+- O próprio e-mail permanece visível em Meu Perfil para todos os perfis, sem campo para alterá-lo. Administrador tem link para corrigir o próprio endereço no fluxo protegido.
+- Listagem e edição comum mostram apenas máscara produzida no servidor. Não enviam o endereço completo em atributos, campos ocultos ou scripts. A máscara não é anonimização: continua sendo dado pessoal parcialmente oculto.
+- Em `pages/editar_usuario.php`, somente administrador pode consultar e corrigir endereços, inclusive de contas inativas. Suporte mantém edição de nome e redefinição de senha somente de usuários comuns ativos.
+- Consultar exige a própria senha do administrador, com autorização de cinco minutos na finalidade `consultar_email`. Cada clique de consulta passa por POST com CSRF, verifica o acesso atual e registra o ID da conta consultada antes de devolver o endereço. Abrir a página por GET mantém a máscara mesmo durante a autorização.
+- Corrigir exige a própria senha em toda operação (`corrigir_email`), sem aproveitar autorizações anteriores. A autorização transitória é consumida mesmo em caso de falha. Formato/tamanho e duplicidade incluindo contas inativas são validados; alteração e auditoria ficam na mesma transação. Não há envio de e-mail nem comprovação de titularidade do endereço nesta etapa.
+- O novo endereço passa a valer no próximo login. A correção não encerra sessões existentes; Meu Perfil lê o endereço atualizado. Senhas, perfis e status mantêm as regras de invalidação anteriores.
+- Confirmação do histórico, consulta de e-mail e correção de e-mail são finalidades diferentes. Compartilham o limite persistente de cinco erros em quinze minutos; bloqueio de quinze minutos afeta confirmações sensíveis, não o login normal.
+- Eventos de confirmação, consulta e correção ficam no histórico protegido de autenticação, fora do histórico operacional do Suporte. Descrições registram finalidade/ID, nunca os endereços antigo e novo, senhas ou hashes. Erros do serviço de usuários registram somente código, sem argumentos de chamadas.
+- Páginas de usuários, edição e perfil enviam `Cache-Control: no-store`. Expirar a autorização não apaga informações já exibidas ou copiadas.
+
+Não há migração nova nesta etapa: reutiliza `confirmacao_identidade`, criada pela migração 002. Cada instalação existente precisa dessa migração; receber arquivos pelo Git não altera o banco automaticamente. E-mails permanecem armazenados como antes, sem criptografia de campo. Esta etapa não representa adequação completa à LGPD.
+
+Testes automatizados usam exclusivamente bancos temporários: verificam ausência de e-mail completo nas respostas comuns, hierarquia, POST forjado, CSRF, escopos e expiração, senha em cada correção, endereço duplicado/inativo, atualização do login, correção do próprio administrador e rollback por falha de auditoria.

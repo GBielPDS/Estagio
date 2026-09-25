@@ -31,6 +31,9 @@ try {
         if ($conn->query("SHOW COLUMNS FROM usuario LIKE 'versao_sessao'")->num_rows === 0) {
             $conn->query('ALTER TABLE usuario ADD COLUMN versao_sessao INT UNSIGNED NOT NULL DEFAULT 1');
         }
+        $migracao = file_get_contents(__DIR__ . '/migracoes/002-confirmacao-identidade.sql');
+        if ($migracao === false) throw new RuntimeException('Migração não encontrada.');
+        $conn->query($migracao);
         echo "Banco atualizado. Os dados existentes foram preservados.\n";
     } else {
         if ((int) $conn->query('SELECT COUNT(*) FROM usuario')->fetch_row()[0] !== 0) {

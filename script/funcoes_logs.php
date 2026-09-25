@@ -45,7 +45,7 @@ function buscarLogs(
             FROM log l
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-            WHERE l.acao <> 'Login'";
+            WHERE l.acao NOT IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Acesso ao histórico de autenticação', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Consulta de e-mail', 'Correção de e-mail')";
 
     $parametros = [];
     $tipos = "";
@@ -94,17 +94,22 @@ function buscarHistoricoLogin(
     string $dataFim = '',
     string $usuario = ''
 ): mysqli_result|false {
+    if (!function_exists('identidadeConfirmada') || !identidadeConfirmada($conn, 'historico_autenticacao')) {
+        throw new DomainException('Confirme sua identidade antes de consultar o histórico de autenticação.');
+    }
+
 
     $sql = "SELECT
                 l.id_log,
                 l.data_hora,
+                l.acao,
                 l.descricao,
                 l.usuario_id,
                 u.nome AS usuario
             FROM log l
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-            WHERE l.acao = 'Login'";
+            WHERE l.acao IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Acesso ao histórico de autenticação', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Consulta de e-mail', 'Correção de e-mail')";
 
     $parametros = [];
     $tipos = "";

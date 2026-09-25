@@ -8,6 +8,8 @@ require_once "../script/funcoes_usuarios.php";
 require_once "../script/funcoes_logs.php";
 require_once "../script/sidebar.php";
 
+header('Cache-Control: no-store, private, max-age=0');
+header('Pragma: no-cache');
 verificarSessao();
 verificarTipo(['Administrador', 'Suporte']);
 
