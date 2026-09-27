@@ -133,3 +133,58 @@ Esta seção substitui descrições anteriores que permitiam editar e-mail em Me
 Não há migração nova nesta etapa: reutiliza `confirmacao_identidade`, criada pela migração 002. Cada instalação existente precisa dessa migração; receber arquivos pelo Git não altera o banco automaticamente. E-mails permanecem armazenados como antes, sem criptografia de campo. Esta etapa não representa adequação completa à LGPD.
 
 Testes automatizados usam exclusivamente bancos temporários: verificam ausência de e-mail completo nas respostas comuns, hierarquia, POST forjado, CSRF, escopos e expiração, senha em cada correção, endereço duplicado/inativo, atualização do login, correção do próprio administrador e rollback por falha de auditoria.
+
+
+## Alteração protegida de senhas
+
+Esta seção substitui a orientação antiga de deixar a senha vazia na edição cadastral. Meu Perfil separa Salvar dados de Alterar minha senha. Editar usuário separa os dados da conta de Redefinir senha. Administrador que edita a própria conta recebe um link para Meu Perfil.
+
+- Troca própria exige senha atual, nova senha e confirmação. Administrador e Suporte confirmam a própria senha ao redefinir a de terceiros. Suporte continua limitado a usuários comuns ativos; não alcança administradores, outros suportes ou inativos.
+- As finalidades `alterar_propria_senha` e `redefinir_senha` não liberam consulta de e-mails ou histórico. Cada chamada confirma novamente o operador; a autorização transitória é removida ao terminar, inclusive após falhas. Não existe janela para várias trocas sem senha.
+- O limite persistente existente é compartilhado por conta do operador: cinco confirmações incorretas em quinze minutos bloqueiam novas confirmações por quinze minutos. Campos obrigatórios vazios e confirmação da nova senha diferente são erros de preenchimento, não tentativas de conferir a senha atual. Login e navegação comuns continuam disponíveis.
+- A operação revalida autor, alvo, hierarquia e autorização durante a transação. Nova senha continua com limite de 8 a 72 bytes e hash pelo mecanismo existente. Senha e auditoria são confirmadas juntas; falha da auditoria desfaz senha, versão de sessão e revisão de autorização.
+- Troca própria mantém a sessão usada, renova seu identificador e invalida outras sessões. Redefinição por terceiro invalida as sessões da conta atendida. As próximas solicitações detectam a invalidação. Autorizações sensíveis da conta afetada são revogadas.
+- A edição cadastral não escreve a coluna senha. Os formulários recusam campos de senha no caminho antigo; funções legadas recusam uma senha não vazia. Cadastro inicial de conta continua definindo a primeira senha.
+- A confirmação de identidade para senha fica no histórico protegido. Os eventos de troca/redefinição mantêm sua classificação anterior e registram somente ator e ID da conta, sem senha ou hash. Nenhum campo de senha é repopulado na resposta.
+
+Sem arquivos novos, sem nova migração: reutiliza a tabela da migração 002. Não há alteração automática das senhas existentes. Testes em bancos temporários cobrem formulários, CSRF, credencial do operador, hierarquia, limite de tentativas, invalidação de sessões, caminho antigo e rollback.
+
+
+## Apresentação e comprimento das senhas
+
+Os formulários de troca e redefinição apresentam nova senha e confirmação primeiro, com a senha atual do operador abaixo e botão no rodapé. Mensagens de erro aparecem no cartão da operação, sem instrução permanente sobre bytes.
+
+A validação compartilhada de senhas novas exige no mínimo oito caracteres visuais (grupos Unicode, contados com PCRE `\X`) e mantém o limite técnico de 72 bytes do hash atual. Mensagens: “A senha deve conter no mínimo 8 caracteres.” ou “A senha informada é muito longa.”. A regra alcança cadastro, inicialização e troca/redefinição; não revalida o comprimento de senhas existentes durante login ou confirmação. Sem migração.
+
+
+## Controle de visibilidade das senhas
+
+`script/senhas.js` é compartilhado por login, cadastro de usuário, perfil, edição de usuário e histórico. Cada campo inicia oculto, com botão próprio de mostrar/ocultar acessível por teclado, rótulo e estado para leitores de tela. O controle só alterna o tipo do input; não copia, armazena nem transmite seu valor. Mantém os atributos de preenchimento automático e a validação existente. Sem JavaScript, os formulários permanecem utilizáveis com campos ocultos.
+
+Ao sair do conjunto campo/botão, pressionar Escape, enviar/resetar formulário ou sair da janela/página, o texto volta a ser ocultado. A alternância de foco entre campo e botão permanece possível para usuários de teclado. Senhas já salvas no banco não podem ser visualizadas por esse recurso.
+
+Botão de alteração/redefinição ocupa a coluna ao lado da confirmação de identidade, alinhado pela base; em telas estreitas ocupa a linha seguinte inteira. Nenhuma regra de autorização ou banco foi alterada.
+
+
+## Reenvio e formulários desatualizados de contas
+
+Escopo: edição cadastral em Meu Perfil e Editar usuário, troca própria de senha, redefinição e correção de e-mail. Consulta de e-mail continua uma operação explícita de leitura auditada. Produtos, lançamentos e UBS não receberam esta proteção nesta etapa.
+
+- Cada formulário de alteração recebe um identificador aleatório de uso único, separado do CSRF, vinculado na sessão ao autor, versão da sessão, perfil, operação e alvo. Validade: 30 minutos; até 60 formulários abertos por sessão. O mais antigo é descartado se o limite for atingido. Duas abas normais recebem identificadores distintos.
+- O identificador é consumido antes de conferir a senha, inclusive se a tentativa resultar em erro. A resposta apresenta novos formulários para uma tentativa corrigida. Token ausente, usado, expirado, de outra finalidade ou alvo retorna conflito (409), sem contar erro de senha.
+- O estado esperado é uma impressão HMAC guardada somente na sessão. Inclui os dados atuais da conta e sua versão; senha/hash não são enviados ao navegador nem copiados para o registro do formulário. A comparação é conservadora: uma mudança em qualquer campo da conta exige revisão do formulário antigo. Não é um histórico de todas as mudanças intermediárias caso os dados voltem exatamente ao mesmo estado.
+- Nas operações sensíveis, a comparação preliminar acontece antes da confirmação de identidade; a conferência definitiva ocorre com as linhas bloqueadas na transação, antes de gravar. Edição cadastral também compara dentro da transação. Isso cobre concorrência entre sessões diferentes, além do bloqueio da sessão PHP entre pedidos da mesma sessão. As funções internas recebem o contexto esperado; as páginas protegidas sempre o exigem.
+- Sucesso usa redirecionamento 303 para GET, retornando ao cartão correto na mesma página. A mensagem temporária tem identificador próprio, página/alvo/ação e validade de três minutos; é lida uma vez. Atualizar a página não repete a gravação. Administrador que reduz o próprio perfil retorna a Meu Perfil.
+- Em erro, campos de senha permanecem vazios. Dados cadastrais comuns são preservados quando apropriado; em conflito são apresentados os dados atuais do banco. Nenhuma senha ou conteúdo do formulário é guardado na mensagem temporária.
+- Login, mudança de perfil detectada e troca própria de senha limpam os controles anteriores junto das confirmações sensíveis. Sessões invalidadas continuam sujeitas à verificação normal de acesso.
+
+Não há nova migração. Esta é uma proteção de formulários ligada à sessão e à comparação do estado existente, não uma fila persistente ou garantia geral de processamento único após falhas de infraestrutura. Tokens/mensagens perdidos exigem atualizar a página e conferir o estado salvo; não se deve repetir automaticamente uma operação incerta. Transações e auditoria continuam indivisíveis.
+
+Os testes HTTP incluem redirecionamento, mensagens isoladas por página/conta, repetição, token expirado, finalidade/alvo incorretos, duas abas, dados comuns preservados e falha de auditoria. Duas conexões PHP independentes testam concorrência de gravação do mesmo estado esperado. Todos usam bancos temporários.
+
+
+## Classificação dos eventos de consulta
+
+“Consulta de e-mail” e “Acesso ao histórico de autenticação” aparecem somente nos logs comuns, acessíveis a Administrador e Suporte. Esta regra substitui as descrições anteriores que colocavam esses dois eventos no histórico protegido. A mudança é no filtro de consulta: registros existentes não são alterados nem apagados.
+
+Login, Logout, o evento legado “Acesso ao histórico de login”, confirmações de identidade, tentativas recusadas/bloqueadas e correções de e-mail continuam na listagem protegida. A permissão de consultar o e-mail completo e o histórico de autenticação continua exclusiva do administrador com confirmação de identidade. O evento de acesso ao histórico registra a liberação da janela de cinco minutos, não cada visita/filtro.

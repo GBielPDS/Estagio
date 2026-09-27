@@ -8,11 +8,20 @@ function validarDadosUsuario(string $nome, string $email, string $senha, string 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) throw new DomainException('Informe um e-mail válido com até 100 caracteres.');
     if (!in_array($tipo, ['Administrador', 'Suporte', 'Usuario'], true)) throw new DomainException('Perfil inválido.');
     if (!in_array($ativo, [0, 1], true)) throw new DomainException('Status inválido.');
-    if (($senhaObrigatoria || $senha !== '') && (strlen($senha) < 8 || strlen($senha) > 72)) throw new DomainException('A senha deve ter entre 8 e 72 bytes (letras acentuadas podem ocupar mais de um byte).');
+    if ($senhaObrigatoria || $senha !== '') validarNovaSenha($senha);
+}
+
+function validarNovaSenha(string $senha): void
+{
+    $caracteres = preg_match_all('/\X/u', $senha);
+    if ($caracteres === false || str_contains($senha, "\0")) throw new DomainException('A senha contém caracteres inválidos.');
+    if ($caracteres < 8) throw new DomainException('A senha deve conter no mínimo 8 caracteres.');
+    if (strlen($senha) > 72) throw new DomainException('A senha informada é muito longa.');
 }
 
 function erroUsuario(Throwable $e): array
 {
+    if ($e instanceof FormularioContaException) return ['sucesso'=>false, 'status'=>409, 'mensagem'=>$e->getMessage()];
     if ($e instanceof DomainException) return ['sucesso' => false, 'mensagem' => $e->getMessage()];
     if ($e instanceof mysqli_sql_exception && $e->getCode() === 1062) return ['sucesso' => false, 'mensagem' => 'Este e-mail já está cadastrado, inclusive entre as contas desativadas.'];
     error_log('Falha em operação de usuário. Código: ' . $e->getCode());
@@ -107,7 +116,7 @@ function listarUsuarios(mysqli $conn, string|bool $status = 'ativos'): void
         echo "<td>" . $idUser . "</td>";
         echo "<td>" . $nomeUser . "</td>";
         echo "<td>" . $emailUser;
-        if (($_SESSION['tipo'] ?? '') === 'Administrador') echo " <a href='editar_usuario.php?id={$idUser}#email-protegido'>Visualizar e-mail</a>";
+        if (($_SESSION['tipo'] ?? '') === 'Administrador') echo " <a href='editar_usuario.php?id={$idUser}#consulta-email'>Visualizar e-mail</a>";
         echo "</td>";
         echo "<td>••••••••</td>";
         echo "<td>" . $tipoUser . "</td>";
@@ -165,7 +174,7 @@ function buscarUsuarioPorId(mysqli $conn, int $id): ?array
     return $usuario ?: null;
 }
 
-function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false): array
+function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false, ?array $formulario = null): array
 {
     try {
         $conn->begin_transaction();
@@ -174,6 +183,7 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         if ($perfil && $id !== (int) $autor['id_usuario']) throw new DomainException('Acesso negado.');
         $antigo = $usuarios[$id] ?? null;
         if (!$antigo) throw new DomainException('Usuário não encontrado.');
+        if ($formulario !== null) conferirEstadoFormularioConta($antigo, $formulario);
         if (!$perfil && $autor['tipo'] !== 'Administrador') {
             if ($autor['tipo'] !== 'Suporte' || $antigo['tipo'] !== 'Usuario' || (int) $antigo['ativo'] !== 1
                 || $id === (int) $autor['id_usuario'] || array_diff(array_keys($dados), ['nome', 'email', 'senha'])) {
@@ -187,26 +197,24 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
         }
         $tipo = $perfil ? $antigo['tipo'] : ($dados['tipo'] ?? $antigo['tipo']);
         $ativo = $perfil ? (int) $antigo['ativo'] : ($dados['ativo'] ?? (int) $antigo['ativo']);
-        $senha = $dados['senha'] ?? '';
-        validarDadosUsuario($nome, $email, $senha, $tipo, $ativo);
+        if (($dados['senha'] ?? '') !== '') throw new DomainException('Use o formulário protegido de senha.');
+        validarDadosUsuario($nome, $email, '', $tipo, $ativo);
         if (!$perfil && $id === (int) $autor['id_usuario'] && $ativo === 0) throw new DomainException('Você não pode desativar sua própria conta.');
         $admins = count(array_filter($usuarios, fn($u) => $u['tipo'] === 'Administrador' && (int) $u['ativo'] === 1));
         if ($antigo['tipo'] === 'Administrador' && (int) $antigo['ativo'] === 1 && ($tipo !== 'Administrador' || $ativo === 0) && $admins <= 1)
             throw new DomainException('É necessário manter pelo menos um administrador ativo.');
         $versao = (int) $antigo['versao_sessao'];
-        if ($senha !== '' || $ativo !== (int) $antigo['ativo']) $versao++;
-        $hash = $senha !== '' ? password_hash($senha, PASSWORD_DEFAULT) : $antigo['senha'];
-        $stmt = $conn->prepare('UPDATE usuario SET nome=?, senha=?, tipo=?, ativo=?, versao_sessao=? WHERE id_usuario=?');
-        $stmt->bind_param('sssiii', $nome, $hash, $tipo, $ativo, $versao, $id); $stmt->execute(); $stmt->close();
+        if ($ativo !== (int) $antigo['ativo']) $versao++;
+        $stmt = $conn->prepare('UPDATE usuario SET nome=?, tipo=?, ativo=?, versao_sessao=? WHERE id_usuario=?');
+        $stmt->bind_param('ssiii', $nome, $tipo, $ativo, $versao, $id); $stmt->execute(); $stmt->close();
         $eventos = [];
         if ($ativo !== (int) $antigo['ativo']) $eventos[] = $ativo === 1 ? 'Reativação de usuário' : 'Desativação de usuário';
         if ($tipo !== $antigo['tipo']) $eventos[] = 'Alteração de perfil: ' . $antigo['tipo'] . ' para ' . $tipo;
-        if ($senha !== '') $eventos[] = $perfil ? 'Troca da própria senha' : ($autor['tipo'] === 'Suporte' ? 'Redefinição de senha pelo suporte' : 'Redefinição de senha pelo administrador');
         if ($nome !== $antigo['nome'] || $email !== $antigo['email']) $eventos[] = 'Atualização cadastral';
         foreach ($eventos as $evento) {
             if (!registrarLog($conn, $evento, "Conta afetada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
         }
-        if ($senha !== '' || $tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo']) {
+        if ($tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo']) {
             // Compatibilidade durante a implantação: operações comuns continuam sem a migração 002.
             $tabela = $conn->query("SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='confirmacao_identidade'");
             if ($tabela->num_rows > 0) {
@@ -215,13 +223,12 @@ function alterarConta(mysqli $conn, int $id, array $dados, bool $perfil = false)
             }
         }
         $conn->commit();
-        if ($id === (int) $autor['id_usuario'] && ($senha !== '' || $tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo'])) {
+        if ($id === (int) $autor['id_usuario'] && ($tipo !== $antigo['tipo'] || $ativo !== (int) $antigo['ativo'])) {
             unset($_SESSION['confirmacoes_identidade'], $_SESSION['historico_login_autorizado'], $_SESSION['historico_login_autorizado_em']);
         }
         if ($perfil) {
             $_SESSION['versao_sessao'] = $versao;
             $_SESSION['nome'] = $nome; $_SESSION['email'] = $email;
-            if ($senha !== '' && session_status() === PHP_SESSION_ACTIVE) session_regenerate_id(true);
         } elseif ($id === (int) $autor['id_usuario']) {
             $_SESSION['tipo'] = $tipo;
         }
@@ -274,8 +281,15 @@ function consultarEmailUsuario(mysqli $conn, int $id): array
     }
 }
 
-function corrigirEmailUsuario(mysqli $conn, int $id, string $email, string $senhaAutor): array
+function corrigirEmailUsuario(mysqli $conn, int $id, string $email, string $senhaAutor, ?array $formulario = null): array
 {
+    if ($formulario !== null) {
+        try {
+            $atual = buscarUsuarioPorId($conn, $id);
+            if (!$atual) throw new DomainException('Usuário não encontrado.');
+            conferirEstadoFormularioConta($atual, $formulario);
+        } catch (Throwable $e) { return erroUsuario($e); }
+    }
     // Confirmação nova em toda operação: nunca reaproveita a autorização de consulta.
     $confirmacao = confirmarIdentidade($conn, 'corrigir_email', $senhaAutor);
     if (!$confirmacao['sucesso']) return $confirmacao;
@@ -286,6 +300,7 @@ function corrigirEmailUsuario(mysqli $conn, int $id, string $email, string $senh
         if (!identidadeConfirmada($conn, 'corrigir_email')) throw new DomainException('Confirme sua identidade novamente.');
         $alvo = $usuarios[$id] ?? null;
         if (!$alvo) throw new DomainException('Usuário não encontrado.');
+        if ($formulario !== null) conferirEstadoFormularioConta($alvo, $formulario);
         $email = trim($email);
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) throw new DomainException('Informe um e-mail válido com até 100 caracteres.');
         if ($email === $alvo['email']) throw new DomainException('O e-mail informado já é o atual.');
@@ -304,5 +319,59 @@ function corrigirEmailUsuario(mysqli $conn, int $id, string $email, string $senh
         return erroUsuario($e);
     } finally {
         unset($_SESSION['confirmacoes_identidade']['corrigir_email']);
+    }
+}
+
+// Toda chamada confirma novamente a senha do autor; nenhuma autorização antiga é aceita.
+function mudarSenhaUsuario(mysqli $conn, int $id, string $senhaAutor, string $novaSenha, string $confirmacao, bool $propria, ?array $formulario = null): array
+{
+    if ($formulario !== null) {
+        try {
+            $atual = buscarUsuarioPorId($conn, $id);
+            if (!$atual) throw new DomainException('Usuário não encontrado.');
+            conferirEstadoFormularioConta($atual, $formulario);
+        } catch (Throwable $e) { return erroUsuario($e); }
+    }
+    $finalidade = $propria ? 'alterar_propria_senha' : 'redefinir_senha';
+    unset($_SESSION['confirmacoes_identidade'][$finalidade]);
+    if ($senhaAutor === '' || $novaSenha === '' || $confirmacao === '') return ['sucesso'=>false, 'mensagem'=>'Preencha todos os campos de senha.'];
+    if ($novaSenha !== $confirmacao) return ['sucesso'=>false, 'mensagem'=>'As novas senhas não coincidem.'];
+    try { validarNovaSenha($novaSenha); } catch (DomainException $e) { return erroUsuario($e); }
+    $resultado = confirmarIdentidade($conn, $finalidade, $senhaAutor);
+    if (!$resultado['sucesso']) {
+        if ($resultado['mensagem'] === 'Senha incorreta.') $resultado['mensagem'] = 'Sua senha atual está incorreta.';
+        return $resultado;
+    }
+    try {
+        $conn->begin_transaction();
+        $usuarios = bloquearUsuarios($conn);
+        $autor = autorUsuario($usuarios, false);
+        $alvo = $usuarios[$id] ?? null;
+        $mesmaConta = $id === (int) $autor['id_usuario'];
+        if (!$alvo || ($propria && !$mesmaConta) || (!$propria && ($mesmaConta || !podeEditarConta($alvo, $autor['tipo'])))) {
+            throw new DomainException('Acesso negado para alterar a senha desta conta.');
+        }
+        if ($formulario !== null) conferirEstadoFormularioConta($alvo, $formulario);
+        if (!identidadeConfirmada($conn, $finalidade)) throw new DomainException('Confirme sua identidade novamente.');
+        $hash = password_hash($novaSenha, PASSWORD_DEFAULT);
+        $versao = (int) $alvo['versao_sessao'] + 1;
+        $stmt = $conn->prepare('UPDATE usuario SET senha=?, versao_sessao=? WHERE id_usuario=?');
+        $stmt->bind_param('sii', $hash, $versao, $id); $stmt->execute(); $stmt->close();
+        $stmt = $conn->prepare('UPDATE confirmacao_identidade SET revisao=revisao+1 WHERE usuario_id=?');
+        $stmt->bind_param('i', $id); $stmt->execute(); $stmt->close();
+        $acao = $propria ? 'Troca da própria senha' : ($autor['tipo'] === 'Suporte' ? 'Redefinição de senha pelo suporte' : 'Redefinição de senha pelo administrador');
+        if (!registrarLog($conn, $acao, "Conta afetada: ID $id.", (int) $autor['id_usuario'])) throw new RuntimeException('Falha na auditoria.');
+        $conn->commit();
+        if ($propria) {
+            $_SESSION['versao_sessao'] = $versao;
+            limparConfirmacoesIdentidade();
+            if (session_status() === PHP_SESSION_ACTIVE) session_regenerate_id(true);
+        }
+        return ['sucesso'=>true, 'mensagem'=>$propria ? 'Senha alterada. Os outros acessos da sua conta foram encerrados.' : 'Senha redefinida. Os acessos anteriores desta conta foram encerrados.'];
+    } catch (Throwable $e) {
+        $conn->rollback();
+        return erroUsuario($e);
+    } finally {
+        unset($_SESSION['confirmacoes_identidade'][$finalidade]);
     }
 }

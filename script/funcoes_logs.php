@@ -45,7 +45,7 @@ function buscarLogs(
             FROM log l
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-            WHERE l.acao NOT IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Acesso ao histórico de autenticação', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Consulta de e-mail', 'Correção de e-mail')";
+            WHERE l.acao NOT IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Correção de e-mail', 'Confirmação de identidade para senha')";
 
     $parametros = [];
     $tipos = "";
@@ -109,7 +109,7 @@ function buscarHistoricoLogin(
             FROM log l
             INNER JOIN usuario u
                 ON u.id_usuario = l.usuario_id
-            WHERE l.acao IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Acesso ao histórico de autenticação', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Consulta de e-mail', 'Correção de e-mail')";
+            WHERE l.acao IN ('Login', 'Logout', 'Acesso ao histórico de login', 'Confirmação sensível recusada', 'Confirmação sensível bloqueada', 'Confirmação de identidade para e-mail', 'Correção de e-mail', 'Confirmação de identidade para senha')";
 
     $parametros = [];
     $tipos = "";

@@ -1504,3 +1504,51 @@ textarea.campo__controle {
   opacity: 1;
 }
 }
+
+
+/* Formulários de senha: nova credencial primeiro, identidade em bloco separado. */
+.cartao--senha { margin-top: 28px; margin-bottom: 28px; scroll-margin-top: 110px; }
+.cartao--senha > p { margin-top: 10px; color: var(--texto-suave); }
+.formulario.formulario--senha { margin-top: 28px; gap: 24px; }
+.formulario--senha .senha-confirmacao { grid-column: 1; padding-top: 12px; }
+.senha-confirmacao .campo { max-width: none; }
+.formulario--senha .senha-acoes { grid-column: 2; display: flex; align-items: flex-end; }
+.formulario--senha .senha-acoes .botao { width: 100%; min-height: 46px; }
+@media (max-width: 768px) {
+    .formulario.formulario--senha { grid-template-columns: 1fr; gap: 20px; }
+    .senha-confirmacao .campo { max-width: none; }
+    .formulario--senha .senha-confirmacao, .formulario--senha .senha-acoes { grid-column: 1 / -1; }
+    .senha-acoes .botao { width: 100%; }
+}
+
+/* Controle compartilhado: o botão nunca submete o formulário. */
+.senha-controle { position: relative; width: 100%; min-width: 0; }
+.senha-controle > input { width: 100%; box-sizing: border-box; padding-right: 52px !important; }
+.senha-controle .senha-visibilidade {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; padding: 8px; margin: 0;
+    background: transparent; border: 0; border-radius: 8px;
+    color: var(--texto-suave, #536784); cursor: pointer;
+}
+.senha-controle .senha-visibilidade:hover { background: #eaf0fa; }
+.senha-controle .senha-visibilidade:focus-visible { outline: 2px solid #252bd9; outline-offset: 1px; }
+.senha-visibilidade svg { width: 22px; height: 22px; pointer-events: none; }
+.senha-visibilidade .senha-risco { display: none; }
+.senha-visibilidade[aria-pressed="true"] .senha-risco { display: block; }
+
+.formulario--senha .senha-confirmacao input { min-height: 46px; }
+
+
+/* Consulta independente entre nome e permissões da conta. */
+.consulta-email { grid-column: 1 / -1; padding: 22px 0; border-top: 1px solid var(--borda, #dce5f2); border-bottom: 1px solid var(--borda, #dce5f2); scroll-margin-top: 110px; }
+.consulta-email > p { margin: 10px 0 18px; color: var(--texto-suave); }
+.consulta-email__campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: end; }
+.consulta-email__campos .campo__controle, .consulta-email__campos > .botao { min-height: 46px; }
+.consulta-email__campos > .botao { width: 100%; }
+.consulta-email__autorizada { margin: 0; align-self: center; }
+.consulta-email .consulta-email__resultado { margin-bottom: 0; overflow-wrap: anywhere; }
+#email-protegido { scroll-margin-top: 110px; }
+@media (max-width: 768px) {
+    .consulta-email__campos { grid-template-columns: 1fr; }
+}

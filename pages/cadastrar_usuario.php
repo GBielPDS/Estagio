@@ -133,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </main>
 
+    <script src="../script/senhas.js" defer></script>
 </body>
 
 </html>

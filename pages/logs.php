@@ -598,5 +598,6 @@ if ($visualizacao === 'logs') {
     GestSaúde · Módulo de Controle de Estoque
 </footer>
 
+    <script src="../script/senhas.js" defer></script>
 </body>
 </html>

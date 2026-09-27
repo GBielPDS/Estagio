@@ -80,11 +80,14 @@ function podeEditarUnidade(array $unidade, ?string $tipo = null): bool
 
 function limparConfirmacoesIdentidade(): void
 {
+    unset($_SESSION['formularios_conta'], $_SESSION['resultados_conta'], $_SESSION['chave_estado_conta']);
     unset($_SESSION['confirmacoes_identidade'], $_SESSION['historico_login_autorizado'], $_SESSION['historico_login_autorizado_em']);
 }
 
 function permiteConfirmacaoIdentidade(string $finalidade, string $tipo): bool
 {
+    if ($finalidade === 'alterar_propria_senha') return in_array($tipo, ['Usuario', 'Suporte', 'Administrador'], true);
+    if ($finalidade === 'redefinir_senha') return in_array($tipo, ['Suporte', 'Administrador'], true);
     // Nenhuma finalidade futura é liberada implicitamente.
     return in_array($finalidade, ['historico_autenticacao', 'consultar_email', 'corrigir_email'], true) && $tipo === 'Administrador';
 }
@@ -169,7 +172,7 @@ function confirmarIdentidade(mysqli $conn, string $finalidade, string $senha): a
             return ['sucesso'=>false, 'status'=>$bloqueado ? 429 : 200, 'espera'=>$bloqueado ? 900 : 0,
                 'mensagem'=>$bloqueado ? 'Confirmação bloqueada por 15 minutos após cinco erros.' : 'Senha incorreta.'];
         }
-        if (!registrarLog($conn, $finalidade === 'historico_autenticacao' ? 'Acesso ao histórico de autenticação' : 'Confirmação de identidade para e-mail', 'Finalidade: ' . $finalidade . '.', $id)) {
+        if (!registrarLog($conn, match ($finalidade) { 'historico_autenticacao' => 'Acesso ao histórico de autenticação', 'alterar_propria_senha', 'redefinir_senha' => 'Confirmação de identidade para senha', default => 'Confirmação de identidade para e-mail' }, $finalidade === 'historico_autenticacao' ? 'Acesso ao histórico de autenticação liberado por 5 minutos após confirmação de senha.' : 'Finalidade: ' . $finalidade . '.', $id)) {
             throw new RuntimeException('Falha de auditoria.');
         }
         $stmt = $conn->prepare("UPDATE confirmacao_identidade SET falhas='[]', bloqueado_ate=0 WHERE usuario_id=?");
@@ -188,4 +191,74 @@ function confirmarIdentidade(mysqli $conn, string $finalidade, string $senha): a
             ? 'Confirmação indisponível: a atualização do banco ainda precisa ser aplicada pelo responsável.'
             : 'Não foi possível confirmar sua identidade. Nenhum acesso adicional foi liberado.'];
     }
+}
+
+
+class FormularioContaException extends DomainException {}
+
+// Somente uma impressão do estado fica na sessão, nunca uma cópia da senha/hash.
+function impressaoConta(array $conta): string
+{
+    $chave = $_SESSION['chave_estado_conta'] ??= bin2hex(random_bytes(32));
+    $estado = [];
+    foreach (['id_usuario', 'nome', 'email', 'senha', 'tipo', 'ativo', 'versao_sessao'] as $campo) $estado[$campo] = (string) $conta[$campo];
+    return hash_hmac('sha256', json_encode($estado, JSON_THROW_ON_ERROR), $chave);
+}
+
+function campoFormularioConta(string $acao, array $conta): string
+{
+    $agora = time();
+    $_SESSION['formularios_conta'] = array_filter($_SESSION['formularios_conta'] ?? [], fn($f) => $f['expira'] > $agora);
+    // Limite por sessão; abrir outra aba não substitui os formulários anteriores.
+    while (count($_SESSION['formularios_conta']) >= 60) array_shift($_SESSION['formularios_conta']);
+    $token = bin2hex(random_bytes(32));
+    $_SESSION['formularios_conta'][$token] = [
+        'autor'=>(int) $_SESSION['id_usuario'], 'versao'=>(int) $_SESSION['versao_sessao'],
+        'tipo'=>$_SESSION['tipo'], 'acao'=>$acao, 'alvo'=>(int) $conta['id_usuario'],
+        'estado'=>impressaoConta($conta), 'expira'=>$agora + 1800
+    ];
+    return '<input type="hidden" name="formulario_conta" value="' . $token . '">';
+}
+
+function consumirFormularioConta(mixed $token, string $acao, int $id): array
+{
+    $formulario = is_string($token) ? ($_SESSION['formularios_conta'][$token] ?? null) : null;
+    if (is_string($token)) unset($_SESSION['formularios_conta'][$token]);
+    if (!$formulario || $formulario['expira'] <= time() || $formulario['acao'] !== $acao || $formulario['alvo'] !== $id
+        || $formulario['autor'] !== (int) ($_SESSION['id_usuario'] ?? 0)
+        || $formulario['versao'] !== (int) ($_SESSION['versao_sessao'] ?? -1)
+        || $formulario['tipo'] !== ($_SESSION['tipo'] ?? '')) {
+        throw new FormularioContaException('Este formulário expirou ou já foi utilizado. Confira os dados e tente novamente com o formulário atualizado.');
+    }
+    // O bloqueio da sessão PHP permanece mantido até o fim da solicitação.
+    return $formulario;
+}
+
+function conferirEstadoFormularioConta(array $conta, ?array $formulario): void
+{
+    if ($formulario !== null && ($formulario['alvo'] !== (int) $conta['id_usuario']
+        || !hash_equals($formulario['estado'], impressaoConta($conta)))) {
+        throw new FormularioContaException('Os dados desta conta foram alterados. Confira o formulário atualizado antes de continuar.');
+    }
+}
+
+function redirecionarResultadoConta(string $pagina, int $id, string $acao, string $mensagem): never
+{
+    $token = bin2hex(random_bytes(16));
+    $_SESSION['resultados_conta'] = array_filter($_SESSION['resultados_conta'] ?? [], fn($r) => $r['expira'] > time());
+    while (count($_SESSION['resultados_conta']) >= 20) array_shift($_SESSION['resultados_conta']);
+    $_SESSION['resultados_conta'][$token] = ['pagina'=>$pagina, 'alvo'=>$id, 'acao'=>$acao, 'mensagem'=>$mensagem, 'expira'=>time()+180];
+    $url = $pagina === 'perfil' ? 'perfil.php?' : 'editar_usuario.php?id=' . $id . '&';
+    $ancora = match ($acao) { 'alterar_senha'=>'alterar-senha', 'redefinir_senha'=>'redefinir-senha', 'corrigir_email'=>'email-protegido', default=>'dados-conta' };
+    header('Location: ' . $url . 'resultado=' . $token . '#' . $ancora, true, 303);
+    exit;
+}
+
+function lerResultadoConta(string $pagina, int $id): ?array
+{
+    $token = $_GET['resultado'] ?? null;
+    $resultado = is_string($token) ? ($_SESSION['resultados_conta'][$token] ?? null) : null;
+    if (!$resultado || $resultado['pagina'] !== $pagina || $resultado['alvo'] !== $id || $resultado['expira'] <= time()) return null;
+    unset($_SESSION['resultados_conta'][$token]);
+    return $resultado;
 }

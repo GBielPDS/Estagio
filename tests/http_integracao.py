@@ -29,6 +29,18 @@ class Browser:
         self.cookies = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
     def request(self, path, data=None):
+        # Fluxos comuns simulam abrir o formulário antes de enviá-lo.
+        # Cenários de reenvio fornecem explicitamente o mesmo token e não passam aqui.
+        if data is not None and path.split('?')[0] in ['pages/perfil.php','pages/editar_usuario.php'] and 'formulario_conta' not in data and data.get('acao','editar') != 'consultar_email':
+            action = data.get('acao','editar')
+            status, html, _ = self.request(path)
+            if status == 200:
+                for form in re.findall(r'<form\b.*?</form>', html, re.S):
+                    match = re.search(r'name="acao" value="([^"]+)"',form)
+                    token = re.search(r'name="formulario_conta" value="([a-f0-9]+)"',form)
+                    if token and (match[1] if match else 'editar') == action:
+                        data = dict(data,formulario_conta=token[1])
+                        break
         request = urllib.request.Request(BASE + path, data=urllib.parse.urlencode(data).encode() if data is not None else None)
         try:
             response = self.opener.open(request)
@@ -43,6 +55,9 @@ class Browser:
     def login(self, email, password='Inicial123!'):
         token = self.token('pages/login.php')
         return self.request('pages/login.php', {'csrf':token, 'email':email, 'senha':password})
+
+def senha_payload(token, nova, atual='Inicial123!', propria=False):
+    return {'csrf':token,'acao':'alterar_senha' if propria else 'redefinir_senha','senha_atual':atual,'nova_senha':nova,'confirmar_senha':nova}
 
 server = None
 sql(f'CREATE DATABASE `{DB}` CHARACTER SET utf8mb4;')
@@ -197,14 +212,14 @@ try:
                 second.login('segundo@teste.local')
                 second_auth = dict(auth_data,csrf=second.token(auth_path))
                 assert 'EVENTO_LOGIN_PROTEGIDO' in second.request(auth_path,second_auth)[1]
-                edit_second = {'csrf':auth_token,'nome':'Segundo','senha':'','tipo':'Suporte','ativo':'1'}
+                edit_second = {'csrf':auth_token,'nome':'Segundo','tipo':'Suporte','ativo':'1'}
                 admin.request('pages/editar_usuario.php?id=2',edit_second)
                 admin.request('pages/editar_usuario.php?id=2',dict(edit_second,tipo='Administrador'))
                 assert 'EVENTO_LOGIN_PROTEGIDO' not in second.request(auth_path)[1]
                 second.request(auth_path,second_auth)
-                second.request('pages/perfil.php',{'csrf':second_auth['csrf'],'nome':'Segundo','senha':'Temporaria123!','confirmar_senha':'Temporaria123!'})
+                second.request('pages/perfil.php',senha_payload(second_auth['csrf'], 'Temporaria123!', propria=True))
                 assert 'EVENTO_LOGIN_PROTEGIDO' not in second.request(auth_path)[1]
-                second.request('pages/perfil.php',{'csrf':second_auth['csrf'],'nome':'Segundo','senha':'Inicial123!','confirmar_senha':'Inicial123!'})
+                second.request('pages/perfil.php',senha_payload(second_auth['csrf'], 'Inicial123!', 'Temporaria123!', propria=True))
                 second.request(auth_path,second_auth)
                 admin.request('pages/usuarios.php',{'csrf':auth_token,'excluir_id':2})
                 admin.request('pages/usuarios.php',{'csrf':auth_token,'reativar_id':2})
@@ -212,7 +227,7 @@ try:
                 second.login('segundo@teste.local')
                 second_auth['csrf'] = second.token(auth_path)
                 second.request(auth_path,second_auth)
-                admin.request('pages/editar_usuario.php?id=2',dict(edit_second,tipo='Administrador',senha='Inicial123!'))
+                admin.request('pages/editar_usuario.php?id=2',senha_payload(auth_token, 'Inicial123!'))
                 assert second.request(auth_path)[2].endswith('login.php')
                 # A fixture de concorrência posterior usa versão 1; conta sem liberação após novo login.
                 sql('UPDATE usuario SET versao_sessao=1 WHERE id_usuario=2',DB)
@@ -367,9 +382,16 @@ try:
                 assert 'E-mail corrigido' in admin.request('pages/editar_usuario.php?id=1',dict(correction,novo_email='adminnovo@teste.local'))[1]
                 assert 'adminnovo@teste.local' in admin.request('pages/perfil.php')[1]
                 assert 'E-mail corrigido' in admin.request('pages/editar_usuario.php?id=1',dict(correction,novo_email='admin@teste.local'))[1]
-                # Auditoria sensível não aparece no histórico operacional do suporte.
+                # Somente os dois eventos aprovados passam para os logs comuns.
                 operational = support.request('pages/logs.php')[1]
-                assert 'Consulta de e-mail' not in operational and 'Correção de e-mail' not in operational
+                assert 'Consulta de e-mail' in operational and 'Acesso ao histórico de autenticação' in operational
+                for protected in ['Correção de e-mail','Confirmação de identidade para e-mail','Confirmação sensível recusada','Confirmação sensível bloqueada','EVENTO_LOGIN_PROTEGIDO','EVENTO_LOGOUT_PROTEGIDO']:
+                    assert protected not in operational
+                admin.request(auth_path,{'csrf':et,'confirmar_historico_login':'1','senha_confirmacao':'Inicial123!'})
+                protected_html = admin.request(auth_path)[1]
+                assert '>Consulta de e-mail<' not in protected_html and '>Acesso ao histórico de autenticação<' not in protected_html
+                assert 'Correção de e-mail' in protected_html and 'EVENTO_LOGIN_PROTEGIDO' in protected_html
+                assert support.request(auth_path)[0] == 403
                 assert sql("SELECT COUNT(*) FROM log WHERE acao IN ('Consulta de e-mail','Correção de e-mail','Confirmação de identidade para e-mail') AND (descricao LIKE '%@%' OR descricao LIKE '%Inicial123!%')",DB).strip() == '0'
                 # Falha no log também impede revelar o endereço.
                 sql("DELIMITER $$\nCREATE TRIGGER falha_consulta_email BEFORE INSERT ON log FOR EACH ROW BEGIN IF NEW.acao='Consulta de e-mail' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada'; END IF; END$$\nDELIMITER ;\n",DB)
@@ -388,15 +410,44 @@ try:
                 for field in ['tipo','ativo']:
                     assert f'name="{field}"' not in html
                     assert support.request(edit_path, dict(data, **{field:'1'}))[0] == 403
-                assert support.request(edit_path, data)[2].endswith('usuarios.php')
+                assert 'Usuário atualizado' in support.request(edit_path, data)[1]
                 assert sql('SELECT nome FROM usuario WHERE id_usuario=3', DB).strip() == 'Operador Corrigido'
-                assert 'name="senha"' in html
+                assert 'name="nova_senha"' in html and 'name="senha"' not in html
+                # Caminho antigo, senha do autor, campos, hierarquia e atomicidade.
+                assert support.request(edit_path,dict(data,senha='Ignorada123!'))[0] == 403
+                assert user.request('pages/perfil.php',{'csrf':user.token('pages/perfil.php'),'nome':'Operador','senha':'Ignorada123!'})[0] == 403
+                reset = senha_payload(st, 'ResetTeste123!')
+                assert support.request(edit_path,dict(reset,csrf='invalido'))[0] == 403
+                assert 'Preencha todos' in support.request(edit_path,dict(reset,senha_atual=''))[1]
+                assert 'não coincidem' in support.request(edit_path,dict(reset,confirmar_senha='Diferente123!'))[1]
+                before = sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3',DB).strip()
+                # Limite recai no operador (Suporte), não na conta atendida.
+                for attempt in range(5):
+                    assert support.request(edit_path,dict(reset,senha_atual='errada'))[0] == (429 if attempt == 4 else 200)
+                assert support.request(edit_path,reset)[0] == 429
+                assert support.request('pages/usuarios.php')[0] == 200
+                assert sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3',DB).strip() == before
+                assert int(sql(f'SELECT bloqueado_ate FROM confirmacao_identidade WHERE usuario_id={sid}',DB).strip()) > 0
+                sql(f"UPDATE confirmacao_identidade SET bloqueado_ate=0,falhas='[]' WHERE usuario_id={sid}",DB)
+                # A confirmação passa, mas falha específica da auditoria desfaz senha e versão.
+                sql("DELIMITER $$\nCREATE TRIGGER falha_senha BEFORE INSERT ON log FOR EACH ROW BEGIN IF NEW.acao='Redefinição de senha pelo suporte' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada'; END IF; END$$\nDELIMITER ;\n",DB)
+                assert 'Nenhuma alteração' in support.request(edit_path,reset)[1]
+                assert sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3',DB).strip() == before
+                assert Browser().login('operador@teste.local')[2].endswith('index.php')
+                sql('DROP TRIGGER falha_senha',DB)
+                # Mesmo após confirmação anterior, outra tentativa exige a senha do operador.
+                assert 'Preencha todos' in support.request(edit_path,dict(reset,senha_atual=''))[1]
+                assert admin.request('pages/editar_usuario.php?id=1',senha_payload(et,'NaoTrocar123!'))[0] == 403
+                own_payload = senha_payload(user.token('pages/perfil.php'),'NaoTrocar123!',propria=True)
+                assert 'Sua senha atual está incorreta' in user.request('pages/perfil.php',dict(own_payload,senha_atual='errada'))[1]
+                assert 'Preencha todos' in user.request('pages/perfil.php',dict(own_payload,nova_senha=''))[1]
+                assert user.request('pages/perfil.php',dict(own_payload,id_usuario=1))[0] == 403
                 version = sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3', DB).strip()
-                assert '8 e 72' in support.request(edit_path, dict(data, senha='1234'))[1]
+                assert 'no mínimo 8 caracteres' in support.request(edit_path, senha_payload(st, '1234'))[1]
                 assert sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3', DB).strip() == version
                 for target in [1, 2, sid]:
-                    assert support.request(f'pages/editar_usuario.php?id={target}', dict(data, senha='ResetTeste123!'))[0] == 403
-                assert support.request(edit_path, dict(data, senha='ResetTeste123!'))[2].endswith('usuarios.php')
+                    assert support.request(f'pages/editar_usuario.php?id={target}', senha_payload(st, 'ResetTeste123!'))[0] == 403
+                assert 'Senha redefinida' in support.request(edit_path, senha_payload(st, 'ResetTeste123!'))[1]
                 assert user.request('index.php')[2].endswith('login.php')
                 assert other.request('index.php')[2].endswith('login.php')
                 assert support.request('pages/usuarios.php')[0] == 200
@@ -405,7 +456,7 @@ try:
                 assert sql("SELECT COUNT(*) FROM log WHERE acao='Redefinição de senha pelo suporte' AND usuario_id="+str(sid), DB).strip() == '1'
                 assert sql("SELECT COUNT(*) FROM log WHERE descricao LIKE '%ResetTeste123!%'", DB).strip() == '0'
                 # Restaurar a credencial da fixture pelo fluxo real para os cenários seguintes.
-                support.request(edit_path, dict(data, senha='Inicial123!'))
+                support.request(edit_path, senha_payload(st, 'Inicial123!'))
                 user.login('operador@teste.local')
                 other.login('operador@teste.local')
 
@@ -414,7 +465,7 @@ try:
                 assert support.request('pages/cadastrar_usuario.php', dict(data, senha='Inicial123!',tipo='Usuario'))[0] == 403
                 for change, restore in [("ativo=0","ativo=1"),("tipo='Suporte'","tipo='Usuario'"),("tipo='Administrador'","tipo='Usuario'")]:
                     sql(f'UPDATE usuario SET {change} WHERE id_usuario=3', DB)
-                    assert support.request(edit_path, dict(data, senha='Proibida123!'))[0] == 403
+                    assert support.request(edit_path, senha_payload(st, 'Proibida123!'))[0] == 403
                     sql(f'UPDATE usuario SET {restore} WHERE id_usuario=3', DB)
                 unit_payload = {'csrf':st,'nome':'UBS Suporte','endereco':'Rua','telefone':'123'}
                 assert support.request('pages/cadastrar_unidade.php', unit_payload)[2].endswith('unidades.php')
@@ -437,7 +488,7 @@ try:
                 assert sql(f'SELECT estoque_minimo FROM produto WHERE id_produto={pid}', DB).strip() == '2'
                 assert support.request(product_path,dict(product_data,csrf='invalido'))[0] == 403
                 sql("CREATE TRIGGER falha_suporte_log BEFORE INSERT ON log FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada';", DB)
-                assert 'Nenhuma alteração' in support.request(edit_path,dict(data,nome='Nao salvar',senha='NaoSalvar123!'))[1]
+                assert 'Nenhuma alteração' in support.request(edit_path,dict(data,nome='Nao salvar'))[1]
                 assert 'Nenhuma alteração' in support.request(product_path,dict(product_data,nome='Nao salvar'))[1]
                 assert 'Nenhuma alteração' in support.request(f'pages/editar_unidade.php?id={suid}',dict(unit_payload,endereco='Nao salvar'))[1]
                 assert sql('SELECT nome FROM usuario WHERE id_usuario=3', DB).strip() == 'Operador Corrigido'
@@ -445,7 +496,7 @@ try:
                 assert sql(f'SELECT endereco FROM unidade_saude WHERE id_unidade={suid}', DB).strip() == 'Outra Rua'
                 sql('DROP TRIGGER falha_suporte_log;', DB)
                 assert user.login('operador@teste.local')[2].endswith('index.php')
-                assert support.request('pages/perfil.php', {'csrf':st,'nome':'Apoio','senha':'OutraSenha123!','confirmar_senha':'OutraSenha123!'})[0] == 200
+                assert support.request('pages/perfil.php', senha_payload(st, 'OutraSenha123!', propria=True))[0] == 200
                 assert support.request('pages/usuarios.php')[0] == 200
                 sql(f"UPDATE usuario SET tipo='Usuario' WHERE id_usuario={sid}", DB)
                 assert support.request('pages/usuarios.php')[0] == 403
@@ -461,16 +512,114 @@ try:
                 assert user.login('operador@teste.local')[2].endswith('index.php')
                 assert other.login('operador@teste.local')[2].endswith('index.php')
                 own = user.token('pages/perfil.php')
-                user.request('pages/perfil.php', {'csrf':own,'nome':'Operador','senha':'NovaSenha123!','confirmar_senha':'NovaSenha123!'})
+                user.request('pages/perfil.php', senha_payload(own, 'NovaSenha123!', propria=True))
                 assert user.request('index.php')[2].endswith('index.php')
                 assert other.request('index.php')[2].endswith('login.php')
-                edit = {'csrf':token,'nome':'Segundo','tipo':'Usuario','ativo':'1','senha':''}
+                edit = {'csrf':token,'nome':'Segundo','tipo':'Usuario','ativo':'1'}
                 admin.request('pages/editar_usuario.php?id=2', edit)
                 assert second.request('pages/usuarios.php')[0] == 403
                 status, html, _ = admin.request('pages/editar_usuario.php?id=1', dict(edit,nome='Admin'))
                 assert 'pelo menos um administrador' in html
                 status, html, _ = admin.request('pages/editar_usuario.php?id=1', dict(edit,nome='Admin',tipo='Administrador',ativo='0'))
                 assert 'própria conta' in html
+                # Reenvios reais usam o mesmo identificador (sem busca automática de formulário).
+                def form_payload(browser, path, action, **fields):
+                    status, html, _ = browser.request(path)
+                    assert status == 200
+                    for form in re.findall(r'<form\b.*?</form>',html,re.S):
+                        current = re.search(r'name="acao" value="([^"]+)"',form)
+                        key = re.search(r'name="formulario_conta" value="([a-f0-9]+)"',form)
+                        csrf = re.search(r'name="csrf" value="([a-f0-9]+)"',form)
+                        if key and (current[1] if current else 'editar') == action:
+                            return dict(fields,acao=action,csrf=csrf[1],formulario_conta=key[1])
+                    raise AssertionError('Formulário não encontrado: '+action)
+                target_path = 'pages/editar_usuario.php?id=3'
+                def total_logs(): return int(sql('SELECT COUNT(*) FROM log',DB).strip())
+                def version3(): return int(sql('SELECT versao_sessao FROM usuario WHERE id_usuario=3',DB).strip())
+                reset_fields = dict(senha_atual='Inicial123!',nova_senha='ReenvioTeste123!',confirmar_senha='ReenvioTeste123!')
+                old_reset = form_payload(admin,target_path,'redefinir_senha',**reset_fields)
+                unused_reset = form_payload(admin,target_path,'redefinir_senha',**reset_fields)
+                other_reset = form_payload(second,'pages/perfil.php','alterar_senha',senha_atual='Inicial123!',nova_senha='NadaMudar123!',confirmar_senha='NadaMudar123!')
+                assert admin.request(target_path,dict(old_reset,formulario_conta=other_reset['formulario_conta']))[0] == 409
+                assert admin.request('pages/editar_usuario.php?id=2',old_reset)[0] == 409
+                # O envio para outro alvo consome o identificador; é preciso abrir outro formulário.
+                old_reset = form_payload(admin,target_path,'redefinir_senha',**reset_fields)
+                class NoRedirect(urllib.request.HTTPRedirectHandler):
+                    def redirect_request(self, req, fp, code, msg, headers, newurl): return None
+                original_opener = admin.opener
+                admin.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(admin.cookies),NoRedirect())
+                try:
+                    assert admin.request(target_path,old_reset)[0] == 303
+                    location = admin.headers['Location']
+                finally: admin.opener = original_opener
+                query = urllib.parse.urlsplit(location).query
+                receipt = urllib.parse.parse_qs(query)['resultado'][0]
+                assert 'Senha redefinida' not in admin.request('pages/perfil.php?resultado='+receipt)[1]
+                assert 'Senha redefinida' not in admin.request('pages/editar_usuario.php?id=2&resultado='+receipt)[1]
+                result_path = 'pages/'+location
+                assert 'Senha redefinida' in admin.request(result_path)[1]
+                assert 'Senha redefinida' not in admin.request(result_path)[1]
+                count, version = total_logs(), version3()
+                assert admin.request(target_path,old_reset)[0] == 409
+                assert admin.request(target_path,unused_reset)[0] == 409
+                assert (total_logs(),version3()) == (count,version)
+                assert admin.request(target_path,dict(old_reset,formulario_conta=''))[0] == 409
+                assert Browser().login('operador@teste.local','ReenvioTeste123!')[2].endswith('index.php')
+                # Troca própria invalida pedidos anteriores sem contar erro da senha antiga.
+                probe = Browser(); probe.login('operador@teste.local','ReenvioTeste123!')
+                own_post = form_payload(probe,'pages/perfil.php','alterar_senha',senha_atual='ReenvioTeste123!',nova_senha='MaisRecente123!',confirmar_senha='MaisRecente123!')
+                assert 'Senha alterada' in probe.request('pages/perfil.php',own_post)[1]
+                count, version = total_logs(), version3()
+                assert probe.request('pages/perfil.php',own_post)[0] == 409
+                assert (total_logs(),version3()) == (count,version)
+                assert sql('SELECT falhas FROM confirmacao_identidade WHERE usuario_id=3',DB).strip() == '[]'
+                assert admin.request(target_path,old_reset)[0] == 409
+                assert Browser().login('operador@teste.local','MaisRecente123!')[2].endswith('index.php')
+                # E-mail: pedido repetido e uma segunda aba antiga não sobrescrevem correção nova.
+                email_fields = dict(novo_email='recente@teste.local',senha_confirmacao='Inicial123!')
+                email1 = form_payload(admin,target_path,'corrigir_email',**email_fields)
+                email2 = form_payload(admin,target_path,'corrigir_email',novo_email='antigo@teste.local',senha_confirmacao='Inicial123!')
+                assert 'E-mail corrigido' in admin.request(target_path,email1)[1]
+                count = total_logs()
+                assert admin.request(target_path,email1)[0] == 409
+                assert admin.request(target_path,email2)[0] == 409
+                assert total_logs() == count and sql('SELECT email FROM usuario WHERE id_usuario=3',DB).strip() == 'recente@teste.local'
+                # Identificador de finalidade diferente, expirado e formulário ausente falham sem gravação.
+                misplaced = form_payload(admin,target_path,'editar',nome='Nao salvar',tipo='Usuario',ativo='1')
+                assert admin.request(target_path,dict(email2,formulario_conta=misplaced['formulario_conta']))[0] == 409
+                expired = form_payload(admin,target_path,'corrigir_email',**email_fields)
+                session_fixture(admin,"$_SESSION['formularios_conta']['"+expired['formulario_conta']+"']['expira']=time()-1")
+                assert admin.request(target_path,expired)[0] == 409
+                # Duas abas independentes: uma grava e a outra precisa rever os dados.
+                tab1 = form_payload(admin,target_path,'editar',nome='Nome Novo',tipo='Usuario',ativo='1')
+                tab2 = form_payload(admin,target_path,'editar',nome='Nome Antigo',tipo='Usuario',ativo='1')
+                assert 'Usuário atualizado' in admin.request(target_path,tab1)[1]
+                assert admin.request(target_path,tab2)[0] == 409
+                assert sql('SELECT nome FROM usuario WHERE id_usuario=3',DB).strip() == 'Nome Novo'
+                retry = form_payload(admin,target_path,'editar',nome='Nome Final',tipo='Usuario',ativo='1')
+                assert 'Usuário atualizado' in admin.request(target_path,retry)[1]
+                # Preservar dados comuns após erro, sem usar esses dados como estado esperado.
+                invalid = form_payload(admin,target_path,'editar',nome='Rascunho',tipo='invalido',ativo='1')
+                html = admin.request(target_path,invalid)[1]
+                assert 'value="Rascunho"' in html and sql('SELECT nome FROM usuario WHERE id_usuario=3',DB).strip() == 'Nome Final'
+                # Falha na auditoria não grava senha; o token usado não deve ser repetido.
+                fail = form_payload(admin,target_path,'redefinir_senha',**reset_fields)
+                sql("DELIMITER $$\nCREATE TRIGGER falha_reenvio BEFORE INSERT ON log FOR EACH ROW BEGIN IF NEW.acao='Redefinição de senha pelo administrador' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Falha simulada'; END IF; END$$\nDELIMITER ;\n",DB)
+                version = version3()
+                assert 'Nenhuma alteração' in admin.request(target_path,fail)[1]
+                assert version3() == version
+                sql('DROP TRIGGER falha_reenvio',DB)
+                assert admin.request(target_path,fail)[0] == 409
+                assert 'Senha redefinida' in admin.request(target_path,form_payload(admin,target_path,'redefinir_senha',**reset_fields))[1]
+                # Concorrência real: duas conexões PHP tentam gravar a mesma versão do alvo.
+                preamble = "require $argv[1].'/script/sessao.php'; session_write_close(); require $argv[1].'/script/funcoes_usuarios.php'; $c=new mysqli('localhost','root','',$argv[2]); $c->set_charset('utf8mb4'); $_SESSION=['id_usuario'=>1,'versao_sessao'=>1,'tipo'=>'Administrador','chave_estado_conta'=>'chave-exclusiva-teste']; "
+                fingerprint = subprocess.check_output([PHP,'-r',preamble+"echo impressaoConta(buscarUsuarioPorId($c,3));",str(ROOT),DB]).decode()
+                worker = preamble+"$f=['alvo'=>3,'estado'=>$argv[3]]; echo json_encode(mudarSenhaUsuario($c,3,'Inicial123!','Concorrencia123!','Concorrencia123!',false,$f));"
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    results = list(pool.map(lambda _: subprocess.check_output([PHP,'-r',worker,str(ROOT),DB,fingerprint]).decode(),range(2)))
+                assert sum('"sucesso":true' in r for r in results) == 1, results
+                assert sum('"status":409' in r for r in results) == 1, results
+                print('Reenvio: 303, mensagens isoladas, tokens usados/expirados, duas abas, dados preservados, rollback e concorrência aprovados.')
                 assert admin.request('script/logout.php')[0] == 405
                 assert admin.request('script/logout.php', {'csrf':token})[2].endswith('login.php')
                 # Duas conexões independentes tentam remover os dois administradores ao mesmo tempo.
