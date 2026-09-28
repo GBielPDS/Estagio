@@ -260,30 +260,3 @@ A migração não preenche datas antigas com o horário de hoje e não desloca h
 ### Testes da parte 2
 
 `tests/usuarios_integracao.php` verifica fuso PHP/conexão, comparação de relógios, virada de dia, formatos inválidos, datas futuras, segundos zerados, observação obrigatória, saldo preservado em erros e separação da ocorrência/cadastro. `tests/http_integracao.py` verifica migração repetida preservando dados antigos, rejeições pelo formulário, preservação dos campos sem AJAX, cadastro automático não sobrescrito por POST, filtros do histórico e sintaxe do JavaScript renderizado. As suítes usam bancos temporários; não modificam contas ou estoque reais. A validação visual interativa das telas não é substituída por esses testes.
-
-
-## Configuração local por .env (28/09/2026)
-
-O CAPTCHA agora lê uma configuração central carregada por `script/ambiente.php`, com a biblioteca `vlucas/phpdotenv` instalada pelo Composer. `composer.json` e `composer.lock` devem ser versionados; `vendor/` é instalado e não entra no Git. `script/configuracao.php` inicializa o carregamento; `script/captcha.php` usa `valorConfiguracao()`. Não há escrita via `putenv`, importante no PHP ZTS. O ambiente do servidor (`$_ENV`, `$_SERVER` e leitura de `getenv`) prevalece sobre o arquivo, inclusive valores vazios explicitamente definidos. Remover antigas variáveis do Apache se a intenção for usar exclusivamente o .env.
-
-### Preparação em outro computador
-
-1. Instalar o Composer e executar `composer install --no-dev --prefer-dist` na pasta do projeto. Usar `install`, não `update`, para respeitar `composer.lock`. O PHP do Composer precisa de OpenSSL para download HTTPS; ZIP ou uma ferramenta de extração é necessária para instalar os pacotes. Neste computador foi utilizado Composer temporário com OpenSSL/ZIP habilitados somente na linha de comando, sem modificar o php.ini.
-2. Copiar `.env.example` para `.env`, sem sobrescrever uma configuração particular existente.
-3. Para continuar sem CAPTCHA, manter `GESTSAUDE_RECAPTCHA_ATIVO=0`.
-4. Para usar reCAPTCHA v2 checkbox, definir ATIVO=1, SITE_KEY (pública), SECRET_KEY (secreta) e HOSTNAMES (domínios autorizados separados por vírgula). No teste com endereço localhost, configurar localhost também no Google. Não usar chaves v3.
-5. Recarregar a página. Alterações no arquivo são lidas em novas requisições PHP; mudanças em variáveis do serviço Apache podem exigir reinício.
-
-O .env local foi criado com CAPTCHA desativado e chaves vazias. Nunca colocar a chave secreta no Git, em capturas de tela ou em mensagens de erro. As duas URLs de login continuam compartilhadas. CAPTCHA ativo sem chaves válidas ou indisponibilidade do serviço impede autenticação. Não existe ativação exclusiva da página alternativa, que permitiria contorno pela página comum. A integração real com Google requer HTTPS disponível no PHP que atende a página (OpenSSL), acesso de rede e certificados válidos; testes simulados não comprovam esses requisitos da implantação.
-
-O arquivo .env é opcional para ambientes que fornecem configuração no servidor. Quando presente, deve conter a opção explícita GESTSAUDE_RECAPTCHA_ATIVO (ou ela deve existir no ambiente). Arquivo inválido ou dependências ausentes causam indisponibilidade com mensagem genérica; erros do parser, que podem conter segredos, não são exibidos nem registrados. A configuração existente do banco não foi migrada para o .env nesta entrega.
-
-### Proteção do arquivo
-
-`.gitignore` ignora .env e suas variantes, exceto o modelo .env.example. Isso protege o versionamento, não o acesso web. O novo .htaccess na raiz bloqueia arquivos cujo nome começa com .env, incluindo o exemplo e cópias de segurança. Apache precisa permitir essa regra (AllowOverride apropriado). O Apache local foi verificado e respondeu 403 para .env e .env.example, sem conteúdo do arquivo; os dois logins responderam 200. Revalidar essa proteção em cada implantação antes de inserir chaves reais.
-
-Nginx não lê .htaccess: configurar uma regra equivalente no bloco server, por exemplo `location ~ /\.env { deny all; }`, respeitando a precedência das demais locations, e testar a resposta HTTP. O servidor embutido `php -S` também não aplica .htaccess; não expor a raiz contendo .env sem um roteador que bloqueie esse acesso. Esta configuração na raiz é adequada somente quando o servidor impede downloads; uma futura reorganização para webroot público separado pode mover segredos para fora da área publicada.
-
-Testes: `python -X utf8 tests/ambiente_integracao.py` usa exclusivamente configuração sintética em diretório temporário para testar leitura, precedência, valores vazios, arquivo ausente/inválido e dependências ausentes. As suítes de login/CAPTCHA e HTTP continuam verificando as proteções anteriores. Nenhuma migração de banco é necessária para esta alteração.
-
-Referência da biblioteca: https://github.com/vlucas/phpdotenv .

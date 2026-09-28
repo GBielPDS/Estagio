@@ -1,7 +1,5 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/ambiente.php';
-ambienteSistema();
 
 const FUSO_HORARIO_SISTEMA = 'America/Bahia';
 date_default_timezone_set(FUSO_HORARIO_SISTEMA);

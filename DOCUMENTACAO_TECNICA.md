@@ -495,8 +495,3 @@ Login agora usa janela móvel de quinze minutos (5 falhas por e-mail, 10 por IP)
 ## Horários e cadastro das movimentações
 
 A configuração compartilhada `script/configuracao.php` usa America/Bahia no PHP e define o deslocamento correspondente em cada conexão MySQL. `movimentacao.cadastrado_em` foi acrescentado para separar a ocorrência (`data_hora`) do momento automático de inserção. A migração 005 preserva NULL nos registros antigos e configura o valor padrão para novos registros, incluindo ajustes e saldos iniciais. O histórico exibe ambas as datas, mantendo filtros pela ocorrência e permissões existentes. Datas retroativas exigem observação, formatos estritos e validação no servidor; segundos são zerados. Executar `php bd/administrar.php migrar` ao atualizar um banco existente. Detalhes e limites na seção “Parte 2 - horários e datas de movimentações” de ATUALIZACAO_SEGURANCA.md.
-
-
-## Carregamento do .env
-
-`script/ambiente.php` usa phpdotenv via Composer, com ambiente do servidor prioritário e sem `putenv`. `.env.example` é versionado; `.env` e `vendor/` são ignorados. Após baixar o projeto, executar `composer install --no-dev --prefer-dist` e copiar o exemplo para .env. O CAPTCHA lê as quatro variáveis GESTSAUDE_RECAPTCHA_* pelo acesso central `valorConfiguracao()`. `.htaccess` bloqueia acesso web aos arquivos .env no Apache; outros servidores precisam de configuração equivalente. Dependências ausentes ou configuração inválida não liberam autenticação. Detalhes de instalação, precedência, segurança e limitações em ATUALIZACAO_SEGURANCA.md, seção “Configuração local por .env”. Novo teste: `tests/ambiente_integracao.py`. Sem alterações no banco.

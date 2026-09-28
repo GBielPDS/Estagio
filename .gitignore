@@ -1,7 +1,1 @@
 /ESTAGIO2
-
-# Configuração privada e dependências instaladas
-.env
-.env.*
-!.env.example
-/vendor/
