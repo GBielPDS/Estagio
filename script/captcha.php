@@ -2,8 +2,16 @@
 
 declare(strict_types=1);
 
-const RECAPTCHA_SITE_KEY = 'SUA_SITE_KEY';
-const RECAPTCHA_SECRET_KEY = 'SUA_SECRET_KEY';
+    /* =============================================================================
+
+        Define as constantes com suas chaves do Google reCAPTCHA v2, substitua 'SUA_SITE_KEY'
+        e 'SUA_SECRET_KEY' pelas suas chaves reais. Pegue suas chaves em: https://www.google.com/recaptcha/admin
+    
+    =============================================================================
+    */
+
+const RECAPTCHA_SITE_KEY = 'SUA_SITE_KEY'; //Coloque aqui a sua chave do site do Google reCAPTCHA v2
+const RECAPTCHA_SECRET_KEY = 'SUA_SECRET_KEY'; // Coloque aqui a sua chave secreta do Google reCAPTCHA v2
 
 
 function verificarRecaptcha(string $response): bool
