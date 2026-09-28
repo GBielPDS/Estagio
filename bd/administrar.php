@@ -34,6 +34,28 @@ try {
         $migracao = file_get_contents(__DIR__ . '/migracoes/002-confirmacao-identidade.sql');
         if ($migracao === false) throw new RuntimeException('Migração não encontrada.');
         $conn->query($migracao);
+        $sqlTentativas = file_get_contents(__DIR__ . '/migracoes/003-tentativa-login.sql');
+        if ($sqlTentativas === false) throw new RuntimeException('Migração não encontrada.');
+        $conn->query($sqlTentativas);
+        $motor = $conn->query("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='tentativa_login'")->fetch_row()[0];
+        if (strtolower($motor) !== 'innodb') $conn->query('ALTER TABLE tentativa_login ENGINE=InnoDB');
+        $sqlJanela = file_get_contents(__DIR__ . '/migracoes/004-janela-login.sql');
+        if ($sqlJanela === false) throw new RuntimeException('Migração não encontrada.');
+        preg_match_all('/ALTER TABLE tentativa_login ADD COLUMN (\w+) ([^;]+);/', $sqlJanela, $alteracoes, PREG_SET_ORDER);
+        if (count($alteracoes) !== 3) throw new RuntimeException('Migração de login inválida.');
+        foreach ($alteracoes as $alteracao) {
+            if ($conn->query("SHOW COLUMNS FROM tentativa_login LIKE '" . $alteracao[1] . "'")->num_rows === 0) {
+                $conn->query($alteracao[0]);
+            }
+        }
+        $sqlDatas = file_get_contents(__DIR__ . '/migracoes/005-data-cadastro-movimentacao.sql');
+        if ($sqlDatas === false) throw new RuntimeException('Migração não encontrada.');
+        preg_match_all('/ALTER TABLE movimentacao[^;]+;/', $sqlDatas, $comandosDatas);
+        if (count($comandosDatas[0]) !== 2) throw new RuntimeException('Migração de datas inválida.');
+        if ($conn->query("SHOW COLUMNS FROM movimentacao LIKE 'cadastrado_em'")->num_rows === 0) {
+            $conn->query($comandosDatas[0][0]);
+        }
+        $conn->query($comandosDatas[0][1]);
         echo "Banco atualizado. Os dados existentes foram preservados.\n";
     } else {
         if ((int) $conn->query('SELECT COUNT(*) FROM usuario')->fetch_row()[0] !== 0) {

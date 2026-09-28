@@ -188,3 +188,75 @@ Os testes HTTP incluem redirecionamento, mensagens isoladas por página/conta, r
 “Consulta de e-mail” e “Acesso ao histórico de autenticação” aparecem somente nos logs comuns, acessíveis a Administrador e Suporte. Esta regra substitui as descrições anteriores que colocavam esses dois eventos no histórico protegido. A mudança é no filtro de consulta: registros existentes não são alterados nem apagados.
 
 Login, Logout, o evento legado “Acesso ao histórico de login”, confirmações de identidade, tentativas recusadas/bloqueadas e correções de e-mail continuam na listagem protegida. A permissão de consultar o e-mail completo e o histórico de autenticação continua exclusiva do administrador com confirmação de identidade. O evento de acesso ao histórico registra a liberação da janela de cinco minutos, não cada visita/filtro.
+
+
+## Proteção do login - janela móvel e concorrência (28/09/2026)
+
+O login usa `script/funcoes_login.php`: cinco falhas por e-mail ou dez por IP em uma janela móvel de quinze minutos bloqueiam novas autenticações por quinze minutos. Tentativas bloqueadas não estendem o prazo. Sessões abertas e status da conta não são alterados. O endereço é aparado e convertido para minúsculas; o IP é validado e normalizado, obtido exclusivamente de `REMOTE_ADDR`. Cabeçalhos de proxy não são aceitos automaticamente. Uma futura implantação atrás de proxy exige definir proxies confiáveis; dez falhas por IP podem afetar funcionários que compartilham a conexão.
+
+Login correto limpa as falhas do e-mail, mas preserva as falhas recentes da origem. E-mails válidos inexistentes também têm contagem e passam por verificação com hash fictício (que não pertence a nenhuma conta). Campos vazios ou formato inválido são recusados antes de conferir credenciais; não geram falhas de senha. Conta inativa nunca autentica. A informação de desativação só aparece após senha correta. CSRF é validado antes do fluxo.
+
+A transação InnoDB bloqueia primeiro a origem e depois o e-mail durante verificação e atualização. Deadlocks ou timeout de lock provocam rollback e até quatro repetições limitadas; falha persistente retorna 503 e não autentica. Falha de consulta/gravação também retorna 503. Bloqueios retornam 429 com `Retry-After`; credenciais incorretas retornam 401. Somente após auditoria de login bem-sucedida a página estabelece a nova sessão. Uma mensagem anterior de cadastro não interfere na contagem.
+
+Os horários da proteção são segundos Unix (`time()`), não dependem do fuso configurado no PHP ou MySQL. Isso não padroniza os horários do restante do projeto, que continuam previstos para a parte 2. As falhas são armazenadas em JSON e limitadas pelos próprios limiares. A limpeza oportunista remove até cem registros sem atividade há mais de 24 horas e sem bloqueio ativo, depois de uma autenticação processada (correta ou incorreta). Sem tráfego, a limpeza não ocorre; esse prazo não constitui garantia de eliminação em horário exato. A limpeza usa exclusão por chave com nova conferência da idade, para não apagar contadores renovados concorrentemente.
+
+A tabela ainda contém identificadores de e-mail e IP em texto; não contém senhas nem seus hashes. Esta entrega não implementa criptografia ou anonimização e não substitui CAPTCHA nem controles de infraestrutura. Bloqueio por conta pode ser provocado por terceiros; é temporário, sem mecanismo de bloqueio permanente.
+
+### Atualização necessária antes de usar o novo login
+
+Em banco existente, executar pelo terminal da pasta do projeto:
+
+```text
+C:\xampp\php\php.exe bd/administrar.php migrar
+```
+
+O comando agora inclui a migração 003 e a nova 004. A 003 cria a tabela se ausente; a 004 acrescenta `falhas`, `bloqueio_epoch` e `atividade_epoch`. O executor verifica cada coluna antes do ALTER e garante InnoDB. É seguro repetir pelo comando acima, inclusive após aplicação parcial. O SQL 004 isolado não deve ser reaplicado manualmente: a verificação de existência está no executor. Instalações novas usam a estrutura final de `bd/criar-bd.sql`.
+
+Usuários, senhas, produtos e movimentações não são modificados. Contadores legados não têm os horários individuais das falhas e não podem ser convertidos fielmente para uma janela móvel: são preservados inicialmente, mas ignorados pela nova regra e posteriormente atualizados ou limpos. Isso reinicia uma vez os bloqueios temporários antigos. Não executar a implantação do código sem a atualização do banco: sem as novas colunas o login falha fechado, com mensagem de indisponibilidade. SQL DDL pode confirmar alterações imediatamente; se a migração for interrompida, corrigir a causa e repetir o comando, sem assumir rollback de estrutura.
+
+### Verificação
+
+`python -X utf8 tests/login_integracao.py` cria e remove seu próprio banco temporário. Cobre migração ausente/legada/repetida, expiração individual de falhas, limites, prazo fixo, sucesso sem zerar origem, contas inativas, novas sessões HTTP, CSRF, indisponibilidade, rollback, limpeza e concorrência com processos PHP independentes. Não usa senhas ou contas reais. Executar também as suítes existentes `tests/http_integracao.py` e `tests/usuarios_integracao.php` para regressões.
+
+
+## Login unificado e reCAPTCHA v2 opcional (28/09/2026)
+
+`pages/login_com_recaptcha.php` preserva o endereço criado anteriormente, mas inclui `pages/login.php`, compartilhando formulário, mensagens, CSRF, autenticação, auditoria, sessão e contadores. Não são dois processamentos independentes. Sem configuração, ambos funcionam como login comum e não carregam o script do Google. Quando ativado, ambos exigem o CAPTCHA, inclusive um POST direto em `login.php`; não existe uma URL alternativa sem a verificação.
+
+Configuração por variáveis do ambiente do servidor (nenhuma chave real deve ser escrita no Git):
+
+| Variável | Valor esperado |
+| --- | --- |
+| `GESTSAUDE_RECAPTCHA_ATIVO` | Ausente, `0`, `false` ou `off`: desativado. `1`, `true` ou `on`: ativado. Outro valor falha fechado. |
+| `GESTSAUDE_RECAPTCHA_SITE_KEY` | Chave pública do reCAPTCHA v2, usada no HTML do widget. |
+| `GESTSAUDE_RECAPTCHA_SECRET_KEY` | Chave secreta do reCAPTCHA v2, usada somente no servidor. |
+| `GESTSAUDE_RECAPTCHA_HOSTNAMES` | Lista de nomes de domínio autorizados, separados por vírgula, sem protocolo, caminho ou porta. Correspondência exata; listar subdomínios explicitamente. |
+
+As chaves do CAPTCHA são diferentes das futuras chaves de criptografia dos e-mails. Configure no ambiente efetivo do PHP/Apache; definir uma variável somente no terminal não significa que o Apache já a recebeu. Pode ser necessário reiniciar o serviço após configurar. Nenhuma configuração real foi ativada nesta entrega. O modo suportado é v2 com checkbox, não v3. A instituição deverá cadastrar os domínios corretos e validar a integração real antes da implantação.
+
+A verificação é no servidor, pela API oficial fixa `https://www.google.com/recaptcha/api/siteverify`, por HTTPS com validação de certificado, sem redirecionamentos e com timeout. Resposta inválida, erro de rede, configuração incompleta ou chave secreta inválida impedem o login. O hostname devolvido precisa estar na lista configurada (não se confia no cabeçalho Host da requisição). Não enviar chave secreta, token ou resposta bruta ao HTML/logs. O IP não é enviado ao Google pelo backend; o widget continua sendo um serviço externo.
+
+O CAPTCHA é validado antes de abrir a transação de autenticação, evitando espera de rede com locks. Tokens ausentes/rejeitados não são falhas de senha e não avançam os contadores; com CAPTCHA aprovado, aplicam-se os mesmos limites persistentes, inclusive entre as duas URLs. Cada novo envio precisa de nova validação; não existe autorização de CAPTCHA salva na sessão. O provedor controla validade e uso único do token: https://developers.google.com/recaptcha/docs/verify .
+
+`tests/login_integracao.py` cobre ambos os endereços sem CAPTCHA, configuração obrigatória incompleta, tentativa de contornar pela URL comum, ausência de token e segredo ausente do HTML. O serviço é testado com transporte simulado para sucesso, hostname errado, token expirado/reutilizado, falha de rede/JSON e limites após CAPTCHA aceito. A dependência de transporte só pode ser passada por código PHP de teste; não existe endpoint alternativo configurável, parâmetro HTTP ou modo de bypass. Esses testes não substituem o teste real do widget e das credenciais institucionais. Nenhuma migração adicional é necessária para esta unificação.
+
+
+## Parte 2 - horários e datas de movimentações (28/09/2026)
+
+`script/configuracao.php` centraliza `America/Bahia`. É carregado pela sessão, conexão e funções de lançamento. Cada conexão da aplicação configura `time_zone` com o deslocamento atual desse fuso (atualmente -03:00), dispensando a instalação das tabelas de fusos do MySQL. Isso não modifica o fuso global do servidor ou o php.ini, nem converte registros antigos. Ferramentas externas que gravem diretamente no banco devem usar a mesma convenção. O relógio do servidor precisa estar sincronizado; configurar fuso não corrige relógio físico errado. Se a legislação de horário mudar, atualizar a base de fusos do PHP e revisar a configuração da implantação.
+
+Datas informadas seguem estritamente `YYYY-MM-DDTHH:mm`, com segundos zerados e ano compatível com DATETIME. Datas impossíveis ou iguais/posteriores ao instante atual são rejeitadas. Toda escolha de data anterior exige observação no servidor. Modo de data desconhecido é recusado; a opção ausente mantém compatibilidade com o registro imediato. A tela usa a hora inicial do servidor e o tempo decorrido para apresentar o limite no fuso institucional, sem depender do fuso do navegador. O PHP continua sendo a autoridade da validação. Erros preservam data, modo, observação, unidade e linhas válidas de preenchimento, tanto pelo fluxo AJAX quanto na resposta HTML.
+
+`movimentacao.data_hora` permanece como data de ocorrência. O novo campo `cadastrado_em` representa quando o INSERT foi realizado, automaticamente pelo banco. Ele não é aceito como campo editável do formulário; tentativas de enviá-lo não alteram o horário gerado. O mesmo padrão automático atende saldos iniciais e ajustes de estoque, sem duplicar código nesses módulos. O valor representa o momento da inserção, não o instante posterior de commit. Lançamentos retroativos continuam alterando o saldo atual, sem reconstruir ou validar o estoque histórico de cada instante passado.
+
+O histórico apresenta “Data da movimentação” e “Data do cadastro”. Os filtros “Movimentação: de/até” continuam selecionando a ocorrência, não o cadastro. Registros anteriores aparecem com “Não informado (registro anterior)” no novo campo. Observações são serializadas com escape adequado ao JavaScript e exibidas como texto no Grid.js. As permissões do histórico não foram alteradas.
+
+### Migração 005
+
+Antes de usar o histórico atualizado, executar `php bd/administrar.php migrar`. A migração `005-data-cadastro-movimentacao.sql` primeiro acrescenta `cadastrado_em` como NULL, preservando a ausência de informação nos registros antigos, e depois define CURRENT_TIMESTAMP como padrão somente para novos INSERTs. O executor verifica a coluna e pode ser repetido ou retomar após a criação parcial. Não importar novamente `criar-bd.sql` em banco existente. Não aplicar indiscriminadamente novamente o SQL 005 isolado: a verificação está no executor.
+
+A migração não preenche datas antigas com o horário de hoje e não desloca horários existentes. Instalações novas recebem o campo pelo SQL de criação. Aplicar a atualização do banco junto com esta versão; a consulta do histórico necessita da nova coluna. DDL pode confirmar alterações imediatamente, portanto repetir o executor após corrigir uma interrupção, sem presumir rollback da estrutura.
+
+### Testes da parte 2
+
+`tests/usuarios_integracao.php` verifica fuso PHP/conexão, comparação de relógios, virada de dia, formatos inválidos, datas futuras, segundos zerados, observação obrigatória, saldo preservado em erros e separação da ocorrência/cadastro. `tests/http_integracao.py` verifica migração repetida preservando dados antigos, rejeições pelo formulário, preservação dos campos sem AJAX, cadastro automático não sobrescrito por POST, filtros do histórico e sintaxe do JavaScript renderizado. As suítes usam bancos temporários; não modificam contas ou estoque reais. A validação visual interativa das telas não é substituída por esses testes.

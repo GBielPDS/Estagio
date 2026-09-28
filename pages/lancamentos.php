@@ -53,30 +53,39 @@ if (
 }
 
 
+// Estado do formulário em respostas de erro, inclusive quando JavaScript não estiver disponível.
+function campoLancamento(string $nome): string {
+    return is_string($_POST[$nome] ?? null) ? $_POST[$nome] : '';
+}
+$modoFormulario = campoLancamento('modo_data') === 'passada' ? 'passada' : 'agora';
+$linhasFormulario = [];
+foreach (is_array($_POST['produtos'] ?? null) ? $_POST['produtos'] : [] as $linha) {
+    if (!is_array($linha)) continue;
+    $linhasFormulario[] = [
+        'produto_id' => is_scalar($linha['produto_id'] ?? null) ? (string) $linha['produto_id'] : '',
+        'quantidade' => is_scalar($linha['quantidade'] ?? null) ? (string) $linha['quantidade'] : ''
+    ];
+}
+if (!$linhasFormulario) $linhasFormulario[] = ['produto_id'=>'', 'quantidade'=>''];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $tipo = (string) ($_POST['tipo'] ?? '');
+    $tipo = campoLancamento('tipo');
 
-    $observacao = trim(
-        (string) ($_POST['observacao'] ?? '')
-    );
+    $observacao = trim(campoLancamento('observacao'));
 
-    $modoData = (string) (
-        $_POST['modo_data']
-        ?? 'agora'
-    );
+    $modoData = isset($_POST['modo_data']) ? campoLancamento('modo_data') : 'agora';
 
     $dataHora = null;
 
     if ($modoData === 'passada') {
 
-        $dataHora = trim(
-            (string) ($_POST['data_hora'] ?? '')
-        );
+        $dataHora = trim(campoLancamento('data_hora'));
 
     } elseif ($modoData !== 'agora') {
 
-        $modoData = 'agora';
+        $mensagem = 'Selecione uma opção válida para a data do lançamento.';
+        $tipoMensagem = 'erro';
     }
 
 
@@ -614,7 +623,7 @@ $stmtUnidades->close();
                         type="radio"
                         name="modo_data"
                         value="agora"
-                        checked
+                        <?= $modoFormulario === 'agora' ? 'checked' : '' ?>
                         onchange="alterarModoData()"
                     >
 
@@ -630,6 +639,7 @@ $stmtUnidades->close();
                         type="radio"
                         name="modo_data"
                         value="passada"
+                        <?= $modoFormulario === 'passada' ? 'checked' : '' ?>
                         onchange="alterarModoData()"
                     >
 
@@ -643,7 +653,7 @@ $stmtUnidades->close();
             <div
                 class="campo"
                 id="campo-data-lancamento"
-                style="display: none;"
+                style="display: <?= $modoFormulario === 'passada' ? 'block' : 'none' ?>;"
             >
 
                 <label
@@ -657,6 +667,8 @@ $stmtUnidades->close();
                     type="datetime-local"
                     name="data_hora"
                     id="data_hora"
+                    value="<?= htmlspecialchars(campoLancamento('data_hora'), ENT_QUOTES, 'UTF-8') ?>"
+                    <?= $modoFormulario === 'passada' ? 'required' : '' ?>
                 >
 
                 <small id="ajuda-data">
@@ -696,6 +708,7 @@ $stmtUnidades->close();
                         <option
                             value="<?= (int) $unidade['id_unidade'] ?>"
                             data-secretaria="false"
+                            <?= campoLancamento('unidade_destino') === (string) $unidade['id_unidade'] ? 'selected' : '' ?>
                         >
 
                             <?= htmlspecialchars(
@@ -722,11 +735,12 @@ $stmtUnidades->close();
 
 
             <div id="produtos-container">
+                <?php foreach ($linhasFormulario as $indice => $linhaFormulario): ?>
 
                 <div class="produto-item">
 
                     <select
-                        name="produtos[0][produto_id]"
+                        name="produtos[<?= $indice ?>][produto_id]"
                         class="select-produto"
                         required
                     >
@@ -741,6 +755,7 @@ $stmtUnidades->close();
                             <option
                                 value="<?= (int) $produto['id_produto'] ?>"
                                 data-estoque="<?= (int) $produto['estoque'] ?>"
+                                <?= $linhaFormulario['produto_id'] === (string) $produto['id_produto'] ? 'selected' : '' ?>
                             >
 
                                 <?= htmlspecialchars(
@@ -768,7 +783,8 @@ $stmtUnidades->close();
 
                     <input
                         type="number"
-                        name="produtos[0][quantidade]"
+                        name="produtos[<?= $indice ?>][quantidade]"
+                        value="<?= htmlspecialchars($linhaFormulario['quantidade'], ENT_QUOTES, 'UTF-8') ?>"
                         min="1"
                         placeholder="Quantidade"
                         required
@@ -787,6 +803,7 @@ $stmtUnidades->close();
                     <div class="produto-item__info"></div>
 
                 </div>
+                <?php endforeach; ?>
 
             </div>
 
@@ -821,7 +838,8 @@ $stmtUnidades->close();
                     id="observacao"
                     rows="4"
                     placeholder="Observação sobre o lançamento..."
-                ></textarea>
+                    <?= $modoFormulario === 'passada' ? 'required' : '' ?>
+                ><?= htmlspecialchars(campoLancamento('observacao'), ENT_QUOTES, 'UTF-8') ?></textarea>
 
                 <small id="observacao-ajuda">
                     Opcional quando o lançamento for realizado agora.
@@ -849,7 +867,7 @@ $stmtUnidades->close();
 
 <script>
 
-let contadorProdutos = 1;
+let contadorProdutos = <?= count($linhasFormulario) ?>;
 
 let tipoLancamentoConcluido =
     <?= json_encode(
@@ -858,31 +876,18 @@ let tipoLancamentoConcluido =
     ) ?>;
 
 
-function obterDataHoraAtual()
-{
-    const agora = new Date();
-
-    const ano = agora.getFullYear();
-
-    const mes = String(
-        agora.getMonth() + 1
-    ).padStart(2, '0');
-
-    const dia = String(
-        agora.getDate()
-    ).padStart(2, '0');
-
-    const hora = String(
-        agora.getHours()
-    ).padStart(2, '0');
-
-    const minuto = String(
-        agora.getMinutes()
-    ).padStart(2, '0');
-
-    return `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+// Relógio inicial do servidor + tempo decorrido: independe do fuso/relógio do navegador.
+const instanteServidor = <?= (int) floor(microtime(true) * 1000) ?>;
+const inicioRelogio = performance.now();
+function obterDataHoraAtual() {
+    const agora = new Date(instanteServidor + performance.now() - inicioRelogio);
+    const partes = new Intl.DateTimeFormat('en-CA', {
+        timeZone: <?= json_encode(FUSO_HORARIO_SISTEMA, JSON_THROW_ON_ERROR) ?>, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(agora);
+    const p = Object.fromEntries(partes.map(item => [item.type, item.value]));
+    return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
-
 
 function atualizarLimiteData()
 {
@@ -1185,7 +1190,7 @@ function alterarTipo()
 
         selectUnidade.disabled = false;
 
-        selectUnidade.value = "";
+        if (selectUnidade.selectedOptions[0]?.dataset.secretaria === 'true') selectUnidade.value = "";
 
 
         opcoesUnidade.forEach(
@@ -1754,18 +1759,7 @@ function validarTodosProdutos()
 
         } else {
 
-            const escolhida =
-                new Date(
-                    dataHora.value
-                );
-
-            const agora =
-                new Date();
-
-
-            if (
-                escolhida >= agora
-            ) {
+            if (dataHora.value > obterDataHoraAtual()) {
 
                 formValido = false;
 
@@ -1860,6 +1854,7 @@ function adicionarProduto()
         ).innerHTML;
 
 
+    div.querySelector('.select-produto').selectedIndex = 0;
     container.appendChild(
         div
     );

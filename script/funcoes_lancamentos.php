@@ -1,36 +1,40 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/configuracao.php';
 
 require_once __DIR__ . '/funcoes_logs.php';
 
 
-function validarDataLancamento(?string $dataHora): ?string
+function validarDataLancamento(?string $dataHora, ?DateTimeImmutable $agora = null): ?string
 {
     if ($dataHora === null || trim($dataHora) === '') {
         return null;
     }
 
     $dataHora = trim($dataHora);
+    if (!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$/D', $dataHora) || (int) substr($dataHora, 0, 4) < 1000) {
+        throw new DomainException('A data do lançamento é inválida.');
+    }
 
     $data = DateTimeImmutable::createFromFormat(
-        'Y-m-d\TH:i',
+        '!Y-m-d\TH:i',
         $dataHora,
-        new DateTimeZone('America/Sao_Paulo')
+        new DateTimeZone(FUSO_HORARIO_SISTEMA)
     );
 
     $erros = DateTimeImmutable::getLastErrors();
 
     if (
-        $data === false ||
+        $data === false || $data->format('Y-m-d\TH:i') !== $dataHora ||
         ($erros !== false && ($erros['warning_count'] > 0 || $erros['error_count'] > 0))
     ) {
         throw new DomainException('A data do lançamento é inválida.');
     }
 
-    $agora = new DateTimeImmutable(
+    $agora ??= new DateTimeImmutable(
         'now',
-        new DateTimeZone('America/Sao_Paulo')
+        new DateTimeZone(FUSO_HORARIO_SISTEMA)
     );
 
     if ($data >= $agora) {

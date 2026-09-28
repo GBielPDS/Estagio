@@ -37,6 +37,7 @@ function buscarHistorico(
                 m.id_movimentacao,
                 m.tipo,
                 m.data_hora,
+                m.cadastrado_em,
                 m.observacao,
                 i.quantidade,
                 p.nome AS produto,

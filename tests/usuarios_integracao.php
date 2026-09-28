@@ -92,6 +92,25 @@ try {
     conferir(!isset($_SESSION['confirmacoes_identidade']['redefinir_senha']), 'autorização consumida após redefinição');
     $_SESSION = ['id_usuario'=>$comum, 'versao_sessao'=>2];
     conferir(!mudarSenhaUsuario($conn, $apoio, 'Nova12345!', 'Nova123456!', 'Nova123456!', false)['sucesso'], 'usuário comum não redefine terceiros');
+    configurarHorarioBanco($conn);
+    conferir(date_default_timezone_get() === 'America/Bahia', 'fuso central da Bahia');
+    $relogio = $conn->query("SELECT NOW() AS agora, @@session.time_zone AS fuso")->fetch_assoc();
+    conferir($relogio['fuso'] === '-03:00' && abs(strtotime($relogio['agora']) - time()) <= 2, 'PHP e banco usam o mesmo horário');
+    $referencia = new DateTimeImmutable('2026-09-28 00:00:00', new DateTimeZone(FUSO_HORARIO_SISTEMA));
+    conferir(validarDataLancamento('2026-09-27T23:59', $referencia) === '2026-09-27 23:59:00', 'virada de dia e segundos zerados');
+    foreach (['2026-09-28T00:01', '2026-09-28T00:00', '2026-02-30T10:00', '2026-09-27T24:01', '2026-9-27T10:00', '2026-09-27T10:00:30'] as $dataInvalida) {
+        try { validarDataLancamento($dataInvalida, $referencia); $recusada = false; }
+        catch (DomainException $e) { $recusada = true; }
+        conferir($recusada, 'rejeita data inválida/futura: ' . $dataInvalida);
+    }
+    $saldoAntes = (int) $conn->query('SELECT estoque FROM produto WHERE id_produto=1')->fetch_row()[0];
+    conferir(!lancamentoEntrada($conn, [['produto_id'=>1,'quantidade'=>1]], 1, '', $comum, '2026-09-01T12:00')['sucesso'], 'retroativo exige observação no serviço');
+    conferir(!lancamentoSaida($conn, [['produto_id'=>1,'quantidade'=>1]], 2, 'Motivo', $comum, '2099-01-01T12:00')['sucesso'], 'saída futura recusada no serviço');
+    conferir((int) $conn->query('SELECT estoque FROM produto WHERE id_produto=1')->fetch_row()[0] === $saldoAntes, 'falhas de data preservam saldo');
+    $retro = lancamentoEntrada($conn, [['produto_id'=>1,'quantidade'=>1]], 1, 'Registro atrasado', $comum, '2026-09-01T12:00');
+    conferir($retro['sucesso'], 'entrada retroativa aceita');
+    $registro = $conn->query('SELECT data_hora,cadastrado_em FROM movimentacao WHERE id_movimentacao=' . (int) $retro['id'])->fetch_assoc();
+    conferir($registro['data_hora'] === '2026-09-01 12:00:00' && abs(strtotime($registro['cadastrado_em']) - time()) <= 2, 'ocorrência separada do cadastro automático');
     echo "$total verificações aprovadas.\n";
 } finally {
     // Exclusivamente o banco temporário criado por este processo.

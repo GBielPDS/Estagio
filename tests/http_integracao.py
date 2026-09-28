@@ -314,6 +314,40 @@ try:
                 assert re.search(r'name="csrf" value="([a-f0-9]+)"', form)
                 admin.request('pages/unidades.php', {'csrf':unit_token,'reativar_id':uid})
                 assert '"sucesso":true' in admin.request('pages/lancamentos.php', movement)[1]
+                # Migração em tabela com registros: legado não recebe data fictícia.
+                old_dates = sql('SELECT id_movimentacao,data_hora FROM movimentacao ORDER BY id_movimentacao', DB)
+                sql('ALTER TABLE movimentacao DROP COLUMN cadastrado_em', DB)
+                assert 'Banco atualizado' in administer('migrar')
+                assert 'Banco atualizado' in administer('migrar')
+                assert sql('SELECT id_movimentacao,data_hora FROM movimentacao ORDER BY id_movimentacao', DB) == old_dates
+                assert sql('SELECT COUNT(*) FROM movimentacao WHERE cadastrado_em IS NOT NULL', DB).strip() == '0'
+                amount = sql(f'SELECT estoque FROM produto WHERE id_produto={pid}', DB)
+                for date, mode, reason in [('2099-01-01T12:00','passada','Teste'),('2026-02-30T12:00','passada','Teste'),('2026-09-01T12:00','passada',''),('','invalido','Teste')]:
+                    payload = dict(movement, modo_data=mode, data_hora=date, observacao=reason)
+                    assert '"sucesso":false' in admin.request('pages/lancamentos.php', payload)[1]
+                    assert sql(f'SELECT estoque FROM produto WHERE id_produto={pid}', DB) == amount
+                # HTML sem AJAX preserva linhas, observação, unidade e escolha da data.
+                payload = dict(movement, modo_data='passada', data_hora='2099-01-01T12:00', observacao='Preservar motivo <teste>')
+                del payload['ajax']
+                payload.update({'produtos[1][produto_id]':pid,'produtos[1][quantidade]':1})
+                html = admin.request('pages/lancamentos.php', payload)[1]
+                assert 'Preservar motivo &lt;teste&gt;' in html
+                assert 'value="2099-01-01T12:00"' in html and 'name="produtos[1][quantidade]"' in html
+                assert re.search(r'value="passada"\s+checked',html)
+                assert re.search(r'value="'+str(uid)+r'"\s+data-secretaria="false"\s+selected',html)
+                assert '"sucesso":true' in admin.request('pages/lancamentos.php',dict(movement,modo_data='passada',data_hora='2026-09-01T12:00',observacao='Entrega anterior',cadastrado_em='1990-01-01 00:00:00'))[1]
+                saved = sql('SELECT data_hora,cadastrado_em FROM movimentacao ORDER BY id_movimentacao DESC LIMIT 1', DB).strip().split('\t')
+                assert saved[0]=='2026-09-01 12:00:00' and saved[1] not in ['NULL','1990-01-01 00:00:00']
+                history = admin.request('pages/historico.php?data_inicio=2026-09-01&data_fim=2026-09-01')[1]
+                assert 'Entrega anterior' in history and 'Data do cadastro' in history
+                assert 'Entrega anterior' not in admin.request('pages/historico.php?data_inicio=2099-01-01')[1]
+                assert 'registro anterior' in admin.request('pages/historico.php')[1]
+                # Sintaxe do JavaScript realmente renderizado pelo PHP.
+                js = re.findall(r'<script>(.*?)</script>',html,re.S)
+                jsfile = Path(temp)/'lancamentos.js'
+                jsfile.write_text('\n'.join(js),encoding='utf-8')
+                subprocess.run(['node','--check',str(jsfile)],check=True,capture_output=True)
+                print('Datas: migração preserva legado, validação, formulário, cadastro automático e histórico aprovados.')
                 count = sql(f'SELECT COUNT(*) FROM movimentacao WHERE unidade_destino_id={uid}', DB).strip()
                 admin.request('pages/unidades.php', {'csrf':unit_token,'desativar_id':uid})
                 assert sql(f'SELECT COUNT(*) FROM movimentacao WHERE unidade_destino_id={uid}', DB).strip() == count

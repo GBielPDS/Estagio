@@ -480,3 +480,18 @@ Os testes HTTP incluem redirecionamento, mensagens isoladas por página/conta, r
 “Consulta de e-mail” e “Acesso ao histórico de autenticação” aparecem somente nos logs comuns, acessíveis a Administrador e Suporte. Esta regra substitui as descrições anteriores que colocavam esses dois eventos no histórico protegido. A mudança é no filtro de consulta: registros existentes não são alterados nem apagados.
 
 Login, Logout, o evento legado “Acesso ao histórico de login”, confirmações de identidade, tentativas recusadas/bloqueadas e correções de e-mail continuam na listagem protegida. A permissão de consultar o e-mail completo e o histórico de autenticação continua exclusiva do administrador com confirmação de identidade. O evento de acesso ao histórico registra a liberação da janela de cinco minutos, não cada visita/filtro.
+
+
+## Atualização da proteção do login (28/09/2026)
+
+Login agora usa janela móvel de quinze minutos (5 falhas por e-mail, 10 por IP), bloqueio fixo de quinze minutos, contadores persistentes com transação e controle de concorrência. Sucesso preserva as falhas recentes da origem. É necessário executar `php bd/administrar.php migrar`, que integra as migrações 003 e 004; instalações novas recebem a estrutura pelo SQL de criação. A migração preserva dados de negócio, mas a nova janela não utiliza bloqueios legados sem histórico individual. Veja comportamento, limitações, atualização e testes em [ATUALIZACAO_SEGURANCA.md](ATUALIZACAO_SEGURANCA.md#proteção-do-login---janela-móvel-e-concorrência-28092026). Novo teste: `tests/login_integracao.py`. A configuração de fuso do restante do projeto, CAPTCHA e criptografia não fazem parte desta entrega.
+
+
+## Login com CAPTCHA: fluxo compartilhado
+
+`pages/login_com_recaptcha.php` reutiliza integralmente `pages/login.php`. `autenticarLogin()` exige a validação global configurada em `script/captcha.php` antes da autenticação. Configuração por ambiente (`GESTSAUDE_RECAPTCHA_ATIVO`, `GESTSAUDE_RECAPTCHA_SITE_KEY`, `GESTSAUDE_RECAPTCHA_SECRET_KEY`, `GESTSAUDE_RECAPTCHA_HOSTNAMES`); desativado por padrão. Quando ativo, ambos os endereços exigem reCAPTCHA v2 e compartilham contadores/sessão/auditoria. Sem configuração válida ou serviço disponível, não autentica. Nenhuma migração nova. Consulte detalhes e limites em ATUALIZACAO_SEGURANCA.md, seção “Login unificado e reCAPTCHA v2 opcional”. Testes simulados e HTTP em `tests/login_integracao.py`; integração real aguarda as credenciais institucionais.
+
+
+## Horários e cadastro das movimentações
+
+A configuração compartilhada `script/configuracao.php` usa America/Bahia no PHP e define o deslocamento correspondente em cada conexão MySQL. `movimentacao.cadastrado_em` foi acrescentado para separar a ocorrência (`data_hora`) do momento automático de inserção. A migração 005 preserva NULL nos registros antigos e configura o valor padrão para novos registros, incluindo ajustes e saldos iniciais. O histórico exibe ambas as datas, mantendo filtros pela ocorrência e permissões existentes. Datas retroativas exigem observação, formatos estritos e validação no servidor; segundos são zerados. Executar `php bd/administrar.php migrar` ao atualizar um banco existente. Detalhes e limites na seção “Parte 2 - horários e datas de movimentações” de ATUALIZACAO_SEGURANCA.md.

@@ -128,7 +128,7 @@ if ($resultadoHistorico) {
             </div>
 
             <div class="campo campo--filtro-categoria">
-                <label class="campo__rotulo" for="filtro-data-inicio">De</label>
+                <label class="campo__rotulo" for="filtro-data-inicio">Movimentação: de</label>
                 <input
                     class="campo__controle"
                     type="date"
@@ -139,7 +139,7 @@ if ($resultadoHistorico) {
             </div>
 
             <div class="campo campo--filtro-categoria">
-                <label class="campo__rotulo" for="filtro-data-fim">Até</label>
+                <label class="campo__rotulo" for="filtro-data-fim">Movimentação: até</label>
                 <input
                     class="campo__controle"
                     type="date"
@@ -204,16 +204,17 @@ if ($resultadoHistorico) {
 const dadosHistorico = [
     <?php foreach ($historico as $registro): ?>
     [
-        <?= json_encode((int) $registro['id_movimentacao'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) $registro['tipo'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) $registro['produto'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) $registro['categoria'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((int) $registro['quantidade'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) $registro['unidade_medida'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) ($registro['unidade_saude'] ?? 'Sem destino — saldo inicial/ajuste'), JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) $registro['usuario'], JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode(date('d/m/Y H:i', strtotime((string) $registro['data_hora'])), JSON_THROW_ON_ERROR) ?>,
-        <?= json_encode((string) ($registro['observacao'] ?? ''), JSON_THROW_ON_ERROR) ?>
+        <?= json_encode((int) $registro['id_movimentacao'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) $registro['tipo'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) $registro['produto'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) $registro['categoria'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((int) $registro['quantidade'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) $registro['unidade_medida'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) ($registro['unidade_saude'] ?? 'Sem destino — saldo inicial/ajuste'), JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) $registro['usuario'], JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode(date('d/m/Y H:i', strtotime((string) $registro['data_hora'])), JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode($registro['cadastrado_em'] === null ? 'Não informado (registro anterior)' : date('d/m/Y H:i', strtotime($registro['cadastrado_em'])), JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+        <?= json_encode((string) ($registro['observacao'] ?? ''), JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
     ],
     <?php endforeach; ?>
 ];
@@ -239,7 +240,8 @@ new gridjs.Grid({
         "Unidade",
         "Unidade de Saúde",
         "Usuário",
-        "Data/Hora",
+        "Data da movimentação",
+        "Data do cadastro",
         "Observação"
     ],
     data: dadosHistorico,
