@@ -1,0 +1,4 @@
+# Nunca servir configurações locais, exemplos ou cópias de segurança de .env.
+<FilesMatch "(?i)^\.env">
+    Require all denied
+</FilesMatch>

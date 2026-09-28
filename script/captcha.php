@@ -1,13 +1,14 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/ambiente.php';
 
 function configuracaoRecaptcha(): array
 {
-    $modo = strtolower(trim((string) getenv('GESTSAUDE_RECAPTCHA_ATIVO')));
+    $modo = strtolower(trim((string) valorConfiguracao('GESTSAUDE_RECAPTCHA_ATIVO')));
     $ativo = !in_array($modo, ['', '0', 'false', 'off'], true);
-    $site = trim((string) getenv('GESTSAUDE_RECAPTCHA_SITE_KEY'));
-    $secret = trim((string) getenv('GESTSAUDE_RECAPTCHA_SECRET_KEY'));
-    $hosts = array_values(array_filter(array_map('trim', explode(',', strtolower((string) getenv('GESTSAUDE_RECAPTCHA_HOSTNAMES'))))));
+    $site = trim((string) valorConfiguracao('GESTSAUDE_RECAPTCHA_SITE_KEY'));
+    $secret = trim((string) valorConfiguracao('GESTSAUDE_RECAPTCHA_SECRET_KEY'));
+    $hosts = array_values(array_filter(array_map('trim', explode(',', strtolower((string) valorConfiguracao('GESTSAUDE_RECAPTCHA_HOSTNAMES'))))));
     $valida = in_array($modo, ['1','true','on'], true) && $site !== '' && $secret !== '' && $hosts !== []
         && $site !== 'SUA_SITE_KEY' && $secret !== 'SUA_SECRET_KEY';
     return ['ativo'=>$ativo, 'valida'=>$valida, 'site'=>$site, 'secret'=>$secret, 'hosts'=>$hosts];
