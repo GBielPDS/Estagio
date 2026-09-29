@@ -1,1 +1,6 @@
 /ESTAGIO2
+
+.env
+.env.*
+!.env.example
+/vendor/
