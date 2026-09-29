@@ -56,13 +56,13 @@ function sidebar(string $paginaAtiva = ''): void
             </a>
 
             <nav class="nav" aria-label="Módulos do estoque">
-                <a class="nav__item" href="' . BASE_URL . 'pages/cadastrar_produto.php"' . $ativo('cadastrar-produto') . '>' . $icone('cadastro') . 'Cadastro</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Entrada"' . $ativo('lancamentos') . '>' . $icone('entrada') . 'Entrada</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/lancamentos.php?tipo=Saida"' . $ativo('saida') . '>' . $icone('saida') . 'Saída</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/produtos.php"' . $ativo('produtos') . '>' . $icone('produtos') . 'Produtos</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/historico.php"' . $ativo('historico') . '>' . $icone('historico') . 'Histórico</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/estoque.php"' . $ativo('estoque') . '>' . $icone('estoque') . 'Estoque</a>
-                <a class="nav__item" href="' . BASE_URL . 'pages/graficos.php"' . $ativo('graficos') . '>' . $icone('graficos') . 'Gráficos</a>';
+                <a class="nav__item" href="' . PAGINAS_URL . 'cadastrar_produto.php"' . $ativo('cadastrar-produto') . '>' . $icone('cadastro') . 'Cadastro</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'lancamentos.php?tipo=Entrada"' . $ativo('lancamentos') . '>' . $icone('entrada') . 'Entrada</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'lancamentos.php?tipo=Saida"' . $ativo('saida') . '>' . $icone('saida') . 'Saída</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'produtos.php"' . $ativo('produtos') . '>' . $icone('produtos') . 'Produtos</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'historico.php"' . $ativo('historico') . '>' . $icone('historico') . 'Histórico</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'estoque.php"' . $ativo('estoque') . '>' . $icone('estoque') . 'Estoque</a>
+                <a class="nav__item" href="' . PAGINAS_URL . 'graficos.php"' . $ativo('graficos') . '>' . $icone('graficos') . 'Gráficos</a>';
 
     echo '
             </nav>
@@ -70,14 +70,14 @@ function sidebar(string $paginaAtiva = ''): void
             <div class="user-menu">
                 <span class="avatar avatar--iniciais" aria-label="Abrir menu do perfil">' . htmlspecialchars($iniciais, ENT_QUOTES, 'UTF-8') . '</span>
                 <div class="dropdown-content">
-                    <a href="' . BASE_URL . 'pages/perfil.php">Meu Perfil</a>
-                    <a class="dropdown-notificacao" href="' . BASE_URL . 'pages/alertas.php">Notificações <span class="notificacao-contador">' . $totalAlertas . '</span></a>';
+                    <a href="' . PAGINAS_URL . 'perfil.php">Meu Perfil</a>
+                    <a class="dropdown-notificacao" href="' . PAGINAS_URL . 'alertas.php">Notificações <span class="notificacao-contador">' . $totalAlertas . '</span></a>';
 
     if (podeGerenciarCadastros($tipo)) {
         echo '
-                    <a href="' . BASE_URL . 'pages/unidades.php"' . $ativo('unidades') . '>Unidades de Saúde</a>
-                    <a href="' . BASE_URL . 'pages/usuarios.php">Usuários</a>
-                    <a href="' . BASE_URL . 'pages/logs.php">Logs</a>';
+                    <a href="' . PAGINAS_URL . 'unidades.php"' . $ativo('unidades') . '>Unidades de Saúde</a>
+                    <a href="' . PAGINAS_URL . 'usuarios.php">Usuários</a>
+                    <a href="' . PAGINAS_URL . 'logs.php">Logs</a>';
     }
 
     echo '

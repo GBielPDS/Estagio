@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-require_once '../script/sessao.php';
-require_once '../script/conexao.php';
-require_once '../script/funcoes_estoque.php';
-require_once '../script/sidebar.php';
+// Compatível com pages/ no desenvolvimento e páginas na raiz da hospedagem.
+$raizAplicacao = is_file(__DIR__ . '/script/configuracao.php') ? __DIR__ : dirname(__DIR__);
+require_once $raizAplicacao . '/script/sessao.php';
+require_once $raizAplicacao . '/script/conexao.php';
+require_once $raizAplicacao . '/script/funcoes_estoque.php';
+require_once $raizAplicacao . '/script/sidebar.php';
 
 verificarSessao();
 
@@ -18,7 +20,7 @@ $alertas = buscarAlertasEstoque($conn);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/style.css">
     <title>Alertas de estoque</title>
 </head>
 
@@ -28,11 +30,11 @@ $alertas = buscarAlertasEstoque($conn);
 
     <header class="topo topo--legado">
         <div class="topo__interno">
-            <a class="marca" href="../index.php">
+            <a class="marca" href="<?= BASE_URL ?>index.php">
                 <span class="marca__texto">GEST<span>SAÚDE</span></span>
             </a>
             <nav class="nav" aria-label="Módulos do estoque">
-                <a class="nav__item" href="../index.php">Início</a>
+                <a class="nav__item" href="<?= BASE_URL ?>index.php">Início</a>
                 <a class="nav__item" href="lancamentos.php">Lançamentos</a>
                 <a class="nav__item" href="produtos.php">Produtos</a>
                 <a class="nav__item" href="estoque.php">Estoque</a>

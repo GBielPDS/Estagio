@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
-require_once '../script/sessao.php';
-require_once '../script/conexao.php';
-require_once '../script/funcoes_logs.php';
-require_once '../script/funcoes_login.php';
+// Compatível com pages/ no desenvolvimento e páginas na raiz da hospedagem.
+$raizAplicacao = is_file(__DIR__ . '/script/configuracao.php') ? __DIR__ : dirname(__DIR__);
+require_once $raizAplicacao . '/script/sessao.php';
+require_once $raizAplicacao . '/script/conexao.php';
+require_once $raizAplicacao . '/script/funcoes_logs.php';
+require_once $raizAplicacao . '/script/funcoes_login.php';
 
 header('Cache-Control: no-store, private, max-age=0');
 $captchaConfig = configuracaoRecaptcha();
@@ -82,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <link
     rel="stylesheet"
-    href="../css/style.css"
+    href="<?= BASE_URL ?>css/style.css"
 >
 
 <?php if ($captchaConfig['ativo'] && $captchaConfig['valida']): ?>
@@ -97,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="logo">
 
         <img
-            src="../gestsaude-logo.svg"
+            src="<?= BASE_URL ?>gestsaude-logo.svg"
             alt="Logo GestSaúde"
         >
 
@@ -193,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 <script
-    src="../script/senhas.js"
+    src="<?= BASE_URL ?>script/senhas.js"
     defer
 ></script>
 

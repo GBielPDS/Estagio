@@ -29,5 +29,5 @@ try {
 
 encerrarSessao();
 
-header('Location: ' . BASE_URL . 'pages/login.php');
+header('Location: ' . PAGINAS_URL . 'login.php');
 exit;

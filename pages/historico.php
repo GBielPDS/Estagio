@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-require_once "../script/sessao.php";
-require_once "../script/conexao.php";
-require_once "../script/funcoes_historico.php";
-require_once "../script/sidebar.php";
+// Compatível com pages/ no desenvolvimento e páginas na raiz da hospedagem.
+$raizAplicacao = is_file(__DIR__ . '/script/configuracao.php') ? __DIR__ : dirname(__DIR__);
+require_once $raizAplicacao . '/script/sessao.php';
+require_once $raizAplicacao . '/script/conexao.php';
+require_once $raizAplicacao . '/script/funcoes_historico.php';
+require_once $raizAplicacao . '/script/sidebar.php';
 
 verificarSessao();
 
@@ -45,7 +47,7 @@ if ($resultadoHistorico) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/style.css" />
     <title>Histórico</title>
 </head>
 <body>
@@ -53,7 +55,7 @@ if ($resultadoHistorico) {
 
     <header class="topo topo--legado">
     <div class="topo__interno">
-      <a class="marca" href="../index.php">
+      <a class="marca" href="<?= BASE_URL ?>index.php">
         <svg class="marca__svg" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
           <defs>
             <linearGradient id="grad-coracao" x1="0" y1="0" x2="1" y2="1">

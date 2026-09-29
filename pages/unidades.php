@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-require_once "../script/sessao.php";
-require_once "../script/conexao.php";
-require_once "../script/funcoes_unidades.php";
-require_once "../script/funcoes_logs.php";
-require_once "../script/sidebar.php";
+// Compatível com pages/ no desenvolvimento e páginas na raiz da hospedagem.
+$raizAplicacao = is_file(__DIR__ . '/script/configuracao.php') ? __DIR__ : dirname(__DIR__);
+require_once $raizAplicacao . '/script/sessao.php';
+require_once $raizAplicacao . '/script/conexao.php';
+require_once $raizAplicacao . '/script/funcoes_unidades.php';
+require_once $raizAplicacao . '/script/funcoes_logs.php';
+require_once $raizAplicacao . '/script/sidebar.php';
 
 verificarSessao();
 verificarTipo(['Administrador', 'Suporte']);
@@ -85,7 +87,7 @@ $totalInativos = contarUnidades(
 
 <link
     rel="stylesheet"
-    href="../css/style.css"
+    href="<?= BASE_URL ?>css/style.css"
 >
 
 <title>Unidades de Saúde</title>
@@ -114,7 +116,7 @@ $totalInativos = contarUnidades(
 
 
     <a
-        href="<?= BASE_URL ?>pages/cadastrar_unidade.php"
+        href="<?= PAGINAS_URL ?>cadastrar_unidade.php"
         class="botao botao--primario"
     >
         Cadastrar unidade

@@ -6,7 +6,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params(['httponly' => true, 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'samesite' => 'Lax']);
     session_start();
 }
-if (!defined('BASE_URL')) define('BASE_URL', '/git/ESTAGIO/');
 function tokenCsrf(): string { return $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); }
 function campoCsrf(): string { return '<input type="hidden" name="csrf" value="' . tokenCsrf() . '">'; }
 function respostaAcesso(int $status, string $mensagem): never {
@@ -46,7 +45,7 @@ function verificarSessao(): void {
     if (!$valida) {
         encerrarSessao();
         if (isset($_POST['ajax'])) respostaAcesso(401, 'Sua sessão terminou. Entre novamente e confira o histórico antes de repetir um lançamento.');
-        header('Location: ' . BASE_URL . 'pages/login.php');
+        header('Location: ' . PAGINAS_URL . 'login.php');
         exit;
     }
 }

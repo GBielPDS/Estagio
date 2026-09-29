@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-require_once '../script/sessao.php';
-require_once '../script/conexao.php';
-require_once '../script/funcoes_usuarios.php';
-require_once '../script/funcoes_logs.php';
-require_once '../script/sidebar.php';
+// Compatível com pages/ no desenvolvimento e páginas na raiz da hospedagem.
+$raizAplicacao = is_file(__DIR__ . '/script/configuracao.php') ? __DIR__ : dirname(__DIR__);
+require_once $raizAplicacao . '/script/sessao.php';
+require_once $raizAplicacao . '/script/conexao.php';
+require_once $raizAplicacao . '/script/funcoes_usuarios.php';
+require_once $raizAplicacao . '/script/funcoes_logs.php';
+require_once $raizAplicacao . '/script/sidebar.php';
 
 header('Cache-Control: no-store, private, max-age=0');
 header('Pragma: no-cache');
@@ -58,7 +60,7 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>css/style.css">
     <title>Meu perfil</title>
 </head>
 
@@ -137,6 +139,6 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
         </section>
     </main>
 
-    <script src="../script/senhas.js" defer></script>
+    <script src="<?= BASE_URL ?>script/senhas.js" defer></script>
 </body>
 </html>

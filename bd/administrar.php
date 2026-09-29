@@ -12,8 +12,11 @@ if (!in_array($comando, ['migrar', 'inicializar'], true)) {
     exit(1);
 }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-require_once __DIR__ . '/../script/conexao.php';
-require_once __DIR__ . '/../script/funcoes_usuarios.php';
+// Local: bd/ ao lado de script/. Hospedagem: bd/ na pasta privada irmã de public_html/.
+$raizPublica = is_file(dirname(__DIR__) . '/script/configuracao.php')
+    ? dirname(__DIR__) : dirname(__DIR__, 2) . '/public_html';
+require_once $raizPublica . '/script/conexao.php';
+require_once $raizPublica . '/script/funcoes_usuarios.php';
 
 function lerInstalacao(string $pergunta): string
 {
