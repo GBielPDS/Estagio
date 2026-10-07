@@ -4,9 +4,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/configuracao.php';
 
 $host = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = getenv("GESTSAUDE_DB") ?: "almoxarifado";
+$usuario = "u821266728_SanitasSacra";
+$senha = "q6h+y@qZBy3>";
+$banco = getenv("GESTSAUDE_DB") ?: "u821266728_schema";
 
 try {
     $conn = new mysqli($host, $usuario, $senha, $banco);

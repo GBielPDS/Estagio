@@ -6,8 +6,18 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-$dotenv = Dotenv::createImmutable(dirname(__DIR__));
-$dotenv->safeLoad();
+$diretoriosPossiveisEnv = [
+    dirname(__DIR__, 2) . '/ARQUIVOS_SENSIVEIS_AQUI',
+    dirname(__DIR__),
+    dirname(__DIR__, 2),
+];
+foreach ($diretoriosPossiveisEnv as $dirEnv) {
+    if (file_exists($dirEnv . '/.env')) {
+        $dotenv = Dotenv::createImmutable($dirEnv);
+        $dotenv->safeLoad();
+        break;
+    }
+}
 
 function configuracaoRecaptcha(): array
 {

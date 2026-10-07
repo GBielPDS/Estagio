@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-require_once "../script/sessao.php";
-require_once "../script/conexao.php";
-require_once "../script/funcoes_lancamentos.php";
-require_once "../script/sidebar.php";
+require_once __DIR__ . '/script/sessao.php';
+require_once __DIR__ . '/script/conexao.php';
+require_once __DIR__ . '/script/funcoes_lancamentos.php';
+require_once __DIR__ . '/script/sidebar.php';
 
 verificarSessao();
 
@@ -411,7 +411,7 @@ $stmtUnidades->close();
 
     <link
         rel="stylesheet"
-        href="../css/style.css"
+        href="/css/style.css"
     >
 
     <title>Lançamentos</title>

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-require_once "../script/sessao.php";
-require_once "../script/conexao.php";
-require_once "../script/funcoes_historico.php";
-require_once "../script/sidebar.php";
+require_once __DIR__ . '/script/sessao.php';
+require_once __DIR__ . '/script/conexao.php';
+require_once __DIR__ . '/script/funcoes_historico.php';
+require_once __DIR__ . '/script/sidebar.php';
 
 verificarSessao();
 
@@ -45,7 +45,7 @@ if ($resultadoHistorico) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="/css/style.css" />
     <title>Histórico</title>
 </head>
 <body>
@@ -53,7 +53,7 @@ if ($resultadoHistorico) {
 
     <header class="topo topo--legado">
     <div class="topo__interno">
-      <a class="marca" href="../index.php">
+      <a class="marca" href="/index.php">
         <svg class="marca__svg" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
           <defs>
             <linearGradient id="grad-coracao" x1="0" y1="0" x2="1" y2="1">

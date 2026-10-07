@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-require_once '../script/sessao.php';
-require_once '../script/conexao.php';
-require_once '../script/funcoes_usuarios.php';
-require_once '../script/funcoes_logs.php';
-require_once '../script/sidebar.php';
+require_once __DIR__ . '/script/sessao.php';
+require_once __DIR__ . '/script/conexao.php';
+require_once __DIR__ . '/script/funcoes_usuarios.php';
+require_once __DIR__ . '/script/funcoes_logs.php';
+require_once __DIR__ . '/script/sidebar.php';
 
 header('Cache-Control: no-store, private, max-age=0');
 header('Pragma: no-cache');
@@ -58,7 +58,7 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <title>Meu perfil</title>
 </head>
 
@@ -137,6 +137,6 @@ $inicial = strtoupper(substr($nomeAtual !== '' ? $nomeAtual : '?', 0, 1));
         </section>
     </main>
 
-    <script src="../script/senhas.js" defer></script>
+    <script src="/script/senhas.js" defer></script>
 </body>
 </html>

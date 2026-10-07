@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-require_once "../script/sessao.php";
-require_once "../script/conexao.php";
-require_once "../script/funcoes_usuarios.php";
-require_once "../script/funcoes_logs.php";
-require_once "../script/sidebar.php";
+require_once __DIR__ . '/script/sessao.php';
+require_once __DIR__ . '/script/conexao.php';
+require_once __DIR__ . '/script/funcoes_usuarios.php';
+require_once __DIR__ . '/script/funcoes_logs.php';
+require_once __DIR__ . '/script/sidebar.php';
 
 header('Cache-Control: no-store, private, max-age=0');
 header('Pragma: no-cache');
@@ -37,7 +37,7 @@ $totalInativos = contarUsuarios($conn, 'inativos');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <title>Usuários</title>
 </head>
 <body>
@@ -52,7 +52,7 @@ $totalInativos = contarUsuarios($conn, 'inativos');
                 <p class="cabecalho-pagina__descricao">Gerencie os usuários e permissões do sistema.</p>
             </div>
             <?php if ($_SESSION['tipo'] === 'Administrador'): ?>
-            <a href="<?= BASE_URL ?>pages/cadastrar_usuario.php" class="botao botao--primario">
+            <a href="<?= BASE_URL ?>cadastrar_usuario.php" class="botao botao--primario">
                 Cadastrar usuário
             </a>
             <?php endif; ?>

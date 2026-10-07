@@ -12,8 +12,29 @@ if (!in_array($comando, ['migrar', 'inicializar'], true)) {
     exit(1);
 }
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-require_once __DIR__ . '/../script/conexao.php';
-require_once __DIR__ . '/../script/funcoes_usuarios.php';
+
+$possiveisCaminhosScript = [
+    __DIR__ . '/../public_html/script',
+    dirname(__DIR__, 2) . '/public_html/script',
+    __DIR__ . '/../script',
+    __DIR__ . '/script',
+];
+
+$caminhoScript = null;
+foreach ($possiveisCaminhosScript as $candidato) {
+    if (is_dir($candidato)) {
+        $caminhoScript = $candidato;
+        break;
+    }
+}
+
+if ($caminhoScript === null) {
+    fwrite(STDERR, "Erro: Diretório de scripts não encontrado.\n");
+    exit(1);
+}
+
+require_once $caminhoScript . '/conexao.php';
+require_once $caminhoScript . '/funcoes_usuarios.php';
 
 function lerInstalacao(string $pergunta): string
 {
@@ -95,9 +116,14 @@ try {
         $conn->query("INSERT INTO unidade_saude(nome) VALUES ('Secretaria de Saúde') ON DUPLICATE KEY UPDATE nome=nome");
         $conn->query("INSERT INTO categoria(nome) VALUES ('Cozinha'),('Limpeza'),('Higiene'),('Escritório'),('Papelaria'),('EPI') ON DUPLICATE KEY UPDATE nome=nome");
         if ($importar) {
-            // Apenas o INSERT de produtos do catálogo versionado. Nunca executar USE, DDL ou SQL recebido do usuário.
-            $catalogo = file_get_contents(__DIR__ . '/inserir-produtos.sql');
-            if ($catalogo === false || !preg_match('/\A\s*USE almoxarifado;\s*INSERT IGNORE INTO categoria \(nome\) VALUES[^;]+;\s*(INSERT INTO produto \(nome, unidade, estoque, estoque_minimo, categoria_id\) VALUES[^;]+);\s*\z/s', $catalogo, $partes)) {
+            $catalogoPath = file_exists(__DIR__ . '/inserir-produtos.sql')
+                ? __DIR__ . '/inserir-produtos.sql'
+                : (file_exists(__DIR__ . '/inserir_produtos.sql') ? __DIR__ . '/inserir_produtos.sql' : null);
+            if ($catalogoPath === null) {
+                throw new DomainException('Arquivo de catálogo inserir-produtos.sql não encontrado. Instalação cancelada.');
+            }
+            $catalogo = file_get_contents($catalogoPath);
+            if ($catalogo === false || !preg_match('/\A\s*(?:USE\s+[\w`]+;\s*)?(?:INSERT IGNORE INTO categoria \(nome\) VALUES[^;]+;\s*)?(INSERT INTO produto \(nome, unidade, estoque, estoque_minimo, categoria_id\) VALUES[^;]+);\s*\z/s', $catalogo, $partes)) {
                 throw new DomainException('Formato do catálogo não reconhecido. Instalação cancelada.');
             }
             $conn->query($partes[1]);
